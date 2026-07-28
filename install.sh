@@ -224,16 +224,27 @@ get_agent_files() {
 }
 
 # ---------------------------------------------------------------------------
-# Gitignore entries for consumer projects (not versioned)
+# Gitignore entries for consumer projects
+#
+# No Spine directory is gitignored by default. .spine/ (rsync mode, real dir),
+# .agents/ (relative symlinks), .cursor/, .claude/, and .opencode/ are all
+# versionable and committed. Only the host-specific canonical-source marker
+# is ignored.
+#
+# Previously ignored; strip on install/update so existing consumer repos can
+# commit all Spine directories.
 # ---------------------------------------------------------------------------
 
 PROJECT_GITIGNORE_ENTRIES=(
-    ".spine"
-    ".agents/"
+    ".spine/.spine-canonical-source"
+)
+
+PROJECT_GITIGNORE_REMOVE_ENTRIES=(
     ".cursor/"
     ".claude/"
     ".opencode/"
-    "AGENTS-original.md"
+    ".spine"
+    ".agents/"
 )
 
 # ---------------------------------------------------------------------------
@@ -618,7 +629,7 @@ add_gitignore_entries() {
         if $DRY_RUN; then
             echo "  [DRY-RUN] Would create .gitignore with Spine entries"
         else
-            printf "# Spine agent configuration (machine-specific)\n" > "$gitignore"
+            printf "# Spine directories are versioned (committed to git)\n" > "$gitignore"
             local entry
             for entry in "${PROJECT_GITIGNORE_ENTRIES[@]}"; do
                 printf "%s\n" "$entry" >> "$gitignore"
@@ -626,6 +637,42 @@ add_gitignore_entries() {
             log_linked ".gitignore (created with Spine entries)"
         fi
         return 0
+    fi
+
+    # Drop obsolete IDE ignores so .cursor/.claude/.opencode can be committed.
+    local remove_entry removed=0
+    local tmp=""
+    local needs_strip=false
+    for remove_entry in "${PROJECT_GITIGNORE_REMOVE_ENTRIES[@]}"; do
+        if grep -qxF "$remove_entry" "$gitignore" 2>/dev/null; then
+            needs_strip=true
+            break
+        fi
+    done
+    if $needs_strip; then
+        if $DRY_RUN; then
+            for remove_entry in "${PROJECT_GITIGNORE_REMOVE_ENTRIES[@]}"; do
+                if grep -qxF "$remove_entry" "$gitignore" 2>/dev/null; then
+                    echo "  [DRY-RUN] Would remove ignore entry: $remove_entry"
+                    removed=$((removed + 1))
+                fi
+            done
+        else
+            tmp="$(mktemp)"
+            while IFS= read -r line || [[ -n "$line" ]]; do
+                local drop=false
+                for remove_entry in "${PROJECT_GITIGNORE_REMOVE_ENTRIES[@]}"; do
+                    if [[ "$line" == "$remove_entry" ]]; then
+                        drop=true
+                        removed=$((removed + 1))
+                        log_linked ".gitignore: -$remove_entry (IDE trees are versionable)"
+                        break
+                    fi
+                done
+                $drop || printf '%s\n' "$line" >> "$tmp"
+            done < "$gitignore"
+            mv "$tmp" "$gitignore"
+        fi
     fi
 
     local entry added=0
@@ -643,8 +690,8 @@ add_gitignore_entries() {
         fi
     done
 
-    if [[ $added -gt 0 ]] && ! $DRY_RUN; then
-        log_info "$added gitignore entries added"
+    if [[ $added -gt 0 || $removed -gt 0 ]] && ! $DRY_RUN; then
+        log_info "$added gitignore entries added, $removed obsolete IDE ignores removed"
     fi
 }
 
