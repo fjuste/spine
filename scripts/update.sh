@@ -20,15 +20,15 @@ for arg in "$@"; do
             cat <<'EOF'
 Usage: bash .spine/scripts/update.sh [OPTIONS]
 
-Updates a consumer project that already uses Spine:
-1) Pull latest Spine repo via .spine symlink (optional)
+Updates a consumer project that already uses Spine (symlink or rsync mode):
+1) Pull latest Spine: git pull via symlink, or pull canonical + rsync .spine/
 2) Reconcile project symlinks via install.sh --update --force
 3) Sync opencode.json with current template (merge by default)
 4) Preserve docs/ memory bank
 
 Options:
   --dry-run            Preview actions without making changes
-  --no-pull            Skip git pull on .spine repository
+  --no-pull            Skip git pull / rsync step
   --replace-opencode   Replace opencode.json with template (default is merge)
   --with-graphify      Also run optional Graphify project setup
    --graphify-init      Also build initial graph (implies --with-graphify)
@@ -50,21 +50,27 @@ if [[ -z "$PROJECT_ROOT" ]]; then
     exit 1
 fi
 
-SPINE_LINK="$PROJECT_ROOT/.spine"
-if [[ ! -L "$SPINE_LINK" ]]; then
-    echo "ERROR: .spine symlink not found in project root: $PROJECT_ROOT" >&2
-    echo "Run: bash <path-to-spine>/scripts/link-spine.sh" >&2
-    echo "Then: bash .spine/install.sh" >&2
+SPINE_PATH="$PROJECT_ROOT/.spine"
+
+if [[ -L "$SPINE_PATH" ]]; then
+    SPINE_MODE="symlink"
+    SPINE_DIR="$(cd "$SPINE_PATH" && pwd)"
+elif [[ -d "$SPINE_PATH" ]]; then
+    SPINE_MODE="rsync"
+    SPINE_DIR="$(cd "$SPINE_PATH" && pwd)"
+else
+    echo "ERROR: .spine not found in project root: $PROJECT_ROOT" >&2
+    echo "Run: bash <path-to-spine>/scripts/link-spine.sh   (symlink mode)" >&2
+    echo " or: bash <path-to-spine>/scripts/spine-init.sh   (rsync mode)" >&2
     exit 1
 fi
 
-SPINE_DIR="$(cd "$SPINE_LINK" && pwd)"
 INSTALL_SCRIPT="$SPINE_DIR/install.sh"
 TEMPLATE_OPENCODE="$SPINE_DIR/templates/opencode.json"
 PROJECT_OPENCODE="$PROJECT_ROOT/opencode.json"
 
 if [[ ! -f "$INSTALL_SCRIPT" ]]; then
-    echo "ERROR: install.sh not found via .spine symlink: $INSTALL_SCRIPT" >&2
+    echo "ERROR: install.sh not found via .spine: $INSTALL_SCRIPT" >&2
     exit 1
 fi
 
@@ -73,18 +79,65 @@ if [[ ! -f "$TEMPLATE_OPENCODE" ]]; then
     exit 1
 fi
 
+# Resolve canonical path for rsync mode
+CANONICAL_PATH=""
+if [[ "$SPINE_MODE" == "rsync" ]]; then
+    if [[ -f "$SPINE_PATH/.spine-canonical-source" ]]; then
+        CANONICAL_PATH="$(head -1 "$SPINE_PATH/.spine-canonical-source")"
+    elif [[ -n "${SPINE_CANONICAL_PATH:-}" ]]; then
+        CANONICAL_PATH="$SPINE_CANONICAL_PATH"
+    fi
+    if [[ -z "$CANONICAL_PATH" || ! -d "$CANONICAL_PATH" ]]; then
+        echo "ERROR: Cannot resolve canonical Spine path for rsync mode." >&2
+        echo "       The canonical path was recorded in .spine/.spine-canonical-source" >&2
+        echo "       or set SPINE_CANONICAL_PATH environment variable." >&2
+        exit 1
+    fi
+fi
+
 echo "Spine Project Updater"
 echo "Project: $PROJECT_ROOT"
+echo "Mode:    $SPINE_MODE"
 echo "Spine:   $SPINE_DIR"
+if [[ -n "$CANONICAL_PATH" ]]; then
+    echo "Canonical: $CANONICAL_PATH"
+fi
 $DRY_RUN && echo "Mode:    dry-run"
 echo ""
 
 if ! $NO_PULL; then
-    echo "Step 1/4: Update Spine repository"
-    if $DRY_RUN; then
-        echo "  [DRY-RUN] Would run: git -C \"$SPINE_DIR\" pull"
+    if [[ "$SPINE_MODE" == "symlink" ]]; then
+        echo "Step 1/4: Update Spine repository (git pull via symlink)"
+        if $DRY_RUN; then
+            echo "  [DRY-RUN] Would run: git -C \"$SPINE_DIR\" pull"
+        else
+            git -C "$SPINE_DIR" pull
+        fi
     else
-        git -C "$SPINE_DIR" pull
+        echo "Step 1/4: Update canonical Spine + rsync .spine/"
+        if $DRY_RUN; then
+            echo "  [DRY-RUN] Would run: git -C \"$CANONICAL_PATH\" pull"
+            echo "  [DRY-RUN] Would run: rsync -a --delete \"$CANONICAL_PATH\"/ \"$SPINE_PATH\"/"
+        else
+            git -C "$CANONICAL_PATH" pull
+            rsync -a --delete \
+                --exclude='.git/' \
+                --exclude='docs/' \
+                --exclude='.cursor/' \
+                --exclude='.claude/' \
+                --exclude='.opencode/' \
+                --exclude='.agents/' \
+                --exclude='graphify-out/' \
+                --exclude='node_modules/' \
+                --exclude='.venv/' \
+                --exclude='__pycache__/' \
+                --exclude='.spine-vendor' \
+                "$CANONICAL_PATH"/ "$SPINE_PATH"/
+            if [[ -e "$SPINE_PATH/.git" ]]; then
+                rm -rf "$SPINE_PATH/.git"
+            fi
+            echo "  Canonical: $CANONICAL_PATH"
+        fi
     fi
 else
     echo "Step 1/4: Skipped Spine pull (--no-pull)"
