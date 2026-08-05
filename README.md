@@ -79,7 +79,7 @@ bash .spine/install.sh --no-graphify-prompt   # skip Graphify question (CI/non-i
 
 > **Important:** Slash commands (`/spine-bootstrap`, `/spine-plan`, etc.) are **not** available until this step completes. After `link-spine.sh` (step 2) you only have the `.spine` symlink — the only valid next action is `bash .spine/install.sh` from the terminal.
 
-`install.sh` performs all deterministic setup: symlinks, `docs/` template seed (from local `templates/docs/`), `opencode.json` merge, gitignore entries, and optional Graphify. Re-runs are idempotent — existing `docs/` content is never overwritten.
+`install.sh` performs all deterministic setup: symlinks, `docs/` template seed (from local `templates/docs/`), `opencode.json` merge, gitignore entries (`.spine` / `.agents/` only; strips obsolete `.cursor/` / `.claude/` / `.opencode/` ignores), and optional Graphify. Re-runs are idempotent — existing `docs/` content is never overwritten.
 
 This creates:
 
@@ -87,12 +87,12 @@ This creates:
 PROJECT_ROOT/
 ├── .spine              → Spine repository (gitignored symlink)
 ├── .agents/skills/     per-skill symlinks (gitignored)
-├── .cursor/rules/      core rule symlinks (gitignored)
-├── .cursor/commands/   command symlinks (gitignored)
-├── .cursor/skills/     → .agents/skills/ (gitignored)
-├── .opencode/commands/ command symlinks (gitignored)
-├── .opencode/agents/   agent symlinks (gitignored)
-├── .claude/skills/     → .agents/skills/ (gitignored)
+├── .cursor/rules/      core rule symlinks (committable)
+├── .cursor/commands/   command symlinks (committable)
+├── .cursor/skills/     → .agents/skills/ (committable)
+├── .opencode/commands/ command symlinks (committable)
+├── .opencode/agents/   agent symlinks (committable)
+├── .claude/skills/     → .agents/skills/ (committable)
 ├── opencode.json       created or merged (versioned)
 └── docs/               memory bank templates (versioned)
 ```
@@ -415,7 +415,7 @@ Remove templates and config only: `bash .spine/install.sh --mkdocs-uninstall`
 | `mkdocs: command not found` | Install CLI: `pip install mkdocs` |
 | Build fails with broken links | Check `docs/mkdocs/*.md` for valid relative links |
 | `site/` appears in git status | Add `docs/mkdocs/site/` to `.gitignore` and re-run install |
-| Documentation not updating at harvest | Ensure `docs/mkdocs/mkdocs.yml` exists; run harvest step 4d manually |
+| Documentation not updating at harvest | Ensure `docs/mkdocs/mkdocs.yml` exists; run harvest step 4e manually |
 
 ## Migration from v1.2 and earlier
 
@@ -489,7 +489,7 @@ Validate a task file manually: `bash .spine/scripts/validate-task.sh docs/memory
 | Extended | Plan, harvest, ambiguous scope | `roadmap.md`, full delivery log |
 | On demand | Debugging, recurrence | `learnings.md`, `completed_tasks/` |
 
-**Harvest** (`/spine-harvest`): append delivery log entry (with **Tags**), update `learnings.md` when applicable, set frontmatter `status: DONE`, `git mv` task to `completed_tasks/`.
+**Harvest** (`/spine-harvest`): append delivery log entry (with **Tags**), update `learnings.md` when applicable, set frontmatter `status: DONE`, `git mv` task to `completed_tasks/`. When the task has `roadmap_idea`, update that Idea Bank row to `Done` (or keep `In Progress` if other open linked tasks remain); suggest `/spine-roadmap --review` for ICE re-score.
 
 **Migration from v2.0:** Run `bash .spine/scripts/update.sh` (or `/spine-update` if slash commands exist), seed missing templates via `bash .spine/install.sh --update`, manually move DONE files from `active_tasks/` to `completed_tasks/`, optionally restructure `progress.md` (preserve legacy content under a heading).
 
