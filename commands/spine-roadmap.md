@@ -1,6 +1,8 @@
 ---
 description: Fill or update roadmap.md with GIST-informed structure (Goals + Idea Bank + ICE scoring)
 agent: build
+model: opencode-go/glm-5.2
+variant: high
 ---
 
 # Slash Command: /spine-roadmap [--review | --add-ideas]
@@ -70,7 +72,7 @@ For each active goal, brainstorm 1–5 ideas. For each idea:
 2. For each idea with recent delivery evidence:
    - **Update Confidence:** Did delivery confirm or contradict assumptions? Adjust score per ICE guide criteria.
    - **Update Impact:** Did the actual outcome match expected impact? Adjust if needed.
-   - **Update Status:** Mark `Done` if all linked work is complete.
+   - **Update Status:** Treat harvest’s `Done` (or plan’s `In Progress`) as already applied when present. Confirm Status; only change it if delivery evidence shows it is wrong. Do not rely on `--review` as the primary way to mark Done — Harvest owns that lifecycle update.
 3. Re-evaluate goal statuses: `Active` → `Achieved` if outcome metric threshold was met.
 4. Update frontmatter: `last_reviewed` (today), `ideas_total` (recount), `goals_active` (recount).
 5. Append to `## Review log`: review entry with date and changes made.
@@ -91,12 +93,13 @@ For each active goal, brainstorm 1–5 ideas. For each idea:
 After writing or updating `roadmap.md`:
 
 - Summarize changes: goals defined/reviewed, ideas added/scored, ICE ranges.
-- Suggest: "Use `roadmap_idea: I3` in task frontmatter to link future tasks to roadmap ideas. Harvest will suggest review when these tasks complete."
+- Suggest: "Use `roadmap_idea: I3` in task frontmatter to link future tasks to roadmap ideas. `/spine-plan` sets Idea Bank Status to In Progress; `/spine-harvest` marks Done when linked work is complete. Run `/spine-roadmap --review` after harvest to re-score Confidence/Impact."
 - For fill mode: remind that `/spine-plan` is the next step for the highest-ICE idea.
 
 ## Guard rails
 
-- Never modify `roadmap.md` outside this command. Bootstrap and plan do not touch it.
+- **Strategic content** (Goals, ICE scores, Confidence, Impact, new ideas) is modified only by this command. Bootstrap does not touch `roadmap.md`.
+- **Lifecycle Status** and Review Log entries for linked tasks may be updated by `/spine-plan` (In Progress) and `/spine-harvest` (Done / still In Progress). Do not treat those edits as out of policy.
 - ICE scores must reference `docs/governance/ice-scoring-guide.md` criteria. No gut-feel scores without anchoring to the guide.
 - Goals must be outcome-based and measured. Reject feature-disguised-as-goal entries (e.g., "Add dark mode" is an idea, not a goal — "Improve user accessibility satisfaction from 60% to 85%" is a goal).
 - Roadmap is optional — projects without roadmap.md skip this command gracefully.

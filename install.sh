@@ -224,16 +224,27 @@ get_agent_files() {
 }
 
 # ---------------------------------------------------------------------------
-# Gitignore entries for consumer projects (not versioned)
+# Gitignore entries for consumer projects
+#
+# No Spine directory is gitignored by default. .spine/ (rsync mode, real dir),
+# .agents/ (relative symlinks), .cursor/, .claude/, and .opencode/ are all
+# versionable and committed. Only the host-specific canonical-source marker
+# is ignored.
+#
+# Previously ignored; strip on install/update so existing consumer repos can
+# commit all Spine directories.
 # ---------------------------------------------------------------------------
 
 PROJECT_GITIGNORE_ENTRIES=(
-    ".spine"
-    ".agents/"
+    ".spine/.spine-canonical-source"
+)
+
+PROJECT_GITIGNORE_REMOVE_ENTRIES=(
     ".cursor/"
     ".claude/"
     ".opencode/"
-    "AGENTS-original.md"
+    ".spine"
+    ".agents/"
 )
 
 # ---------------------------------------------------------------------------
@@ -372,26 +383,29 @@ find_project_root() {
     echo "$root"
 }
 
-# --- Require .spine symlink (created by scripts/link-spine.sh) ---
+# --- Require .spine path (symlink via link-spine.sh or real dir via spine-init.sh) ---
 
-require_spine_symlink() {
+require_spine_path() {
     local project_root="$1"
-    local spine_link="$project_root/.spine"
-    local link_script="$SPINE_DIR/scripts/link-spine.sh"
+    local spine_path="$project_root/.spine"
 
-    if [[ ! -L "$spine_link" ]] || [[ ! -d "$spine_link" ]]; then
-        echo "ERROR: .spine symlink not found in $project_root" >&2
-        if [[ -f "$link_script" ]]; then
-            echo "Run: bash $link_script" >&2
-        else
-            echo "Run: bash <path-to-spine>/scripts/link-spine.sh" >&2
+    if [[ -L "$spine_path" ]]; then
+        if [[ ! -d "$spine_path" ]]; then
+            echo "ERROR: .spine symlink target is not a directory in $project_root" >&2
+            echo "Run: bash $SPINE_DIR/scripts/link-spine.sh  (symlink mode)" >&2
+            exit 1
         fi
+    elif [[ -d "$spine_path" ]]; then
+        :  # Real directory (rsync mode) — OK
+    else
+        echo "ERROR: .spine not found in $project_root" >&2
+        echo "Run: bash $SPINE_DIR/scripts/link-spine.sh  (symlink mode)" >&2
+        echo " or: bash $SPINE_DIR/scripts/spine-init.sh   (rsync mode)" >&2
         exit 1
     fi
 
-    if [[ ! -d "$spine_link/rules" || ! -d "$spine_link/skills" || ! -d "$spine_link/commands" ]]; then
-        echo "ERROR: .spine target is missing rules/, skills/, or commands/" >&2
-        echo "       Check the symlink target: $(readlink "$spine_link")" >&2
+    if [[ ! -d "$spine_path/rules" || ! -d "$spine_path/skills" || ! -d "$spine_path/commands" ]]; then
+        echo "ERROR: .spine is missing rules/, skills/, or commands/" >&2
         exit 1
     fi
 }
@@ -615,7 +629,7 @@ add_gitignore_entries() {
         if $DRY_RUN; then
             echo "  [DRY-RUN] Would create .gitignore with Spine entries"
         else
-            printf "# Spine agent configuration (machine-specific)\n" > "$gitignore"
+            printf "# Spine directories are versioned (committed to git)\n" > "$gitignore"
             local entry
             for entry in "${PROJECT_GITIGNORE_ENTRIES[@]}"; do
                 printf "%s\n" "$entry" >> "$gitignore"
@@ -623,6 +637,42 @@ add_gitignore_entries() {
             log_linked ".gitignore (created with Spine entries)"
         fi
         return 0
+    fi
+
+    # Drop obsolete IDE ignores so .cursor/.claude/.opencode can be committed.
+    local remove_entry removed=0
+    local tmp=""
+    local needs_strip=false
+    for remove_entry in "${PROJECT_GITIGNORE_REMOVE_ENTRIES[@]}"; do
+        if grep -qxF "$remove_entry" "$gitignore" 2>/dev/null; then
+            needs_strip=true
+            break
+        fi
+    done
+    if $needs_strip; then
+        if $DRY_RUN; then
+            for remove_entry in "${PROJECT_GITIGNORE_REMOVE_ENTRIES[@]}"; do
+                if grep -qxF "$remove_entry" "$gitignore" 2>/dev/null; then
+                    echo "  [DRY-RUN] Would remove ignore entry: $remove_entry"
+                    removed=$((removed + 1))
+                fi
+            done
+        else
+            tmp="$(mktemp)"
+            while IFS= read -r line || [[ -n "$line" ]]; do
+                local drop=false
+                for remove_entry in "${PROJECT_GITIGNORE_REMOVE_ENTRIES[@]}"; do
+                    if [[ "$line" == "$remove_entry" ]]; then
+                        drop=true
+                        removed=$((removed + 1))
+                        log_linked ".gitignore: -$remove_entry (IDE trees are versionable)"
+                        break
+                    fi
+                done
+                $drop || printf '%s\n' "$line" >> "$tmp"
+            done < "$gitignore"
+            mv "$tmp" "$gitignore"
+        fi
     fi
 
     local entry added=0
@@ -640,8 +690,8 @@ add_gitignore_entries() {
         fi
     done
 
-    if [[ $added -gt 0 ]] && ! $DRY_RUN; then
-        log_info "$added gitignore entries added"
+    if [[ $added -gt 0 || $removed -gt 0 ]] && ! $DRY_RUN; then
+        log_info "$added gitignore entries added, $removed obsolete IDE ignores removed"
     fi
 }
 
@@ -867,14 +917,11 @@ validate_health() {
     echo ""
     echo "Health check:"
 
-    if [[ ! -L "$project_root/.spine" ]]; then
-        log_warn ".spine symlink is missing"
-        issues=$((issues + 1))
-    else
+    if [[ -L "$project_root/.spine" ]]; then
         local spine_target
         spine_target="$(readlink "$project_root/.spine")"
         if [[ ! -d "$project_root/.spine" ]]; then
-            log_warn ".spine points to nonexistent: $spine_target"
+            log_warn ".spine symlink points to nonexistent: $spine_target"
             issues=$((issues + 1))
         elif [[ ! -d "$project_root/.spine/rules" || ! -d "$project_root/.spine/skills" ]]; then
             log_warn ".spine target is missing rules/ or skills/"
@@ -882,6 +929,16 @@ validate_health() {
         else
             log_skipped ".spine symlink OK"
         fi
+    elif [[ -d "$project_root/.spine" ]]; then
+        if [[ ! -d "$project_root/.spine/rules" || ! -d "$project_root/.spine/skills" ]]; then
+            log_warn ".spine (rsync mode) is missing rules/ or skills/"
+            issues=$((issues + 1))
+        else
+            log_skipped ".spine (rsync mode) OK"
+        fi
+    else
+        log_warn ".spine is missing"
+        issues=$((issues + 1))
     fi
 
     local check_dirs=(
@@ -1432,8 +1489,19 @@ uninstall_project() {
     remove_symlink_or_dir "$project_root/.agents" ".agents"
 
     echo ""
-    echo "Removing .spine symlink:"
-    remove_symlink_or_dir "$project_root/.spine" ".spine"
+    echo "Removing .spine:"
+    if [[ -d "$project_root/.spine" && ! -L "$project_root/.spine" ]]; then
+        if $DRY_RUN; then
+            echo "  [DRY-RUN] Would remove directory: .spine (rsync mode)"
+            removed=$((removed + 1))
+        else
+            rm -rf "$project_root/.spine"
+            log_linked "removed: .spine (rsync mode)"
+            removed=$((removed + 1))
+        fi
+    else
+        remove_symlink_or_dir "$project_root/.spine" ".spine"
+    fi
 
     echo ""
     echo "==========================================="
@@ -1491,7 +1559,11 @@ print_project_summary() {
     fi
 
     echo "Project structure:"
-    echo "  .spine              -> (Spine repository)"
+    if [[ -L "$project_root/.spine" ]]; then
+        echo "  .spine              -> (Spine repository symlink)"
+    else
+        echo "  .spine/                (rsync mode — real directory)"
+    fi
     echo "  .agents/skills/        (per-skill symlinks)"
     echo "  .claude/skills      -> .agents/skills/"
     echo "  .cursor/rules/         (per-file rule symlinks)"
@@ -1523,14 +1595,14 @@ fi
 
 # Handle --add-skill
 if [[ -n "$ADD_SKILL" ]]; then
-    require_spine_symlink "$PROJECT_ROOT"
+    require_spine_path "$PROJECT_ROOT"
     add_skill "$PROJECT_ROOT" "$ADD_SKILL"
     exit $?
 fi
 
 # Handle --remove-skill
 if [[ -n "$REMOVE_SKILL" ]]; then
-    require_spine_symlink "$PROJECT_ROOT"
+    require_spine_path "$PROJECT_ROOT"
     remove_skill "$PROJECT_ROOT" "$REMOVE_SKILL"
     exit $?
 fi
@@ -1543,14 +1615,14 @@ fi
 
 # Handle --graphify-uninstall (Graphify platform artifacts only)
 if $GRAPHIFY_UNINSTALL; then
-    require_spine_symlink "$PROJECT_ROOT"
+    require_spine_path "$PROJECT_ROOT"
     setup_project_graphify "$PROJECT_ROOT"
     exit 0
 fi
 
 # Handle --mkdocs-uninstall (MkDocs templates and config)
 if $MKDOCS_UNINSTALL; then
-    require_spine_symlink "$PROJECT_ROOT"
+    require_spine_path "$PROJECT_ROOT"
     setup_project_mkdocs "$PROJECT_ROOT"
     exit 0
 fi
@@ -1581,7 +1653,7 @@ fi
 
 chmod_scripts
 
-require_spine_symlink "$PROJECT_ROOT"
+require_spine_path "$PROJECT_ROOT"
 
 # Resolve skill list (default: all)
 SKILL_LIST="$(resolve_skills "${SKILLS_ARG:-all}")"

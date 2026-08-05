@@ -1,6 +1,8 @@
 ---
 description: Consolidate final delivery, update memory-bank, and close the active task with learnings
 agent: build
+model: opencode-go/glm-5.2
+variant: high
 ---
 
 # Slash Command: /spine-harvest <plan_file_path>
@@ -54,10 +56,17 @@ Act as a Tech Lead and Knowledge Manager.
     - `docs/memory/global/system-patterns.md` — new patterns established.
     - `## Implementation Plan` in the task body is not copied to the delivery log (summary uses frontmatter `title`, `tags`, and delivery description only).
 
-     **4d. Roadmap feedback (optional):**
-     - When task frontmatter contains `roadmap_idea`, suggest running `/spine-roadmap --review` to update confidence on the linked idea.
-     - Do not auto-edit `roadmap.md`.
-     - Include the suggestion in the harvest summary.
+     **4d. Roadmap lifecycle update (when `roadmap_idea` is set):**
+     - Read `docs/memory/ledger/roadmap.md`.
+     - Find the Idea Bank row matching frontmatter `roadmap_idea` (exact ID, e.g. `I3` — never fuzzy title match).
+     - If the row is missing: note it in the harvest summary; do not invent a row.
+     - If found:
+       - Grep `docs/memory/active_tasks/` and `docs/memory/completed_tasks/` for other tasks with the same `roadmap_idea`.
+       - If any **non-DONE** linked task remains (other than the one being harvested): keep or set Status to `In Progress`; do **not** mark `Done`. Append Review Log: `YYYY-MM-DD | I<n> | Harvested task NNN-… — still In Progress (open tasks remain)`.
+       - If no other open linked work: set Status to `Done`. Append Review Log: `YYYY-MM-DD | I<n> | Harvested task NNN-… → Done`.
+       - Update roadmap frontmatter `last_updated` (today). Do **not** change `last_reviewed` (that stays for strategic review).
+     - Still suggest `/spine-roadmap --review` so Confidence/Impact can be re-scored from delivery evidence.
+     - **Forbidden in harvest:** changing ICE product, Confidence, or Impact columns; editing Goals; inventing new ideas.
 
      **4e. MkDocs documentation (when `docs/mkdocs/mkdocs.yml` exists):**
     - Load the `documentation-driven-development` skill for documentation update criteria.
@@ -84,4 +93,4 @@ Act as a Tech Lead and Knowledge Manager.
    - Merge only a valid `feature/<descriptive-name>` branch into `develop`.
    - Remove the local feature branch.
 
- 8. **Summary:** Present a concise summary of what was learned and improved in the project. When step 3.5 ran (or was skipped/failed), include Graphify refresh status and whether `graphify query` was used during delivery exploration. When step 3.6 ran (or was skipped/failed), include MkDocs build status. When step 4d applied, note whether `/spine-roadmap --review` was suggested.
+ 8. **Summary:** Present a concise summary of what was learned and improved in the project. When step 3.5 ran (or was skipped/failed), include Graphify refresh status and whether `graphify query` was used during delivery exploration. When step 3.6 ran (or was skipped/failed), include MkDocs build status. When step 4d ran, report whether the Idea Bank row was updated and to which Status (`Done` / `In Progress` / missing), and note that `/spine-roadmap --review` was suggested for ICE re-score.

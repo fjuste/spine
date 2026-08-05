@@ -84,8 +84,8 @@ How fast can we deliver this? Score inversely to effort (10 = trivial, 1 = massi
 
 After completing a task that was linked to a roadmap idea (via `roadmap_idea` in task frontmatter):
 
-1. Run `/spine-roadmap --review`
-2. Update Confidence for the linked idea based on delivery outcome
-3. If the idea is done (all linked work complete), consider removing from Idea Bank or marking with a completed status
+1. `/spine-harvest` updates Idea Bank **Status** to `Done` when no other open linked tasks remain (factual lifecycle only).
+2. Run `/spine-roadmap --review` to update Confidence (and Impact if needed) for the linked idea based on delivery outcome.
+3. Review may confirm Status and mark Goals `Achieved` when outcome metrics are met — it does not replace harvest’s Status update.
 
-Harvest will suggest this when a task has `roadmap_idea` set, but does not auto-edit roadmap.md.
+Harvest does **not** change ICE product, Confidence, or Impact columns.
