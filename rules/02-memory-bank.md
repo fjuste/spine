@@ -42,7 +42,7 @@ docs/memory/
 | `system-patterns.md` | Yes | Architecture; § **Project-Specific Alterations** (custom payment, auth, etc.) — agents must not revert |
 | `tech-context.md` | Yes | Dev commands, env; § **Known Risks** |
 | `decision-log.md` | Yes | WHY for major alterations and bootstrap baseline |
-| `roadmap.md` | **No** | Seeded with GIST-informed template; filled by `/spine-roadmap`; optional write from `/spine-plan` when splitting plans |
+| `roadmap.md` | **No** | Seeded with GIST-informed template; filled by `/spine-roadmap`; `/spine-plan` sets Idea Bank `In Progress` + `roadmap_idea`; `/spine-harvest` marks `Done`; optional split-plan notes from `/spine-plan` |
 | `learnings.md` | Rarely at bootstrap | Incidents at `/spine-harvest` only |
 
 `/spine-bootstrap` runs after `bash .spine/install.sh` and fills placeholders in `global/` plus `progress.md` Current state. It does **not** create `active_tasks/` files — use `/spine-plan`.
