@@ -36,6 +36,8 @@ Goal definitions are outcome-based, measured, and time-bound. Each goal has a un
 
 Ideas are linked to goals via the `Goal` column. Each gets an ICE score (see `docs/governance/ice-scoring-guide.md`). Tasks can reference ideas via the optional `roadmap_idea` frontmatter field.
 
+**Status lifecycle:** `/spine-plan` sets `In Progress` when a task links `roadmap_idea`; `/spine-harvest` sets `Done` when no other open linked tasks remain. ICE/Confidence/Impact changes stay in `/spine-roadmap`.
+
 | ID  | Idea | Goal | ICE | Confidence | Status    |
 |-----|------|------|-----|------------|-----------|
 | I1  | [Idea description] | G1 | [I×C×E] | [1–10] | [Candidate / In Progress / Done] |

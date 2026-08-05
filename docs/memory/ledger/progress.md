@@ -15,6 +15,7 @@
 - **Adoção Graphify para consumidores (task 014):** comandos e rules agora orientam uso condicional de `graphify-out/graph.json` para exploração (graph-first), preservando `docs/memory/` como fonte obrigatória e sem tornar Graphify dependência do Spine.
 - **Atualização de consumidores simplificada (task 014):** novo `scripts/update.sh` + comando `/spine-update` para atualizar projetos já instalados (pull de `.spine`, reconcile de symlinks, sync de `opencode.json`, preservação de `docs/memory/`).
 - **Rules core consolidadas:** removidas rules não usadas (`03-handoff`, `05-testing`, `06-gitflow`) e renomeada `04-code-quality.md` para `03-code-quality.md`.
+- **Rsync mode (task 017):** terceiro modo de instalação. `scripts/spine-init.sh` popula `.spine/` como diretório real via rsync de um clone canônico do Spine no host. `install.sh` aceita `.spine/` como diretório real (não só symlink). `update.sh` adaptado para pull canônico + rsync + reconcile. IDE trees mantêm symlinks relativos versionáveis.
 
 ## Em andamento
 - Nenhuma task ativa no momento.
@@ -26,12 +27,18 @@
 - Publicar versão com as otimizações de token para projetos consumidores existentes.
 - Consolidar rollout de Graphify opcional em projetos consumidores e medir delta de tokens por task.
 - Publicar release v1.4.0 com `/spine-roadmap` e demais features recentes.
+- Documentar rsync mode no README (instruções de uso para consumidores).
 
 ## Issues Conhecidos
 - Catálogo de skills muito grande para uso irrestrito.
 - Risco de dispersão em frontend sem skill principal padronizada.
 
 ## Delivery log (newest first)
+### 2026-07-28 — Rsync mode — canonical host Spine clone + relative IDE symlinks
+**Task:** 017-rsync-mode | **Branch:** feature/rsync-mode
+**Tags:** type/feature, area/infra, stack/bash
+**Description:** Added rsync mode as third install option (alongside symlink and vendor). New `scripts/spine-init.sh` populates `.spine/` as real directory via rsync from a canonical host Spine clone, resolving path via 4-strategy cascade (flag → env var `SPINE_CANONICAL_PATH` → convention `~/Workspace/ide/spine` → auto-detect). `install.sh` relaxed: `require_spine_symlink()` → `require_spine_path()` (accepts real dir), `validate_health()` detects both modes, `uninstall_project()` handles real dirs with `rm -rf`, `print_project_summary()` shows mode-aware label. `update.sh` adapted: detects symlink vs rsync mode; in rsync mode, pulls canonical clone + rsyncs `.spine/` before reconciling symlinks. 7 contract tests added (`tests/unit/test_rsync_mode.py`). Full suite: 101/102 pass (1 pre-existing MkDocs failure, unrelated). Graphify and MkDocs not active.
+
 ### 2026-07-08 — Sync opencode template tests with current schema
 **Task:** 016-opencode-template-test-sync | **Branch:** feature/opencode-template-test-sync
 **Tags:** type/bug, area/testing, area/config

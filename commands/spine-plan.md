@@ -1,6 +1,8 @@
 ---
 description: Plan a task, create memory-bank artifact, and prepare test strategy
 agent: build
+model: opencode-go/glm-5.2
+variant: high
 ---
 
 # Slash Command: /spine-plan
@@ -69,8 +71,17 @@ Act as a Senior Software Architect. Follow the instructions provided in $ARGUMEN
      - `task_id`, `title`, `goal`, `status: PLANNING`
      - `tags:` YAML list (1–5 tags; grep `learnings.md` and recent progress for related tags before inventing new ones)
      - `branch`, `base: develop`, `execution_skill`
+     - `roadmap_idea:` — set when planning from the Idea Bank (see Roadmap linkage below); otherwise leave empty
      - `created_at`, `updated_at` (today, `YYYY-MM-DD`)
      - `completed_at:` (empty), `related_learnings: []`
+   - **Roadmap linkage (Idea Bank):**
+     - If `$ARGUMENTS` or attached context references a specific Idea Bank ID (`I\d+`) or clearly selects one idea from `docs/memory/ledger/roadmap.md`, set `roadmap_idea: I<n>` (never fuzzy-match by title alone).
+     - If multiple idea IDs are mentioned, ask which ID to link before writing the task.
+     - When `roadmap_idea` is set and `docs/memory/ledger/roadmap.md` has an Idea Bank row for that ID:
+       - set that row’s `Status` to `In Progress` (if not already `Done`);
+       - update roadmap frontmatter `last_updated` (today);
+       - append one Review Log line: `YYYY-MM-DD | I<n> | Planned as task NNN-… (In Progress)`.
+     - Do **not** change ICE, Confidence, Impact, Goals, or invent new idea rows. Strategic edits stay in `/spine-roadmap`.
    - Body sections (no inline `## Branch`, `## Base`, or `## Status`; no top-level `**Status:**` / `**Branch:**` blocks):
      - `## Discovery notes` (when `@grill-me` ran)
      - `## Objective`, `## Inputs`, `## Expected Outputs`, `## Acceptance Criteria (verifiable, TDD-ready)`, `## Test Strategy`
@@ -80,6 +91,7 @@ Act as a Senior Software Architect. Follow the instructions provided in $ARGUMEN
    - [ ] Frontmatter complete (`task_id`, `title`, `goal`, `status`, `tags`, `branch`, `base`, dates)
    - [ ] `tags` present (1–5 per `memory-tags-policy.md`)
    - [ ] `branch` matches `feature/<descriptive-name>`, `base: develop`
+   - [ ] `roadmap_idea` set when planning from a roadmap Idea Bank ID; otherwise empty
    - [ ] No legacy inline Status/Branch/Goal block; no `superpowers:*` headers
    - [ ] Task/Step blocks only under `## Implementation Plan` (if present)
 

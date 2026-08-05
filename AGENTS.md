@@ -195,7 +195,8 @@ Full notes: README § **Optional: Vendor install**.
 |---|---|---|
 | `docs/` (memory bank templates) | `templates/docs/` via `.spine` | Yes |
 | `opencode.json` | `templates/opencode.json` (create or merge) | Yes |
-| `.spine`, `.agents/`, etc. | Symlinks via `install.sh` | No (machine-specific) |
+| `.cursor/`, `.claude/`, `.opencode/` | Relative symlinks via `install.sh` | Yes (committable) |
+| `.spine`, `.agents/` | Symlinks via `install.sh` | No (machine-specific) |
 
 #### What `install-vendor.sh` creates
 
@@ -264,7 +265,7 @@ docs/memory/
   completed_tasks/  # DONE (git mv at harvest)
 ```
 
-**Task files:** Obsidian-style YAML frontmatter (`task_id`, `title`, `goal`, `status`, `tags`, `branch`, `base`, `created_at`, `updated_at`, …). Template: `templates/docs/memory/active_tasks/_task-template.md`.
+**Task files:** Obsidian-style YAML frontmatter (`task_id`, `title`, `goal`, `status`, `tags`, `branch`, `base`, `roadmap_idea`, `created_at`, `updated_at`, …). Template: `templates/docs/memory/active_tasks/_task-template.md`.
 
 **Tiered SYNC:**
 
@@ -274,7 +275,7 @@ docs/memory/
 | Extended | Plan, harvest, ambiguous scope | `roadmap.md`, full delivery log |
 | On demand | Debugging, recurrence | `learnings.md`, `completed_tasks/` |
 
-**Harvest outcomes:** delivery log append, `learnings.md` when applicable, frontmatter `status: DONE`, `git mv` to `completed_tasks/`.
+**Harvest outcomes:** delivery log append, `learnings.md` when applicable, frontmatter `status: DONE`, `git mv` to `completed_tasks/`. When `roadmap_idea` is set, update Idea Bank Status (`Done` / still `In Progress`) and suggest `/spine-roadmap --review` for ICE re-score.
 
 ### OpenCode configuration (consumer)
 
@@ -347,8 +348,10 @@ Available in `commands/`:
 **Versioned:** `opencode.json`, `docs/`, `.graphifyignore`
 - `docs/mkdocs/mkdocs.yml` and `docs/mkdocs/*.md` source files (versioned); `docs/mkdocs/site/` (gitignored)
 
-**Machine-specific (gitignored in symlink mode):** `.spine`, `.agents/`, `.cursor/`, `.claude/`, `.opencode/`, `graphify-out/` (recommended)
+**Machine-specific (gitignored in symlink mode):** `.spine`, `.agents/`, `graphify-out/` (recommended)
 
-**Vendor mode:** `.spine`, `.agents/`, `.cursor/`, `.claude/`, `.opencode/`, and `.spine-vendor` are committed (not gitignored).
+**Committable IDE trees (symlink or vendor):** `.cursor/`, `.claude/`, `.opencode/` — relative links/files; not added to `.gitignore` by install. `install.sh --update` strips obsolete ignores for those paths.
+
+**Vendor mode:** also commits `.spine`, `.agents/`, and `.spine-vendor` (not gitignored).
 
 **Non-Spine projects** omit Spine URLs from `opencode.json` and do not run the install script. They remain free of Spine rules.

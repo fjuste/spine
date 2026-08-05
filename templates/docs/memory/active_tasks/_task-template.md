@@ -8,7 +8,7 @@ tags:
 branch: feature/descriptive-name
 base: develop
 execution_skill: executing-plans
-roadmap_idea:  # optional — link to roadmap Idea Bank ID (e.g., I3)
+roadmap_idea:  # required when task originates from an Idea Bank ID (e.g., I3); otherwise leave empty
 created_at: YYYY-MM-DD
 updated_at: YYYY-MM-DD
 completed_at:
