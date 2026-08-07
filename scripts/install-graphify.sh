@@ -158,6 +158,16 @@ install_graphify_platforms() {
     if $INSTALL_CURSOR; then
         echo "    Cursor (graphify.mdc):"
         run_cmd graphify cursor install || echo "      WARNING: graphify cursor install failed" >&2
+        # Antigravity reads workspace rules from .agents/rules/ — mirror graphify.mdc
+        if [[ -f "$PROJECT_ROOT/.cursor/rules/graphify.mdc" ]]; then
+            if $DRY_RUN; then
+                echo "    [DRY-RUN] Would mirror graphify.mdc -> .agents/rules/"
+            else
+                mkdir -p "$PROJECT_ROOT/.agents/rules"
+                cp -a "$PROJECT_ROOT/.cursor/rules/graphify.mdc" "$PROJECT_ROOT/.agents/rules/graphify.mdc"
+                echo "    mirrored graphify.mdc -> .agents/rules/ (Antigravity)"
+            fi
+        fi
     fi
 
     if $INSTALL_OPENCODE; then

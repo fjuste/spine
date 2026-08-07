@@ -21,7 +21,7 @@ UPDATE_MODE=false
 UNINSTALL_MODE=false
 SPINE_DIR_CUSTOM=""
 SKILLS_ARG=""
-TARGETS="cursor,opencode,claude"
+TARGETS="cursor,opencode,claude,antigravity"
 PROJECT_ROOT_CUSTOM=""
 
 VENDOR_GITIGNORE_ENTRIES=(
@@ -69,7 +69,7 @@ for arg in "$@"; do
             echo "  --uninstall          Remove vendor marker, .spine/, and materialized IDE trees"
             echo "  --skills=core|all|a,b,c  Skill selection (default: all)"
             echo "  --core               Install core skills only (alias for --skills=core)"
-            echo "  --targets=LIST       Comma-separated: cursor,opencode,claude (default: all three)"
+            echo "  --targets=LIST       Comma-separated: cursor,opencode,claude,antigravity (default: all)"
             echo "  --project-root=PATH  Consumer project root (default: git toplevel)"
             echo "  --force              Convert from symlink install; replace conflicting links"
             echo "  --dry-run            Preview without making changes"
@@ -646,6 +646,46 @@ materialize_opencode() {
     done
 }
 
+materialize_antigravity() {
+    local project_root="$1"
+    local vendored_spine="$2"
+    local agents_rules="$project_root/.agents/rules"
+    local agents_workflows="$project_root/.agents/workflows"
+    local cursor_rules="$project_root/.cursor/rules"
+
+    echo ""
+    echo "=== Antigravity (copied files) ==="
+    mkdir_p "$agents_rules"
+    mkdir_p "$agents_workflows"
+
+    local rule_file
+    for rule_file in $(get_core_rules); do
+        copy_file "$vendored_spine/rules/$rule_file" "$agents_rules/$rule_file"
+        log_ok "agy-rule: $rule_file"
+    done
+
+    # Mirror project-local Cursor rules (graphify.mdc, ansible.mdc, …)
+    if [[ -d "$cursor_rules" ]]; then
+        local core_rules src name
+        core_rules="$(get_core_rules)"
+        for src in "$cursor_rules"/*; do
+            [[ -f "$src" ]] || continue
+            name="$(basename "$src")"
+            if printf '%s\n' "$core_rules" | grep -qxF "$name"; then
+                continue
+            fi
+            copy_file "$src" "$agents_rules/$name"
+            log_ok "agy-rule (project): $name"
+        done
+    fi
+
+    local command_file
+    for command_file in $(get_command_files "$vendored_spine"); do
+        copy_file "$vendored_spine/commands/$command_file" "$agents_workflows/$command_file"
+        log_ok "agy-workflow: $command_file"
+    done
+}
+
 seed_docs_templates() {
     local project_root="$1"
     local source_spine="$2"
@@ -963,6 +1003,9 @@ if target_enabled "claude"; then
 fi
 if target_enabled "opencode"; then
     materialize_opencode "$PROJECT_ROOT" "$VENDORED"
+fi
+if target_enabled "antigravity"; then
+    materialize_antigravity "$PROJECT_ROOT" "$VENDORED"
 fi
 
 seed_docs_templates "$PROJECT_ROOT" "$SOURCE_SPINE"
