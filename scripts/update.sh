@@ -122,11 +122,13 @@ if ! $NO_PULL; then
             git -C "$CANONICAL_PATH" pull
             rsync -a --delete \
                 --exclude='.git/' \
-                --exclude='docs/' \
+                --exclude='/docs/' \
                 --exclude='.cursor/' \
                 --exclude='.claude/' \
                 --exclude='.opencode/' \
                 --exclude='.agents/' \
+                --exclude='.spine' \
+                --exclude='.spine/' \
                 --exclude='graphify-out/' \
                 --exclude='node_modules/' \
                 --exclude='.venv/' \

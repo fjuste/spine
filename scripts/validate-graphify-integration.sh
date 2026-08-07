@@ -111,6 +111,14 @@ if $INSTALL_CURSOR; then
     else
         warn "Spine .cursor/rules/02-memory-bank.md not found (run bash .spine/install.sh)"
     fi
+    # Antigravity consumes the same Graphify always-on rule via .agents/rules/
+    if [[ -d .agents/rules ]]; then
+        if [[ -f .agents/rules/graphify.mdc ]]; then
+            ok "Antigravity" ".agents/rules/graphify.mdc"
+        else
+            warn "missing .agents/rules/graphify.mdc (re-run install-graphify or mirror from .cursor/rules/)"
+        fi
+    fi
 fi
 
 # --- OpenCode ---

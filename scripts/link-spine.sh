@@ -54,7 +54,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SPINE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 if [[ -n "$SPINE_DIR_CUSTOM" ]]; then
-    SPINE_DIR="$(cd "$SPINE_DIR_CUSTOM" 2>/dev/null || echo "")"
+    SPINE_DIR="$(cd "$SPINE_DIR_CUSTOM" 2>/dev/null && pwd || echo "")"
     if [[ -z "$SPINE_DIR" ]]; then
         echo "ERROR: --spine-dir not found: $SPINE_DIR_CUSTOM" >&2
         exit 1
