@@ -4,20 +4,22 @@ set -uo pipefail
 # =============================================================================
 # Spine — Project Installation Script
 #
-# Installs per-project symlinks using .agents/ as the cross-tool hub.
-# Skills are installed per-name for granular control.
+# Installs per-project wiring using .agents/ as the cross-tool hub.
+# Default: relative symlinks. With --copy: physical file copies (hybrid mode).
 #
 # Prerequisite: .spine symlink in the project root (use scripts/link-spine.sh).
+# --copy requires .spine to be a symlink (not a vendored real directory).
 #
 # Usage:
-#   bash .spine/install.sh                       # Install all skills (default)
+#   bash .spine/install.sh                       # Install all skills (default, symlinks)
+#   bash .spine/install.sh --copy                # Hybrid: physical copies, .spine stays symlink
 #   bash .spine/install.sh --core                # Install core skills only (5)
 #   bash .spine/install.sh --skills=core|a,b,c   # Explicit skill selection
 #   bash .spine/install.sh --add-skill=x         # Add a skill to existing project
 #   bash .spine/install.sh --remove-skill=x      # Remove a skill from project
 #   bash .spine/install.sh --list-skills         # List available/installed skills
 #   bash .spine/install.sh --update              # Update: install + cleanup dangling
-#   bash .spine/install.sh --uninstall           # Remove all Spine artefacts from project
+#   bash .spine/install.sh --uninstall           # Remove applied artefacts (keeps .spine symlink)
 #   bash .spine/install.sh --dry-run             # Preview without changes
 # =============================================================================
 
@@ -29,12 +31,13 @@ FORCE=false
 DRY_RUN=false
 UPDATE_MODE=false
 UNINSTALL_MODE=false
+COPY_MODE=false
 SPINE_DIR_CUSTOM=""
 SKILLS_ARG=""
 ADD_SKILL=""
 REMOVE_SKILL=""
 LIST_SKILLS=false
-TARGETS="cursor,opencode,claude"
+TARGETS="cursor,opencode,claude,antigravity"
 WITH_GRAPHIFY=false
 GRAPHIFY_INIT=false
 GRAPHIFY_HOOKS=false
@@ -52,6 +55,7 @@ for arg in "$@"; do
         --core)           SKILLS_ARG=core ;;
         --update)         UPDATE_MODE=true ;;
         --uninstall)      UNINSTALL_MODE=true ;;
+        --copy)           COPY_MODE=true ;;
         --global|--project)
             echo "ERROR: --global and --project were removed in v1.3.0." >&2
             echo "       Install is project-only. Run scripts/link-spine.sh first." >&2
@@ -77,15 +81,17 @@ for arg in "$@"; do
             echo "Prerequisite: .spine symlink in project root (scripts/link-spine.sh)."
             echo ""
             echo "Options:"
+            echo "  --copy               Hybrid mode: copy rules/skills/commands into the project"
+            echo "                       (.spine stays a gitignored symlink to the Spine repo)"
             echo "  --update             Install missing + cleanup dangling symlinks"
-            echo "  --uninstall          Remove all Spine artefacts from project"
+            echo "  --uninstall          Remove applied Spine artefacts (keeps .spine symlink)"
             echo "  --spine-dir=PATH     Path to Spine repository (default: auto-detect)"
             echo "  --skills=core|all|a,b,c  Skill selection (default: all)"
             echo "  --core               Install core skills only (alias for --skills=core)"
             echo "  --add-skill=NAME     Add a single skill to existing project"
             echo "  --remove-skill=NAME  Remove a single skill from project"
             echo "  --list-skills        List available and installed skills"
-            echo "  --targets=LIST       Comma-separated: cursor,opencode,claude"
+            echo "  --targets=LIST       Comma-separated: cursor,opencode,claude,antigravity"
             echo "  Graphify: enabled interactively at end of install when TTY (answer yes at prompt)"
             echo "  --with-graphify      Non-interactive: full Graphify co-install (CI/scripts; same as --graphify-init)"
             echo "  --graphify-init      Alias for --with-graphify (full tri-platform co-install)"
@@ -96,11 +102,13 @@ for arg in "$@"; do
             echo "  --with-mkdocs        Non-interactive: full MkDocs setup (CI/scripts)"
             echo "  --mkdocs-uninstall   Remove MkDocs templates and config from project"
             echo "  --no-mkdocs-prompt   Skip interactive MkDocs opt-in prompt (non-TTY skips automatically)"
-            echo "  --force              Replace mismatched symlinks"
+            echo "  --force              Replace mismatched symlinks / overwrite copy conflicts"
             echo "  --dry-run            Preview without making changes"
             echo ""
             echo "Examples:"
             echo "  bash .spine/install.sh"
+            echo "  bash .spine/install.sh --copy"
+            echo "  bash .spine/install.sh --copy --update"
             echo "  bash .spine/install.sh --core"
             echo "  bash .spine/install.sh --skills=python-patterns,fastapi-pro"
             echo "  bash .spine/install.sh --update"
@@ -127,7 +135,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SPINE_DIR="$(cd "$SCRIPT_DIR" && pwd)"
 
 if [[ -n "$SPINE_DIR_CUSTOM" ]]; then
-    SPINE_DIR="$(cd "$SPINE_DIR_CUSTOM" 2>/dev/null || echo "")"
+    SPINE_DIR="$(cd "$SPINE_DIR_CUSTOM" 2>/dev/null && pwd || echo "")"
     if [[ -z "$SPINE_DIR" ]]; then
         echo "ERROR: --spine-dir not found: $SPINE_DIR_CUSTOM" >&2
         exit 1
@@ -226,25 +234,22 @@ get_agent_files() {
 # ---------------------------------------------------------------------------
 # Gitignore entries for consumer projects
 #
-# No Spine directory is gitignored by default. .spine/ (rsync mode, real dir),
-# .agents/ (relative symlinks), .cursor/, .claude/, and .opencode/ are all
-# versionable and committed. Only the host-specific canonical-source marker
-# is ignored.
-#
-# Previously ignored; strip on install/update so existing consumer repos can
-# commit all Spine directories.
+# Symlink mode (default): ignore machine-specific .spine and .agents/ hub;
+#   IDE trees (.cursor/, .claude/, .opencode/) may be committed as relative symlinks.
+# Copy/hybrid mode (--copy): ignore only .spine (symlink); version .agents/ + IDE
+#   trees as real files.
 # ---------------------------------------------------------------------------
 
 PROJECT_GITIGNORE_ENTRIES=(
-    ".spine/.spine-canonical-source"
+    ".spine"
 )
 
 PROJECT_GITIGNORE_REMOVE_ENTRIES=(
     ".cursor/"
     ".claude/"
     ".opencode/"
-    ".spine"
     ".agents/"
+    ".spine-vendor"
 )
 
 # ---------------------------------------------------------------------------
@@ -339,6 +344,84 @@ tally() {
     esac
 }
 
+rsync_available() {
+    command -v rsync >/dev/null 2>&1
+}
+
+# copy_tree_into src_dir dest_dir — rsync/cp directory contents (dest becomes real dir)
+copy_tree_into() {
+    local src="$1"
+    local dest="$2"
+
+    if [[ ! -d "$src" ]]; then
+        log_warn "Source missing, skip: $src"
+        WARNINGS=$((WARNINGS + 1))
+        return 2
+    fi
+
+    if [[ -L "$dest" ]]; then
+        if $FORCE || $COPY_MODE; then
+            if $DRY_RUN; then
+                echo "  [DRY-RUN] Would replace symlink with copy: $dest"
+            else
+                rm "$dest"
+            fi
+        else
+            log_conflict "$(basename "$dest") ($dest is a symlink; use --force or --copy)"
+            return 3
+        fi
+    fi
+
+    if $DRY_RUN; then
+        echo "  [DRY-RUN] Would copy tree: $src -> $dest"
+        return 0
+    fi
+
+    mkdir -p "$dest"
+    if rsync_available; then
+        rsync -a --delete "$src"/ "$dest"/
+    else
+        # Best-effort without rsync --delete semantics for extras
+        cp -a "$src"/. "$dest"/
+    fi
+    return 0
+}
+
+# copy_file_into src dest — physical file copy (replaces symlink at dest)
+copy_file_into() {
+    local src="$1"
+    local dest="$2"
+    local label="${3:-$(basename "$dest")}"
+
+    if [[ ! -f "$src" ]]; then
+        log_warn "File missing, skip: $src"
+        WARNINGS=$((WARNINGS + 1))
+        return 2
+    fi
+
+    if [[ -L "$dest" ]]; then
+        if $FORCE || $COPY_MODE; then
+            if ! $DRY_RUN; then rm "$dest"; fi
+        else
+            log_conflict "$label ($dest is a symlink; use --force or --copy)"
+            return 3
+        fi
+    elif [[ -e "$dest" ]] && ! $FORCE && ! $UPDATE_MODE && ! $COPY_MODE; then
+        log_skipped "$label (already exists)"
+        return 1
+    fi
+
+    if $DRY_RUN; then
+        echo "  [DRY-RUN] Would copy file: $dest"
+        return 0
+    fi
+
+    mkdir -p "$(dirname "$dest")"
+    cp -a "$src" "$dest"
+    log_linked "$label (copied)"
+    return 0
+}
+
 # ---------------------------------------------------------------------------
 # Ensure Executable Permissions
 # ---------------------------------------------------------------------------
@@ -383,7 +466,7 @@ find_project_root() {
     echo "$root"
 }
 
-# --- Require .spine path (symlink via link-spine.sh or real dir via spine-init.sh) ---
+# --- Require .spine path (symlink via link-spine.sh; --copy requires symlink) ---
 
 require_spine_path() {
     local project_root="$1"
@@ -396,7 +479,13 @@ require_spine_path() {
             exit 1
         fi
     elif [[ -d "$spine_path" ]]; then
-        :  # Real directory (rsync mode) — OK
+        if $COPY_MODE; then
+            echo "ERROR: --copy requires .spine to be a symlink (not a real directory)." >&2
+            echo "       Remove vendored .spine and run: bash $SPINE_DIR/scripts/link-spine.sh" >&2
+            echo "       For a fully vendored tree use: bash $SPINE_DIR/scripts/install-vendor.sh" >&2
+            exit 1
+        fi
+        :  # Real directory (rsync/vendor mode) — OK for symlink install path
     else
         echo "ERROR: .spine not found in $project_root" >&2
         echo "Run: bash $SPINE_DIR/scripts/link-spine.sh  (symlink mode)" >&2
@@ -433,10 +522,10 @@ get_installed_skills() {
     if [[ ! -d "$agents_skills" ]]; then
         return
     fi
-    local link
-    for link in "$agents_skills"/*; do
-        if [[ -L "$link" ]]; then
-            basename "$link"
+    local entry
+    for entry in "$agents_skills"/*; do
+        if [[ -L "$entry" ]] || [[ -d "$entry" ]]; then
+            basename "$entry"
         fi
     done | sort
 }
@@ -454,7 +543,7 @@ resolve_skills() {
     fi
 }
 
-# --- Install skills in .agents/skills/ (per-skill symlinks) ---
+# --- Install skills in .agents/skills/ (symlinks or copies) ---
 
 install_project_skills() {
     local project_root="$1"
@@ -463,24 +552,52 @@ install_project_skills() {
 
     mkdir_p "$agents_skills"
 
-    echo ""
-    echo "Skills (per-skill symlinks in .agents/skills/):"
+    if $COPY_MODE; then
+        echo ""
+        echo "Skills (physical copies in .agents/skills/):"
+
+        if $UPDATE_MODE && ! $DRY_RUN && [[ -d "$agents_skills" ]]; then
+            local existing name
+            for existing in "$agents_skills"/*/; do
+                [[ -d "$existing" ]] || continue
+                name="$(basename "$existing")"
+                if ! printf '%s\n' "$skill_list" | grep -qxF "$name"; then
+                    rm -rf "$existing"
+                    log_linked "removed skill (not in selection): $name"
+                    CLEANED=$((CLEANED + 1))
+                fi
+            done
+        fi
+    else
+        echo ""
+        echo "Skills (per-skill symlinks in .agents/skills/):"
+    fi
 
     local skill
-    echo "$skill_list" | while read -r skill; do
+    while IFS= read -r skill; do
         [[ -z "$skill" ]] && continue
 
         local source_dir="$SPINE_DIR/skills/$skill"
         if [[ ! -d "$source_dir" ]]; then
             log_warn "Skill '$skill' not found in Spine repo, skipping"
+            WARNINGS=$((WARNINGS + 1))
             continue
         fi
 
-        local link_path="$agents_skills/$skill"
-        local rel_target="../../.spine/skills/$skill"
-
-        create_relative_symlink "$rel_target" "$link_path" "skill: $skill"
-    done
+        local dest_path="$agents_skills/$skill"
+        if $COPY_MODE; then
+            if copy_tree_into "$source_dir" "$dest_path"; then
+                log_linked "skill: $skill (copied)"
+                LINKED=$((LINKED + 1))
+            else
+                WARNINGS=$((WARNINGS + 1))
+            fi
+        else
+            local rel_target="../../.spine/skills/$skill"
+            create_relative_symlink "$rel_target" "$dest_path" "skill: $skill"
+            tally $?
+        fi
+    done <<< "$skill_list"
 }
 
 # --- Install Cursor rules, commands, and skills ---
@@ -495,9 +612,14 @@ install_project_cursor() {
     echo "=== Cursor (project-level) ==="
 
     mkdir_p "$cursor_rules"
+    mkdir_p "$cursor_commands"
 
     echo ""
-    echo "Rules (per-file symlinks):"
+    if $COPY_MODE; then
+        echo "Rules (physical copies):"
+    else
+        echo "Rules (per-file symlinks):"
+    fi
     local rule_file
     for rule_file in $(get_core_rules); do
         local source_abs="$SPINE_DIR/rules/$rule_file"
@@ -505,15 +627,23 @@ install_project_cursor() {
             log_warn "Rule '$rule_file' not found, skipping"
             continue
         fi
-        local link_path="$cursor_rules/$rule_file"
-        local rel_target="../../.spine/rules/$rule_file"
-        create_relative_symlink "$rel_target" "$link_path" "rule: $rule_file"; tally $?
+        local dest_path="$cursor_rules/$rule_file"
+        if $COPY_MODE; then
+            copy_file_into "$source_abs" "$dest_path" "rule: $rule_file"
+            tally $?
+        else
+            local rel_target="../../.spine/rules/$rule_file"
+            create_relative_symlink "$rel_target" "$dest_path" "rule: $rule_file"
+            tally $?
+        fi
     done
 
-    mkdir_p "$cursor_commands"
-
     echo ""
-    echo "Commands (per-file symlinks):"
+    if $COPY_MODE; then
+        echo "Commands (physical copies):"
+    else
+        echo "Commands (per-file symlinks):"
+    fi
     local command_file
     for command_file in $(get_command_files); do
         local source_abs="$SPINE_DIR/commands/$command_file"
@@ -521,14 +651,28 @@ install_project_cursor() {
             log_warn "Command '$command_file' not found, skipping"
             continue
         fi
-        local link_path="$cursor_commands/$command_file"
-        local rel_target="../../.spine/commands/$command_file"
-        create_relative_symlink "$rel_target" "$link_path" "command: $command_file"; tally $?
+        local dest_path="$cursor_commands/$command_file"
+        if $COPY_MODE; then
+            copy_file_into "$source_abs" "$dest_path" "command: $command_file"
+            tally $?
+        else
+            local rel_target="../../.spine/commands/$command_file"
+            create_relative_symlink "$rel_target" "$dest_path" "command: $command_file"
+            tally $?
+        fi
     done
 
     echo ""
-    echo "Skills (symlink to .agents/skills/):"
-    create_relative_symlink "../.agents/skills" "$cursor_skills" "skills"; tally $?
+    if $COPY_MODE; then
+        echo "Skills hub (.cursor/skills/ copy of .agents/skills/):"
+        copy_tree_into "$project_root/.agents/skills" "$cursor_skills"
+        tally $?
+        log_linked ".cursor/skills/ (copied)"
+    else
+        echo "Skills (symlink to .agents/skills/):"
+        create_relative_symlink "../.agents/skills" "$cursor_skills" "skills"
+        tally $?
+    fi
 }
 
 # --- Install Claude Code skills ---
@@ -541,8 +685,16 @@ install_project_claude() {
     echo "=== Claude Code (project-level) ==="
 
     echo ""
-    echo "Skills (symlink to .agents/skills/):"
-    create_relative_symlink "../.agents/skills" "$claude_skills" "skills"; tally $?
+    if $COPY_MODE; then
+        echo "Skills hub (.claude/skills/ copy of .agents/skills/):"
+        copy_tree_into "$project_root/.agents/skills" "$claude_skills"
+        tally $?
+        log_linked ".claude/skills/ (copied)"
+    else
+        echo "Skills (symlink to .agents/skills/):"
+        create_relative_symlink "../.agents/skills" "$claude_skills" "skills"
+        tally $?
+    fi
 }
 
 # --- Warn if legacy global OpenCode agent symlinks exist ---
@@ -588,7 +740,11 @@ install_project_opencode() {
     mkdir_p "$oc_agents"
 
     echo ""
-    echo "Commands (per-file symlinks):"
+    if $COPY_MODE; then
+        echo "Commands (physical copies):"
+    else
+        echo "Commands (per-file symlinks):"
+    fi
     local command_file
     for command_file in $(get_command_files); do
         local source_abs="$SPINE_DIR/commands/$command_file"
@@ -596,13 +752,23 @@ install_project_opencode() {
             log_warn "Command '$command_file' not found, skipping"
             continue
         fi
-        local link_path="$oc_commands/$command_file"
-        local rel_target="../../.spine/commands/$command_file"
-        create_relative_symlink "$rel_target" "$link_path" "command: $command_file"; tally $?
+        local dest_path="$oc_commands/$command_file"
+        if $COPY_MODE; then
+            copy_file_into "$source_abs" "$dest_path" "command: $command_file"
+            tally $?
+        else
+            local rel_target="../../.spine/commands/$command_file"
+            create_relative_symlink "$rel_target" "$dest_path" "command: $command_file"
+            tally $?
+        fi
     done
 
     echo ""
-    echo "Agents (per-file symlinks):"
+    if $COPY_MODE; then
+        echo "Agents (physical copies):"
+    else
+        echo "Agents (per-file symlinks):"
+    fi
     local agent_file
     for agent_file in $(get_agent_files); do
         local source_abs="$SPINE_DIR/agents/$agent_file"
@@ -610,9 +776,126 @@ install_project_opencode() {
             log_warn "Agent '$agent_file' not found, skipping"
             continue
         fi
-        local link_path="$oc_agents/$agent_file"
-        local rel_target="../../.spine/agents/$agent_file"
-        create_relative_symlink "$rel_target" "$link_path" "agent: $agent_file"; tally $?
+        local dest_path="$oc_agents/$agent_file"
+        if $COPY_MODE; then
+            copy_file_into "$source_abs" "$dest_path" "agent: $agent_file"
+            tally $?
+        else
+            local rel_target="../../.spine/agents/$agent_file"
+            create_relative_symlink "$rel_target" "$dest_path" "agent: $agent_file"
+            tally $?
+        fi
+    done
+}
+
+# --- Install Antigravity rules + workflows under .agents/ ---
+
+# Mirror project-local Cursor rules (e.g. graphify.mdc, ansible.mdc) into .agents/rules/
+sync_project_rules_to_antigravity() {
+    local project_root="$1"
+    local cursor_rules="$project_root/.cursor/rules"
+    local agents_rules="$project_root/.agents/rules"
+    local core_rules
+    core_rules="$(get_core_rules)"
+
+    if [[ ! -d "$cursor_rules" ]]; then
+        return 0
+    fi
+
+    mkdir_p "$agents_rules"
+
+    echo ""
+    echo "Project-local rules (mirror .cursor/rules extras -> .agents/rules/):"
+    local src name mirrored=0
+    for src in "$cursor_rules"/*; do
+        [[ -f "$src" ]] || continue
+        name="$(basename "$src")"
+        # Skip Spine core rules (already installed from .spine/rules)
+        if printf '%s\n' "$core_rules" | grep -qxF "$name"; then
+            continue
+        fi
+        if $COPY_MODE || [[ ! -L "$agents_rules/$name" ]]; then
+            if $DRY_RUN; then
+                echo "  [DRY-RUN] Would mirror: $name"
+            else
+                cp -a "$src" "$agents_rules/$name"
+                log_linked "agy-rule (project): $name"
+            fi
+            mirrored=$((mirrored + 1))
+            LINKED=$((LINKED + 1))
+        else
+            # Symlink mode: link to the cursor file so both stay in sync
+            local rel_target="../../.cursor/rules/$name"
+            create_relative_symlink "$rel_target" "$agents_rules/$name" "agy-rule (project): $name"
+            tally $?
+            mirrored=$((mirrored + 1))
+        fi
+    done
+    if [[ $mirrored -eq 0 ]]; then
+        log_skipped "no extra project rules to mirror"
+    fi
+}
+
+install_project_antigravity() {
+    local project_root="$1"
+    local agents_rules="$project_root/.agents/rules"
+    local agents_workflows="$project_root/.agents/workflows"
+
+    echo ""
+    echo "=== Antigravity (project-level) ==="
+
+    mkdir_p "$agents_rules"
+    mkdir_p "$agents_workflows"
+
+    echo ""
+    if $COPY_MODE; then
+        echo "Rules (physical copies in .agents/rules/):"
+    else
+        echo "Rules (per-file symlinks in .agents/rules/):"
+    fi
+    local rule_file
+    for rule_file in $(get_core_rules); do
+        local source_abs="$SPINE_DIR/rules/$rule_file"
+        if [[ ! -f "$source_abs" ]]; then
+            log_warn "Rule '$rule_file' not found, skipping"
+            continue
+        fi
+        local dest_path="$agents_rules/$rule_file"
+        if $COPY_MODE; then
+            copy_file_into "$source_abs" "$dest_path" "agy-rule: $rule_file"
+            tally $?
+        else
+            local rel_target="../../.spine/rules/$rule_file"
+            create_relative_symlink "$rel_target" "$dest_path" "agy-rule: $rule_file"
+            tally $?
+        fi
+    done
+
+    # graphify.mdc, ansible.mdc, and other project-local Cursor rules
+    sync_project_rules_to_antigravity "$project_root"
+
+    echo ""
+    if $COPY_MODE; then
+        echo "Workflows (physical copies in .agents/workflows/ from commands/):"
+    else
+        echo "Workflows (per-file symlinks in .agents/workflows/ -> commands/):"
+    fi
+    local command_file
+    for command_file in $(get_command_files); do
+        local source_abs="$SPINE_DIR/commands/$command_file"
+        if [[ ! -f "$source_abs" ]]; then
+            log_warn "Command '$command_file' not found, skipping"
+            continue
+        fi
+        local dest_path="$agents_workflows/$command_file"
+        if $COPY_MODE; then
+            copy_file_into "$source_abs" "$dest_path" "agy-workflow: $command_file"
+            tally $?
+        else
+            local rel_target="../../.spine/commands/$command_file"
+            create_relative_symlink "$rel_target" "$dest_path" "agy-workflow: $command_file"
+            tally $?
+        fi
     done
 }
 
@@ -625,13 +908,24 @@ add_gitignore_entries() {
     echo ""
     echo "Gitignore:"
 
+    # Mode-specific entries
+    local -a entries_to_add=(".spine")
+    local -a entries_to_remove=(".cursor/" ".claude/" ".opencode/" ".spine-vendor")
+    if $COPY_MODE; then
+        # Hybrid: version .agents/ as real files; only .spine (symlink) is local
+        entries_to_remove+=(".agents/" ".agents")
+    else
+        # Symlink hub: .agents/ is machine-local per-skill links
+        entries_to_add+=(".agents/")
+    fi
+
     if [[ ! -f "$gitignore" ]]; then
         if $DRY_RUN; then
             echo "  [DRY-RUN] Would create .gitignore with Spine entries"
         else
-            printf "# Spine directories are versioned (committed to git)\n" > "$gitignore"
+            printf "# Spine: .spine is local (symlink); applied IDE trees may be committed\n" > "$gitignore"
             local entry
-            for entry in "${PROJECT_GITIGNORE_ENTRIES[@]}"; do
+            for entry in "${entries_to_add[@]}"; do
                 printf "%s\n" "$entry" >> "$gitignore"
             done
             log_linked ".gitignore (created with Spine entries)"
@@ -639,11 +933,10 @@ add_gitignore_entries() {
         return 0
     fi
 
-    # Drop obsolete IDE ignores so .cursor/.claude/.opencode can be committed.
     local remove_entry removed=0
     local tmp=""
     local needs_strip=false
-    for remove_entry in "${PROJECT_GITIGNORE_REMOVE_ENTRIES[@]}"; do
+    for remove_entry in "${entries_to_remove[@]}"; do
         if grep -qxF "$remove_entry" "$gitignore" 2>/dev/null; then
             needs_strip=true
             break
@@ -651,7 +944,7 @@ add_gitignore_entries() {
     done
     if $needs_strip; then
         if $DRY_RUN; then
-            for remove_entry in "${PROJECT_GITIGNORE_REMOVE_ENTRIES[@]}"; do
+            for remove_entry in "${entries_to_remove[@]}"; do
                 if grep -qxF "$remove_entry" "$gitignore" 2>/dev/null; then
                     echo "  [DRY-RUN] Would remove ignore entry: $remove_entry"
                     removed=$((removed + 1))
@@ -661,11 +954,11 @@ add_gitignore_entries() {
             tmp="$(mktemp)"
             while IFS= read -r line || [[ -n "$line" ]]; do
                 local drop=false
-                for remove_entry in "${PROJECT_GITIGNORE_REMOVE_ENTRIES[@]}"; do
+                for remove_entry in "${entries_to_remove[@]}"; do
                     if [[ "$line" == "$remove_entry" ]]; then
                         drop=true
                         removed=$((removed + 1))
-                        log_linked ".gitignore: -$remove_entry (IDE trees are versionable)"
+                        log_linked ".gitignore: -$remove_entry (versionable in this install mode)"
                         break
                     fi
                 done
@@ -676,7 +969,7 @@ add_gitignore_entries() {
     fi
 
     local entry added=0
-    for entry in "${PROJECT_GITIGNORE_ENTRIES[@]}"; do
+    for entry in "${entries_to_add[@]}"; do
         if ! grep -qxF "$entry" "$gitignore" 2>/dev/null; then
             if $DRY_RUN; then
                 echo "  [DRY-RUN] Would add '$entry' to .gitignore"
@@ -691,7 +984,7 @@ add_gitignore_entries() {
     done
 
     if [[ $added -gt 0 || $removed -gt 0 ]] && ! $DRY_RUN; then
-        log_info "$added gitignore entries added, $removed obsolete IDE ignores removed"
+        log_info "$added gitignore entries added, $removed obsolete ignores removed"
     fi
 }
 
@@ -714,7 +1007,7 @@ list_skills() {
     local core
     for core in "${CORE_SKILLS[@]}"; do
         local marker=" "
-        if [[ -L "$project_root/.agents/skills/$core" ]]; then
+        if [[ -L "$project_root/.agents/skills/$core" ]] || [[ -d "$project_root/.agents/skills/$core" ]]; then
             marker="✓"
         fi
         echo "  [$marker] $core"
@@ -729,7 +1022,7 @@ list_skills() {
     else
         echo "$available" | while read -r skill; do
             local marker=" "
-            if [[ -L "$project_root/.agents/skills/$skill" ]]; then
+            if [[ -L "$project_root/.agents/skills/$skill" ]] || [[ -d "$project_root/.agents/skills/$skill" ]]; then
                 marker="✓"
             fi
             echo "  [$marker] $skill"
@@ -755,14 +1048,27 @@ add_skill() {
     fi
 
     local agents_skills="$project_root/.agents/skills"
-    local link_path="$agents_skills/$skill_name"
-    local rel_target="../../.spine/skills/$skill_name"
+    local dest_path="$agents_skills/$skill_name"
 
     mkdir_p "$agents_skills"
 
-    local rc
-    create_relative_symlink "$rel_target" "$link_path" "skill: $skill_name"
-    rc=$?
+    local rc=0
+    if $COPY_MODE || [[ -d "$dest_path" && ! -L "$dest_path" ]]; then
+        copy_tree_into "$source_dir" "$dest_path"
+        rc=$?
+        log_linked "skill: $skill_name (copied)"
+        # Mirror into IDE hubs when present as real trees
+        if [[ -d "$project_root/.cursor/skills" && ! -L "$project_root/.cursor/skills" ]]; then
+            copy_tree_into "$source_dir" "$project_root/.cursor/skills/$skill_name"
+        fi
+        if [[ -d "$project_root/.claude/skills" && ! -L "$project_root/.claude/skills" ]]; then
+            copy_tree_into "$source_dir" "$project_root/.claude/skills/$skill_name"
+        fi
+    else
+        local rel_target="../../.spine/skills/$skill_name"
+        create_relative_symlink "$rel_target" "$dest_path" "skill: $skill_name"
+        rc=$?
+    fi
 
     echo ""
     echo "Skill '$skill_name' installed in .agents/skills/"
@@ -775,18 +1081,25 @@ add_skill() {
 remove_skill() {
     local project_root="$1"
     local skill_name="$2"
-    local link_path="$project_root/.agents/skills/$skill_name"
+    local dest_path="$project_root/.agents/skills/$skill_name"
 
-    if [[ ! -L "$link_path" ]]; then
-        echo "WARNING: '$skill_name' is not a symlink or not found in .agents/skills/" >&2
+    if [[ ! -e "$dest_path" && ! -L "$dest_path" ]]; then
+        echo "WARNING: '$skill_name' not found in .agents/skills/" >&2
         return 1
     fi
 
     if $DRY_RUN; then
-        echo "  [DRY-RUN] Would remove: $link_path"
+        echo "  [DRY-RUN] Would remove: $dest_path"
     else
-        rm "$link_path"
+        rm -rf "$dest_path"
         log_linked "skill: $skill_name (removed)"
+        # Also remove mirrored copies in IDE hubs when they are real trees
+        if [[ -d "$project_root/.cursor/skills/$skill_name" && ! -L "$project_root/.cursor/skills" ]]; then
+            rm -rf "$project_root/.cursor/skills/$skill_name"
+        fi
+        if [[ -d "$project_root/.claude/skills/$skill_name" && ! -L "$project_root/.claude/skills" ]]; then
+            rm -rf "$project_root/.claude/skills/$skill_name"
+        fi
     fi
     return 0
 }
@@ -948,12 +1261,28 @@ validate_health() {
         "$project_root/.opencode/commands"
         "$project_root/.opencode/agents"
     )
+    if [[ -d "$project_root/.agents/rules" ]] || $COPY_MODE; then
+        check_dirs+=("$project_root/.agents/rules" "$project_root/.agents/workflows")
+    fi
     local dir label
     for dir in "${check_dirs[@]}"; do
         label="$(basename "$(dirname "$dir")")/$(basename "$dir")"
         if [[ ! -d "$dir" ]]; then
-            log_warn "$label directory is missing"
-            issues=$((issues + 1))
+            if $COPY_MODE || [[ "$label" == agents/rules || "$label" == agents/workflows ]]; then
+                log_warn "$label directory is missing"
+                issues=$((issues + 1))
+            fi
+            continue
+        fi
+        if $COPY_MODE; then
+            local count
+            count="$(find "$dir" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')"
+            if [[ "$count" -eq 0 ]]; then
+                log_warn "$label is empty"
+                issues=$((issues + 1))
+            else
+                log_skipped "$label: $count item(s) OK (copy mode)"
+            fi
             continue
         fi
         local link target broken=0 total_links=0
@@ -984,6 +1313,17 @@ validate_health() {
     local s s_target
     for s in "${dir_symlinks[@]}"; do
         label="$(basename "$(dirname "$s")")/$(basename "$s")"
+        if $COPY_MODE; then
+            if [[ -d "$s" && ! -L "$s" ]]; then
+                log_skipped "$label OK (copy mode directory)"
+            elif [[ -L "$s" && -d "$s" ]]; then
+                log_skipped "$label OK (symlink)"
+            else
+                log_warn "$label missing (expected copy directory in --copy mode)"
+                issues=$((issues + 1))
+            fi
+            continue
+        fi
         if [[ ! -L "$s" ]]; then
             log_warn "$label is not a symlink"
             issues=$((issues + 1))
@@ -999,7 +1339,11 @@ validate_health() {
     HEALTH_ISSUES=$issues
 
     if [[ $issues -eq 0 ]]; then
-        printf "\n  \033[32m✓\033[0m All symlinks are healthy\n"
+        if $COPY_MODE; then
+            printf "\n  \033[32m✓\033[0m All copy-mode trees are healthy\n"
+        else
+            printf "\n  \033[32m✓\033[0m All symlinks are healthy\n"
+        fi
     else
         printf "\n  \033[33m⚠\033[0m %d issue(s) found\n" "$issues"
     fi
@@ -1443,43 +1787,79 @@ uninstall_project() {
         fi
     }
 
-    echo "Removing per-file symlinks:"
+    echo "Removing per-file symlinks and copied artefacts:"
 
     local dirs_to_clean=(
         "$project_root/.agents/skills"
+        "$project_root/.agents/rules"
+        "$project_root/.agents/workflows"
         "$project_root/.cursor/rules"
         "$project_root/.cursor/commands"
         "$project_root/.opencode/commands"
+        "$project_root/.opencode/agents"
     )
 
     local d f
     for d in "${dirs_to_clean[@]}"; do
         if [[ -d "$d" ]]; then
             for f in "$d"/*; do
-                [[ -L "$f" ]] || continue
-                if $DRY_RUN; then
-                    echo "  [DRY-RUN] Would remove: $(basename "$d")/$(basename "$f")"
-                else
-                    rm "$f"
-                    log_linked "removed: $(basename "$d")/$(basename "$f")"
+                [[ -e "$f" || -L "$f" ]] || continue
+                if [[ -L "$f" ]]; then
+                    if $DRY_RUN; then
+                        echo "  [DRY-RUN] Would remove: $(basename "$d")/$(basename "$f")"
+                    else
+                        rm "$f"
+                        log_linked "removed: $(basename "$d")/$(basename "$f")"
+                    fi
+                    removed=$((removed + 1))
+                elif [[ -f "$f" ]] || [[ -d "$f" ]]; then
+                    # Physical copies from --copy / vendor materialize
+                    if $DRY_RUN; then
+                        echo "  [DRY-RUN] Would remove copy: $(basename "$d")/$(basename "$f")"
+                    else
+                        rm -rf "$f"
+                        log_linked "removed copy: $(basename "$d")/$(basename "$f")"
+                    fi
+                    removed=$((removed + 1))
                 fi
-                removed=$((removed + 1))
             done
         fi
     done
 
     echo ""
-    echo "Removing directory symlinks:"
+    echo "Removing directory hubs:"
 
-    remove_symlink_or_dir "$project_root/.cursor/skills" ".cursor/skills"
-    remove_symlink_or_dir "$project_root/.claude/skills" ".claude/skills"
+    # Skills hubs may be symlink or real copy tree
+    for d in \
+        "$project_root/.cursor/skills" \
+        "$project_root/.claude/skills" \
+        "$project_root/.agents/skills" \
+        "$project_root/.agents/rules" \
+        "$project_root/.agents/workflows"; do
+        if [[ -L "$d" ]]; then
+            remove_symlink_or_dir "$d" "${d#"$project_root/"}"
+        elif [[ -d "$d" ]]; then
+            if $DRY_RUN; then
+                echo "  [DRY-RUN] Would remove directory: ${d#"$project_root/"}"
+            else
+                rm -rf "$d"
+                log_linked "removed: ${d#"$project_root/"}"
+            fi
+            removed=$((removed + 1))
+        fi
+    done
 
     echo ""
-    echo "Removing Spine directories (if empty):"
+    echo "Removing empty Spine parent directories:"
 
-    for d in "${dirs_to_clean[@]}"; do
+    for d in \
+        "$project_root/.cursor/rules" \
+        "$project_root/.cursor/commands" \
+        "$project_root/.opencode/commands" \
+        "$project_root/.opencode/agents" \
+        "$project_root/.agents"; do
         if [[ -d "$d" ]]; then
-            remove_symlink_or_dir "$d" "$(echo "$d" | sed "s|^$project_root/||")"
+            remove_symlink_or_dir "$d" "${d#"$project_root/"}"
         fi
     done
 
@@ -1489,18 +1869,30 @@ uninstall_project() {
     remove_symlink_or_dir "$project_root/.agents" ".agents"
 
     echo ""
-    echo "Removing .spine:"
-    if [[ -d "$project_root/.spine" && ! -L "$project_root/.spine" ]]; then
+    echo "Handling .spine:"
+    if [[ -L "$project_root/.spine" ]]; then
+        log_skipped ".spine (symlink kept — re-run link-spine.sh only if needed)"
+    elif [[ -d "$project_root/.spine" ]]; then
         if $DRY_RUN; then
-            echo "  [DRY-RUN] Would remove directory: .spine (rsync mode)"
+            echo "  [DRY-RUN] Would remove directory: .spine (rsync/vendor mode)"
             removed=$((removed + 1))
         else
             rm -rf "$project_root/.spine"
-            log_linked "removed: .spine (rsync mode)"
+            log_linked "removed: .spine (rsync/vendor mode)"
             removed=$((removed + 1))
         fi
     else
-        remove_symlink_or_dir "$project_root/.spine" ".spine"
+        log_skipped ".spine (not present)"
+    fi
+
+    if [[ -f "$project_root/.spine-vendor" ]]; then
+        if $DRY_RUN; then
+            echo "  [DRY-RUN] Would remove: .spine-vendor"
+        else
+            rm -f "$project_root/.spine-vendor"
+            log_linked "removed: .spine-vendor"
+        fi
+        removed=$((removed + 1))
     fi
 
     echo ""
@@ -1560,20 +1952,34 @@ print_project_summary() {
 
     echo "Project structure:"
     if [[ -L "$project_root/.spine" ]]; then
-        echo "  .spine              -> (Spine repository symlink)"
+        echo "  .spine              -> (Spine repository symlink, gitignored)"
     else
-        echo "  .spine/                (rsync mode — real directory)"
+        echo "  .spine/                (rsync/vendor mode — real directory)"
     fi
-    echo "  .agents/skills/        (per-skill symlinks)"
-    echo "  .claude/skills      -> .agents/skills/"
-    echo "  .cursor/rules/         (per-file rule symlinks)"
-    echo "  .cursor/commands/      (per-file command symlinks)"
-    echo "  .cursor/skills      -> .agents/skills/"
-    echo "  .opencode/commands/    (per-file command symlinks)"
-    echo "  .opencode/agents/      (per-file agent symlinks)"
+    if $COPY_MODE; then
+        echo "  .agents/skills/        (physical skill copies — versionable)"
+        echo "  .agents/rules/         (physical rule copies — Antigravity)"
+        echo "  .agents/workflows/     (physical command copies — Antigravity slash)"
+        echo "  .claude/skills/        (physical copy of skills hub)"
+        echo "  .cursor/rules/         (physical rule copies)"
+        echo "  .cursor/commands/      (physical command copies)"
+        echo "  .cursor/skills/        (physical copy of skills hub)"
+        echo "  .opencode/commands/    (physical command copies)"
+        echo "  .opencode/agents/      (physical agent copies)"
+    else
+        echo "  .agents/skills/        (per-skill symlinks)"
+        echo "  .agents/rules/         (per-file rule symlinks — Antigravity)"
+        echo "  .agents/workflows/     (per-file command symlinks — Antigravity)"
+        echo "  .claude/skills      -> .agents/skills/"
+        echo "  .cursor/rules/         (per-file rule symlinks)"
+        echo "  .cursor/commands/      (per-file command symlinks)"
+        echo "  .cursor/skills      -> .agents/skills/"
+        echo "  .opencode/commands/    (per-file command symlinks)"
+        echo "  .opencode/agents/      (per-file agent symlinks)"
+    fi
     echo ""
     echo "  docs/       memory bank templates (seeded, fill via /spine-bootstrap)"
-    echo "  Rules:      opencode.json (GitHub URLs)"
+    echo "  Rules:      opencode.json (GitHub URLs) + .agents/rules (Antigravity)"
     echo "  Skills:     docs/governance/skills-policy.md"
     echo ""
     echo "Next step (IDE): /spine-bootstrap"
@@ -1632,8 +2038,9 @@ echo "Repository: $SPINE_DIR"
 echo "Project:    $PROJECT_ROOT"
 echo "Targets:    $TARGETS"
 echo "OS:         $OS"
-if $FORCE; then echo "Mode: force (will replace existing symlinks)"; fi
+if $FORCE; then echo "Mode: force (will replace existing symlinks/copies)"; fi
 if $UPDATE_MODE; then echo "Mode: update (install + cleanup dangling)"; fi
+if $COPY_MODE; then echo "Mode: copy (physical files; .spine stays symlink)"; fi
 if $DRY_RUN; then echo "Mode: dry-run (preview only)"; fi
 if $WITH_GRAPHIFY; then
     echo "Graphify:   enabled (tri-platform: cursor, opencode, claude)"
@@ -1668,20 +2075,22 @@ done
 INSTALL_CURSOR=false
 INSTALL_OPENCODE=false
 INSTALL_CLAUDE=false
+INSTALL_ANTIGRAVITY=false
 IFS=',' read -ra TARGET_ARRAY <<< "$TARGETS"
 for target in "${TARGET_ARRAY[@]}"; do
     case "$target" in
-        cursor)   INSTALL_CURSOR=true ;;
-        opencode) INSTALL_OPENCODE=true ;;
-        claude)   INSTALL_CLAUDE=true ;;
-        *)        echo "WARNING: Unknown target '$target', skipping" >&2 ;;
+        cursor)      INSTALL_CURSOR=true ;;
+        opencode)    INSTALL_OPENCODE=true ;;
+        claude)      INSTALL_CLAUDE=true ;;
+        antigravity) INSTALL_ANTIGRAVITY=true ;;
+        *)           echo "WARNING: Unknown target '$target', skipping" >&2 ;;
     esac
 done
 
 # Install skills (shared .agents/ hub)
 install_project_skills "$PROJECT_ROOT" "$SKILL_LIST"
 
-# Install per-tool symlinks
+# Install per-tool wiring
 if $INSTALL_CURSOR; then
     install_project_cursor "$PROJECT_ROOT"
 fi
@@ -1692,6 +2101,10 @@ fi
 
 if $INSTALL_CLAUDE; then
     install_project_claude "$PROJECT_ROOT"
+fi
+
+if $INSTALL_ANTIGRAVITY; then
+    install_project_antigravity "$PROJECT_ROOT"
 fi
 
 # Seed docs/ templates and merge opencode.json
