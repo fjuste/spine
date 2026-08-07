@@ -72,21 +72,30 @@ This creates `.spine` → absolute path to the Spine repository. Use `--spine-di
 ### 3. Install Spine (terminal — full deterministic setup)
 
 ```bash
-bash .spine/install.sh          # all skills (default); interactive Graphify opt-in when TTY
+# Default: relative symlinks for IDE trees
+bash .spine/install.sh          # all skills; interactive Graphify opt-in when TTY
 bash .spine/install.sh --core   # minimal 5-skill profile only
+
+# Hybrid (recommended for mixed-OS / versionable copies):
+# .spine stays a gitignored symlink; rules/skills/commands are physical copies
+bash .spine/install.sh --copy
+bash .spine/install.sh --copy --update
+
 bash .spine/install.sh --no-graphify-prompt   # skip Graphify question (CI/non-interactive)
 ```
 
 > **Important:** Slash commands (`/spine-bootstrap`, `/spine-plan`, etc.) are **not** available until this step completes. After `link-spine.sh` (step 2) you only have the `.spine` symlink — the only valid next action is `bash .spine/install.sh` from the terminal.
 
-`install.sh` performs all deterministic setup: symlinks, `docs/` template seed (from local `templates/docs/`), `opencode.json` merge, gitignore entries (`.spine` / `.agents/` only; strips obsolete `.cursor/` / `.claude/` / `.opencode/` ignores), and optional Graphify. Re-runs are idempotent — existing `docs/` content is never overwritten.
+`install.sh` performs all deterministic setup: wiring (symlinks **or** `--copy` physical files), `docs/` template seed, `opencode.json` merge, gitignore entries, and optional Graphify. Re-runs are idempotent — existing `docs/` content is never overwritten.
 
-This creates:
+**Default (symlink wiring)** creates:
 
 ```text
 PROJECT_ROOT/
 ├── .spine              → Spine repository (gitignored symlink)
 ├── .agents/skills/     per-skill symlinks (gitignored)
+├── .agents/rules/      core rule symlinks (Antigravity)
+├── .agents/workflows/  command symlinks → slash /spine-* (Antigravity)
 ├── .cursor/rules/      core rule symlinks (committable)
 ├── .cursor/commands/   command symlinks (committable)
 ├── .cursor/skills/     → .agents/skills/ (committable)
@@ -97,6 +106,17 @@ PROJECT_ROOT/
 └── docs/               memory bank templates (versioned)
 ```
 
+**Hybrid (`--copy`)** creates the same layout with **physical file copies** under `.agents/`, `.cursor/`, `.claude/`, and `.opencode/` (versionable). Only `.spine` remains a local symlink (gitignored). Teammates get applied trees via `git pull`; maintainers refresh with `bash .spine/install.sh --copy --update`.
+
+#### Platform wiring matrix
+
+| Artefato Spine | Cursor | OpenCode | Claude Code | Antigravity |
+|---|---|---|---|---|
+| `skills/` | `.cursor/skills` | (hub) | `.claude/skills` | `.agents/skills/` |
+| `rules/` | `.cursor/rules` | URLs in `opencode.json` | (via skills/CLAUDE.md) | `.agents/rules/` |
+| `commands/` (slash) | `.cursor/commands` | `.opencode/commands` | — | `.agents/workflows/` |
+
+Antigravity has no `commands/` directory: slash commands are **workflows** under `.agents/workflows/`.
 ### 4. Bootstrap (IDE, recommended)
 
 Open (or reload) the project in your agent IDE, then run:

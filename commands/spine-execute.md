@@ -12,11 +12,19 @@ Act as a Software Engineer focused on rigorous implementation.
 2. **Branch Setup:** Read `branch` and `base` from task YAML frontmatter (fallback: legacy `## Branch:` / `## Base:` if present).
    - **GitFlow is mandatory (not optional) during execution.**
    - `base` must be `develop` and `branch` must follow `feature/<descriptive-name>`.
-   - Ensure you are on the `base` branch. Run `git checkout <base> && git pull`.
-   - If the specified `branch` does not exist yet, create it: `git checkout -b <branch>`.
-   - If the `branch` already exists, switch to it: `git checkout <branch>`.
    - If `branch` or `base` are missing, stop and request a plan correction before implementation.
    - If `base` is not `develop` or `branch` does not match `feature/<descriptive-name>`, stop and request correction to comply with GitFlow.
+   - **Sync base before any feature work (multi-dev / shared repo):**
+     1. `git fetch origin`
+     2. `git checkout develop`
+     3. `git pull --ff-only origin develop`
+        - If `--ff-only` fails (local `develop` diverged), **STOP** and ask the user to reconcile before continuing.
+        - If checkout/pull is blocked by a dirty working tree, **STOP** and ask to commit or stash first.
+   - If the specified `branch` does not exist yet: `git checkout -b <branch>` (from the updated `develop`).
+   - If the `branch` already exists:
+     1. `git checkout <branch>`
+     2. Integrate latest `develop`: `git merge origin/develop` (or rebase onto `origin/develop` if the user prefers rebase).
+     3. If merge/rebase conflicts, **STOP** and ask the user to resolve before implementation.
 3. **Context Reading:** Read the selected active task mandatorily:
    - YAML frontmatter (`goal`, `tags`, `execution_skill`, …)
    - `## Acceptance Criteria`, `## Test Strategy`
