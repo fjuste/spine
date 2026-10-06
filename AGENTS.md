@@ -194,7 +194,14 @@ bash ~/Workspace/ide/spine/scripts/install-vendor.sh --force --spine-dir=~/Works
 bash .spine/scripts/install-vendor.sh --update --spine-dir=~/Workspace/ide/spine
 ```
 
-Full notes: README § **Optional: Vendor install**.
+**Windows (native, no Bash/symlinks):** `install.ps1` at the Spine root is the PowerShell port of `install-vendor.sh` (same flags as `-Update`, `-Uninstall`, `-Force`, `-DryRun`, `-Core`, `-Skills`, `-Targets`; same `.spine-vendor` marker). Keep both scripts in sync when changing vendor behavior.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File C:\tools\spine\install.ps1 -ProjectRoot C:\dev\my-project
+powershell -ExecutionPolicy Bypass -File C:\dev\my-project\.spine\install.ps1 -Update -ProjectRoot C:\dev\my-project -SpineDir C:\tools\spine
+```
+
+Full notes: README § **Optional: Vendor install** (incl. **Windows (PowerShell)**).
 
 #### What `install.sh` creates
 
@@ -206,7 +213,7 @@ Full notes: README § **Optional: Vendor install**.
 | `.agents/skills|rules|workflows` | wiring | No (`.agents/` ignored) | Yes (real files) |
 | `.spine` | `link-spine.sh` | No (symlink) | No (symlink) |
 
-#### What `install-vendor.sh` creates
+#### What `install-vendor.sh` / `install.ps1` creates
 
 | File | Source | Versioned in consumer project? |
 |---|---|---|
