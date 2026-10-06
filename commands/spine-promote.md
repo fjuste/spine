@@ -6,7 +6,7 @@ agent: build
 # Slash Command: /spine-promote [$ARGUMENTS]
 Act as a Spine Maintainer with full merge privileges.
 
-**WARNING:** This command is **internal to the Spine repository only**. It must never be exposed to consumer projects via `install.sh` or any template. It assumes direct push/merge rights to protected branches.
+**WARNING:** This command is **internal to the Spine repository only**. It must never be exposed to consumer projects via `spine.py install` or any template. It assumes direct push/merge rights to protected branches.
 
 **Goal:** Create a high-quality commit on `develop`, push it, and cascade-promote the changes through `staging`, `production`, and `main`, finally returning to `develop`.
 
@@ -19,7 +19,7 @@ Act as a Spine Maintainer with full merge privileges.
 ## 1. Pre-flight Validation
 - Run:
   - `git rev-parse --show-toplevel`
-  - Verify the repo basename is `spine` (or contains `spine/install.sh` and `commands/spine-commit.md`).
+  - Verify the repo basename is `spine` (or contains `spine/scripts/spine.py` and `commands/spine-commit.md`).
   - If validation fails, STOP with: "This command is restricted to the Spine maintainer repository."
 - Run:
   - `git status --short --branch`

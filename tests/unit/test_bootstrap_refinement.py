@@ -5,11 +5,12 @@ def _read(path: str) -> str:
     return Path(path).read_text(encoding="utf-8")
 
 
-def test_validate_bootstrap_ready_script_exists() -> None:
-    assert Path("scripts/validate-bootstrap-ready.sh").exists()
+def test_validate_bootstrap_ready_is_python() -> None:
+    assert not Path("scripts/validate-bootstrap-ready.sh").exists()
+    seeds = _read("scripts/spine_cli/constants.py")
     text = _read("scripts/spine_validate.py")
-    assert "project-brief.md" in text
-    assert "roadmap.md" in text
+    assert "project-brief.md" in seeds
+    assert "roadmap.md" in seeds
     assert "spine-bootstrap.md" in text
     assert "opencode.json" in text
     assert "spine_validate.py" in text
@@ -88,12 +89,14 @@ def test_spine_bootstrap_no_grill_me() -> None:
 
 def test_readme_documents_bootstrap_scope() -> None:
     text = _read("README.md")
-    assert "validate-bootstrap-ready.sh" in text
+    assert "spine_validate.py bootstrap" in text
+    assert "validate-bootstrap-ready.sh" not in text
     assert "does **not** fill `roadmap.md`" in text or "not fill `roadmap.md`" in text
 
 
 def test_agents_md_bootstrap_vs_plan() -> None:
     text = _read("AGENTS.md")
-    assert "validate-bootstrap-ready.sh" in text
+    assert "spine_validate.py bootstrap" in text
+    assert "validate-bootstrap-ready.sh" not in text
     assert "roadmap.md" in text
     assert "/spine-plan" in text

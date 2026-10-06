@@ -69,13 +69,10 @@ def test_core_protocol_defers_sync_to_memory_bank() -> None:
     assert "if a simpler alternative exists" in memory
 
 
-def test_install_sh_deploys_opencode_agents() -> None:
-    text = _read("install.sh")
-    assert "get_agent_files" in text
-    assert ".opencode/agents" in text
-    assert "agents/$agent_file" in text
-    assert "opencode/agents" in text
-    assert "warn_if_global_opencode_agents" in text
+def test_installer_deploys_opencode_agents() -> None:
+    text = _read("scripts/spine_cli/wiring.py")
+    assert ".opencode" in text and "agents" in text
+    assert "warn_global_opencode_agents" in text
     assert "get_mode_files" not in text
     assert ".opencode/modes" not in text
     assert ".config/opencode/agents" in text
