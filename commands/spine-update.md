@@ -14,8 +14,8 @@ Goal: update an existing Spine-enabled consumer project safely, preserving `docs
 
 - Project must be a git repository.
 - `.spine` symlink must exist in the project root.
-- If `.spine` is missing, stop and ask the user to run `scripts/link-spine.sh`, then `bash .spine/install.sh`.
-- If slash commands are missing, stop and ask the user to run `bash .spine/install.sh` from the terminal (step 3 in README), reload the IDE, then retry `/spine-update` or use `bash .spine/scripts/update.sh` directly.
+- If `.spine` is missing, stop and ask the user to run `python3 /path/to/spine/scripts/spine.py install`, then `python3 .spine/scripts/spine.py install`.
+- If slash commands are missing, stop and ask the user to run `python3 .spine/scripts/spine.py install` from the terminal (step 3 in README), reload the IDE, then retry `/spine-update` or use `python3 .spine/scripts/spine.py update` directly.
 
 ---
 
@@ -24,16 +24,16 @@ Goal: update an existing Spine-enabled consumer project safely, preserving `docs
 Run from project root:
 
 ```bash
-bash .spine/scripts/update.sh
+python3 .spine/scripts/spine.py update
 ```
 
 This performs:
 1. update Spine source via `.spine` (`git pull`);
-2. reconcile project symlinks (`install.sh --update --force`);
+2. reconcile project symlinks (`install --update --force`);
 3. sync `opencode.json` with current Spine template (merge mode);
 4. preserve `docs/memory/` (non-destructive).
 
-**Memory Bank v2.1 migration (manual, after update):** If DONE tasks remain in `active_tasks/`, run `git mv docs/memory/active_tasks/<file>.md docs/memory/completed_tasks/`. Seed missing `learnings.md` and `memory-tags-policy.md` via `bash .spine/install.sh --update` (idempotent). See Spine README § Memory Bank v2.1.
+**Memory Bank v2.1 migration (manual, after update):** If DONE tasks remain in `active_tasks/`, run `git mv docs/memory/active_tasks/<file>.md docs/memory/completed_tasks/`. Seed missing `learnings.md` and `memory-tags-policy.md` via `python3 .spine/scripts/spine.py install --update` (idempotent). See Spine README § Memory Bank v2.1.
 
 ---
 
@@ -42,37 +42,37 @@ This performs:
 - Dry run:
 
 ```bash
-bash .spine/scripts/update.sh --dry-run
+python3 .spine/scripts/spine.py update --dry-run
 ```
 
 - Skip `.spine` pull:
 
 ```bash
-bash .spine/scripts/update.sh --no-pull
+python3 .spine/scripts/spine.py update --no-pull
 ```
 
 - Replace `opencode.json` (instead of merge):
 
 ```bash
-bash .spine/scripts/update.sh --replace-opencode
+python3 .spine/scripts/spine.py update --replace-opencode
 ```
 
 - Include Graphify setup:
 
 ```bash
-bash .spine/scripts/update.sh --with-graphify
+python3 .spine/scripts/spine.py update --with-graphify
 ```
 
 - Include MkDocs setup:
 
 ```bash
-bash .spine/scripts/update.sh --with-mkdocs
+python3 .spine/scripts/spine.py update --with-mkdocs
 ```
 
 - Include Graphify setup + initial graph build:
 
 ```bash
-bash .spine/scripts/update.sh --graphify-init
+python3 .spine/scripts/spine.py update --graphify-init
 ```
 
 ### Adopt Graphify on an existing project
@@ -83,11 +83,11 @@ When the consumer project already uses Spine but Graphify is not fully integrate
 2. **Primary (interactive):** from project root, run install or update — answer **yes** at the Graphify prompt when integration is incomplete:
 
 ```bash
-bash .spine/install.sh
-# or: bash .spine/install.sh --update
+python3 .spine/scripts/spine.py install
+# or: python3 .spine/scripts/spine.py install --update
 ```
 
-3. **Non-interactive:** `bash .spine/scripts/update.sh --graphify-init` (pulls Spine, reconciles symlinks, full co-install).
+3. **Non-interactive:** `python3 .spine/scripts/spine.py update --graphify-init` (pulls Spine, reconciles symlinks, full co-install).
 
 This copies `.graphifyignore` if missing, runs `graphify update .`, co-installs Graphify for Cursor + OpenCode + Claude Code (default targets), merges OpenCode plugin into `opencode.json`, and preserves `docs/memory/`.
 
@@ -107,11 +107,11 @@ When the consumer project already uses Spine but MkDocs is not yet enabled:
 2. **Primary (interactive):** from project root, run install or update — answer **yes** at the MkDocs prompt:
 
 ```bash
-bash .spine/install.sh
-# or: bash .spine/install.sh --update
+python3 .spine/scripts/spine.py install
+# or: python3 .spine/scripts/spine.py install --update
 ```
 
-3. **Non-interactive:** `bash .spine/scripts/update.sh --with-mkdocs` (pulls Spine, reconciles symlinks, seeds templates).
+3. **Non-interactive:** `python3 .spine/scripts/spine.py update --with-mkdocs` (pulls Spine, reconciles symlinks, seeds templates).
 
 This seeds `docs/mkdocs/mkdocs.yml`, `docs/mkdocs/index.md`, `docs/mkdocs/architecture.md`, runs `mkdocs build --strict`, and adds `docs/mkdocs/site/` to `.gitignore`. The memory bank (`docs/memory/`) is preserved untouched.
 
@@ -121,7 +121,7 @@ This seeds `docs/mkdocs/mkdocs.yml`, `docs/mkdocs/index.md`, `docs/mkdocs/archit
 python3 .spine/scripts/spine_validate.py mkdocs
 ```
 
-Validators are cross-platform Python 3.9+ (on Windows, if `python3` is unavailable, use `py -3` or `python`); `bash .spine/scripts/validate-*.sh` remain thin wrappers.
+Validators are cross-platform Python 3.9+ (on Windows, if `python3` is unavailable, use `py -3` or `python`).
 
 5. Preview documentation: `mkdocs serve -f docs/mkdocs/mkdocs.yml`
 
@@ -146,7 +146,7 @@ Always report:
 ## Acceptance criteria (command behavior)
 
 - [ ] Fails fast with clear message if project is not Spine-enabled (`.spine` missing).
-- [ ] Uses `scripts/update.sh` as the single update entrypoint.
+- [ ] Uses `python3 .spine/scripts/spine.py update` as the single update entrypoint.
 - [ ] Preserves `docs/memory/` and does not wipe project memory.
 - [ ] Supports dry-run and replacement modes for `opencode.json`.
 - [ ] Produces a clear operational summary for the user.

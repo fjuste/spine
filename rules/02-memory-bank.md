@@ -45,7 +45,7 @@ docs/memory/
 | `roadmap.md` | **No** | Seeded with GIST-informed template; filled by `/spine-roadmap`; `/spine-plan` sets Idea Bank `In Progress` + `roadmap_idea`; `/spine-harvest` marks `Done`; optional split-plan notes from `/spine-plan` |
 | `learnings.md` | Rarely at bootstrap | Incidents at `/spine-harvest` only |
 
-`/spine-bootstrap` runs after `bash .spine/install.sh` and fills placeholders in `global/` plus `progress.md` Current state. It does **not** create `active_tasks/` files — use `/spine-plan`.
+`/spine-bootstrap` runs after `python3 .spine/scripts/spine.py install` and fills placeholders in `global/` plus `progress.md` Current state. It does **not** create `active_tasks/` files — use `/spine-plan`.
 
 ## Access Rules (pragmatic)
 
@@ -87,7 +87,7 @@ If a file does not exist, create it only if it is part of the current task flow.
 
 **Skill trigger:** When the user types `/graphify`, invoke the graphify skill before other work (rebuild, query, or explain per skill).
 
-**Verify integration:** `python3 .spine/scripts/spine_validate.py graphify` (from project root after enabling Graphify via `bash .spine/install.sh` prompt or `--with-graphify`).
+**Verify integration:** `python3 .spine/scripts/spine_validate.py graphify` (from project root after enabling Graphify via `python3 .spine/scripts/spine.py install` prompt or `--with-graphify`).
 
 ### Core (every session)
 

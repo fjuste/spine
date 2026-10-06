@@ -12,25 +12,22 @@ def test_graphify_policy_is_optional_and_consumer_scoped() -> None:
     assert "discovery protocol" in text or "graphify query" in text
 
 
-def test_install_sh_has_optional_graphify_onboarding() -> None:
-    text = _read("install.sh").lower()
+def test_install_has_optional_graphify_onboarding() -> None:
+    text = _read("scripts/spine_cli/install.py").lower()
     assert "graphify" in text
-    assert "prompt_graphify_opt_in" in text
-    assert "graphify_integration_complete" in text
-    assert "install-graphify.sh" in text
-    assert "graphify-uninstall" in text
-    assert "tri-platform" in text or "cursor, opencode, claude" in text
+    assert "enable graphify for this project?" in text
+    assert "graphify-uninstall" in _read("scripts/spine.py")
+    assert "tri-platform" in text or "cursor,opencode,claude" in text
     assert "$update_mode && return 1" not in text
 
 
-def test_install_graphify_sh_tri_platform_co_install() -> None:
-    text = _read("scripts/install-graphify.sh").lower()
-    assert "graphify cursor install" in text
-    assert "graphify opencode install" in text
-    assert "graphify claude install" in text
-    assert "merge-graphify-opencode.py" in text
-    assert "validate-graphify-integration.sh" in text
-    assert "--targets=" in text
+def test_graphify_setup_tri_platform_co_install() -> None:
+    text = _read("scripts/spine_cli/graphify_setup.py").lower()
+    assert "graphify" in text and "cursor" in text and "install" in text
+    assert "opencode" in text
+    assert "claude" in text
+    assert "merge_graphify_plugin" in text
+    assert "validate_graphify" in text
 
 
 def test_spine_bootstrap_detects_graphify_artifacts() -> None:
@@ -77,7 +74,7 @@ def test_readme_documents_graphify_interactive_first() -> None:
     assert "## optional: graphify" in text
     assert "graphifyy" in text
     assert "interactive" in text or "answer" in text and "yes" in text
-    assert "validate-graphify-integration.sh" in text
+    assert "spine_validate.py graphify" in text
     assert "graph_report.md" in text
     assert "cursor" in text and "opencode" in text and "claude" in text
     assert "--with-graphify" in text
@@ -95,12 +92,11 @@ def test_spine_update_documents_existing_project_graphify_adoption() -> None:
     assert "python3 .spine/scripts/spine_validate.py graphify" in text
 
 
-def test_install_sh_prompts_graphify_interactively() -> None:
-    text = _read("install.sh").lower()
-    assert "prompt_graphify_opt_in" in text
+def test_install_prompts_graphify_interactively() -> None:
+    text = _read("scripts/spine_cli/install.py").lower()
     assert "enable graphify for this project?" in text
     assert "complete graphify integration" in text
-    assert "--no-graphify-prompt" in text
+    assert "--no-graphify-prompt" in _read("scripts/spine.py")
     assert "medium/large" in text
 
 
@@ -113,10 +109,8 @@ def test_spine_harvest_refreshes_graphify_when_in_use() -> None:
     assert "graphify query" in text
 
 
-def test_validate_graphify_integration_script_exists() -> None:
-    path = Path("scripts/validate-graphify-integration.sh")
-    assert path.exists()
-    assert "--targets=" in path.read_text(encoding="utf-8")
+def test_validate_graphify_is_python() -> None:
+    assert not Path("scripts/validate-graphify-integration.sh").exists()
     text = _read("scripts/spine_validate.py")
     assert "graphify.mdc" in text
     assert "graphify.js" in text
@@ -134,7 +128,7 @@ def test_merge_graphify_opencode_script_exists() -> None:
 
 def test_agents_md_documents_tri_platform_graphify() -> None:
     text = _read("AGENTS.md").lower()
-    assert "validate-graphify-integration.sh" in text
+    assert "spine_validate.py graphify" in text
     assert "graphify discovery protocol" in text
     assert "graphify-uninstall" in text
     assert "answer" in text and "yes" in text

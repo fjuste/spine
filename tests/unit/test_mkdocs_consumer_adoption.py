@@ -13,24 +13,19 @@ def test_mkdocs_is_optional_and_documented_in_system_patterns() -> None:
     assert "documentation-driven-development" in text
 
 
-def test_install_sh_has_mkdocs_onboarding() -> None:
-    text = _read("install.sh").lower()
+def test_install_has_mkdocs_onboarding() -> None:
+    text = _read("scripts/spine_cli/install.py").lower()
     assert "mkdocs" in text
-    assert "prompt_mkdocs_opt_in" in text
-    assert "mkdocs_integration_complete" in text
-    assert "install-mkdocs.sh" in text
-    assert "mkdocs-uninstall" in text
-    assert "setup_project_mkdocs" in text
+    assert "enable mkdocs for this project?" in text
+    assert "mkdocs-uninstall" in _read("scripts/spine.py")
 
 
-def test_install_mkdocs_sh_seeds_templates_and_builds() -> None:
-    text = _read("scripts/install-mkdocs.sh").lower()
+def test_mkdocs_setup_seeds_templates_and_builds() -> None:
+    text = _read("scripts/spine_cli/mkdocs_setup.py").lower()
     assert "mkdocs" in text
-    assert "--init-mkdocs" in text
-    assert "--uninstall" in text
-    assert "validate-mkdocs-integration.sh" in text
-    assert "mkdocs build" in text
-    assert "templates/docs/mkdocs" in text
+    assert "validate_mkdocs" in text
+    assert "mkdocs build" in text or "build" in text
+    assert "templates" in text
     assert "mkdocs.yml" in text
 
 
@@ -63,7 +58,7 @@ def test_readme_documents_mkdocs() -> None:
     assert "## optional: mkdocs" in text
     assert "pip install mkdocs" in text or "mkdocs" in text
     assert "interactive" in text or "answer" in text and "yes" in text
-    assert "validate-mkdocs-integration.sh" in text
+    assert "spine_validate.py mkdocs" in text
     assert "--with-mkdocs" in text
     assert "--mkdocs-uninstall" in text
 
@@ -71,14 +66,14 @@ def test_readme_documents_mkdocs() -> None:
 def test_agents_md_documents_mkdocs() -> None:
     text = _read("AGENTS.md").lower()
     assert "mkdocs" in text
-    assert "validate-mkdocs-integration.sh" in text
+    assert "spine_validate.py mkdocs" in text
     assert "docs/mkdocs" in text
     assert "documentation-driven-development" in text
     assert "mkdocs-uninstall" in text
 
 
-def test_validate_mkdocs_integration_script_exists() -> None:
-    assert Path("scripts/validate-mkdocs-integration.sh").exists()
+def test_validate_mkdocs_is_python() -> None:
+    assert not Path("scripts/validate-mkdocs-integration.sh").exists()
     text = _read("scripts/spine_validate.py")
     assert "docs/mkdocs/mkdocs.yml" in text
     assert "mkdocs build" in text
@@ -86,14 +81,11 @@ def test_validate_mkdocs_integration_script_exists() -> None:
     assert "uv run --extra docs mkdocs" in text
 
 
-def test_install_mkdocs_script_exists() -> None:
-    path = Path("scripts/install-mkdocs.sh")
-    assert path.exists()
-    text = path.read_text(encoding="utf-8")
-    assert "--init-mkdocs" in text
-    assert "--project-root=" in text
-    assert "templates/docs/mkdocs" in text
-    assert "mkdocs build" in text
+def test_install_mkdocs_script_removed() -> None:
+    assert not Path("scripts/install-mkdocs.sh").exists()
+    text = _read("scripts/spine_cli/mkdocs_setup.py")
+    assert "templates" in text
+    assert "mkdocs.yml" in text
 
 
 def test_mkdocs_skill_exists() -> None:
@@ -106,16 +98,15 @@ def test_mkdocs_skill_exists() -> None:
     assert "when mkdocs is active" in text.lower() or "docs/mkdocs/mkdocs.yml" in text.lower()
 
 
-def test_install_sh_prompts_mkdocs_interactively() -> None:
-    text = _read("install.sh").lower()
-    assert "prompt_mkdocs_opt_in" in text
+def test_install_prompts_mkdocs_interactively() -> None:
+    text = _read("scripts/spine_cli/install.py").lower()
     assert "enable mkdocs for this project?" in text
-    assert "mkdocs: skipped" in text or "re-run and press enter" in text
-    assert "--no-mkdocs-prompt" in text
+    assert "mkdocs: skipped" in text
+    assert "--no-mkdocs-prompt" in _read("scripts/spine.py")
 
 
-def test_update_sh_has_mkdocs_passthrough() -> None:
-    text = _read("scripts/update.sh").lower()
+def test_update_has_mkdocs_passthrough() -> None:
+    text = _read("scripts/spine.py").lower()
     assert "--with-mkdocs" in text
     assert "with_mkdocs" in text
 

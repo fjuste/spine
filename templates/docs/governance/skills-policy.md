@@ -7,7 +7,7 @@ Reduzir complexidade operacional e manter somente skills com valor recorrente no
 
 ## Instalação vs allowlist (Spine v1.3+)
 
-- **Installed** (`bash .spine/install.sh`): symlinks the full skill catalog by default. Use `--core` for the minimal 5-skill profile, or `--remove-skill` to trim disk symlinks.
+- **Installed** (`python3 .spine/scripts/spine.py install`): symlinks the full skill catalog by default. Use `--core` for the minimal 5-skill profile, or `--remove-skill` to trim disk symlinks.
 - **Active allowlist** (below): which skills agents should invoke in workflow (target 5–8). Installation breadth and operational allowlist are separate concerns.
 
 ## Modelo de Curadoria
@@ -44,7 +44,7 @@ Reduzir complexidade operacional e manter somente skills com valor recorrente no
   - ausência de conflito com skills já ativas
 
 ### Trial (Workflow — planejamento)
-- `grill-me` — descoberta iterativa antes de `@writing-plans` em `/spine-plan` (escopo ambíguo, multi-domínio ou opt-in explícito). Inclui domain awareness: desafia termos contra `docs/memory/global/domain-glossary.md`, afia linguagem vaga, stress-testa cenários, cruza código com afirmações do usuário, e promove termos/decisões para o memory bank. Instalar com `bash .spine/install.sh --add-skill=grill-me`.
+- `grill-me` — descoberta iterativa antes de `@writing-plans` em `/spine-plan` (escopo ambíguo, multi-domínio ou opt-in explícito). Inclui domain awareness: desafia termos contra `docs/memory/global/domain-glossary.md`, afia linguagem vaga, stress-testa cenários, cruza código com afirmações do usuário, e promove termos/decisões para o memory bank. Instalar com `python3 .spine/scripts/spine.py install --add-skill=grill-me`.
 - **Promoção prevista:** após 2 ciclos de Trial com critérios atendidos, mover para **Workflow e Qualidade** (permanece opt-in por projeto; não entra no core).
 - **Não substitui** `writing-plans` nem `handoff-protocol`: `grill-me` resolve decisões antes do plano; `writing-plans` estrutura tarefas; `handoff-protocol` governa repasse entre agentes na execução.
 
@@ -170,4 +170,4 @@ Use esta regra curta para evitar ambiguidade e overengineering:
 
 ## Sincronização em Projetos Consumidor
 
-Este arquivo é copiado para `docs/governance/skills-policy.md` pelo `bash .spine/install.sh`. Atualizações posteriores no template Spine **não** sobrescrevem automaticamente o arquivo local. Após pull do Spine, revisar manualmente diferenças entre `templates/docs/governance/skills-policy.md` (Spine) e `docs/governance/skills-policy.md` (projeto) e incorporar mudanças relevantes.
+Este arquivo é copiado para `docs/governance/skills-policy.md` pelo `python3 .spine/scripts/spine.py install`. Atualizações posteriores no template Spine **não** sobrescrevem automaticamente o arquivo local. Após pull do Spine, revisar manualmente diferenças entre `templates/docs/governance/skills-policy.md` (Spine) e `docs/governance/skills-policy.md` (projeto) e incorporar mudanças relevantes.

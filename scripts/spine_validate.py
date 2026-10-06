@@ -22,6 +22,12 @@ import sys
 from pathlib import Path
 from typing import NoReturn
 
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+from spine_cli.constants import DOCS_SEED_PATHS
+
 VALIDATE_CMD = "python3 .spine/scripts/spine_validate.py"
 
 TASK_REQUIRED_KEYS = (
@@ -40,25 +46,6 @@ TASK_MAX_TAGS = 5
 TASK_LEGACY_PATTERNS = (r"^\*\*Status:\*\*", r"^\*\*Branch:\*\*")
 TASK_REQUIRED_SECTIONS = ("## Objective", "## Acceptance Criteria")
 
-# Must match install.sh / install-vendor.sh / install.ps1 docs seed lists.
-DOCS_SEED_PATHS = (
-    "docs/memory/global/project-brief.md",
-    "docs/memory/global/product-context.md",
-    "docs/memory/global/domain-glossary.md",
-    "docs/memory/global/system-patterns.md",
-    "docs/memory/global/tech-context.md",
-    "docs/memory/global/decision-log.md",
-    "docs/memory/ledger/roadmap.md",
-    "docs/memory/ledger/progress.md",
-    "docs/memory/ledger/learnings.md",
-    "docs/memory/active_tasks/_task-template.md",
-    "docs/governance/skills-policy.md",
-    "docs/governance/memory-tags-policy.md",
-    "docs/governance/ice-scoring-guide.md",
-    "docs/quality/guardrails.md",
-    "docs/workflow/gitflow-operacional.md",
-    "docs/workflow/ciclo-de-entrega.md",
-)
 BOOTSTRAP_REQUIRED_DIRS = ("docs/memory/active_tasks", "docs/memory/completed_tasks")
 
 GRAPHIFY_DEFAULT_TARGETS = "cursor,opencode,claude"
@@ -232,10 +219,10 @@ def validate_bootstrap(root: Path, report: Report | None = None) -> Report:
 
     spine = root / ".spine"
     if not (spine.exists() or spine.is_symlink()):
-        report.fail("missing .spine (run link-spine.sh then bash .spine/install.sh)")
+        report.fail("missing .spine (run python3 /path/to/spine/scripts/spine.py install)")
 
     if not (spine / "scripts" / "spine_validate.py").is_file():
-        report.fail("missing .spine/scripts/spine_validate.py (run bash .spine/scripts/update.sh)")
+        report.fail("missing .spine/scripts/spine_validate.py (run python3 .spine/scripts/spine.py update)")
 
     command_paths = (
         root / ".cursor" / "commands" / "spine-bootstrap.md",
@@ -245,15 +232,15 @@ def validate_bootstrap(root: Path, report: Report | None = None) -> Report:
         report.fail("spine-bootstrap slash command not found (.cursor/commands/ or .opencode/commands/)")
 
     if not (root / "opencode.json").is_file():
-        report.fail("missing opencode.json (run bash .spine/install.sh)")
+        report.fail("missing opencode.json (run python3 .spine/scripts/spine.py install)")
 
     for relative in DOCS_SEED_PATHS:
         if not (root / relative).is_file():
-            report.fail(f"missing seed file: {relative} (run bash .spine/install.sh)")
+            report.fail(f"missing seed file: {relative} (run python3 .spine/scripts/spine.py install)")
 
     for relative in BOOTSTRAP_REQUIRED_DIRS:
         if not (root / relative).is_dir():
-            report.fail(f"missing directory: {relative} (run bash .spine/install.sh)")
+            report.fail(f"missing directory: {relative} (run python3 .spine/scripts/spine.py install)")
 
     return report
 
@@ -263,15 +250,15 @@ def _bootstrap_soft_notes(root: Path) -> None:
         if not validate_graphify(root, GRAPHIFY_DEFAULT_TARGETS, Report(quiet=True)).passed:
             print("NOTE: graphify-out/graph.json exists but tri-platform integration may be incomplete.", file=sys.stderr)
             print(f"      Run: {VALIDATE_CMD} graphify", file=sys.stderr)
-            print("      Or:  bash .spine/install.sh and answer yes at the Graphify prompt", file=sys.stderr)
-            print("      (non-interactive: bash .spine/install.sh --with-graphify)", file=sys.stderr)
+            print("      Or:  python3 .spine/scripts/spine.py install and answer yes at the Graphify prompt", file=sys.stderr)
+            print("      (non-interactive: python3 .spine/scripts/spine.py install --with-graphify)", file=sys.stderr)
 
     if (root / MKDOCS_CONFIG).is_file():
         if not validate_mkdocs(root, Report(quiet=True)).passed:
             print(f"NOTE: {MKDOCS_CONFIG} exists but integration may be incomplete.", file=sys.stderr)
             print(f"      Run: {VALIDATE_CMD} mkdocs", file=sys.stderr)
-            print("      Or:  bash .spine/install.sh and answer yes at the MkDocs prompt", file=sys.stderr)
-            print("      (non-interactive: bash .spine/install.sh --with-mkdocs)", file=sys.stderr)
+            print("      Or:  python3 .spine/scripts/spine.py install and answer yes at the MkDocs prompt", file=sys.stderr)
+            print("      (non-interactive: python3 .spine/scripts/spine.py install --with-mkdocs)", file=sys.stderr)
 
 
 def run_bootstrap(args: argparse.Namespace) -> int:
@@ -370,7 +357,7 @@ def validate_graphify(root: Path, targets: str, report: Report | None = None) ->
         report.ok("Graph", "graphify-out/graph.json")
     else:
         report.fail(
-            "missing graphify-out/graph.json (run bash .spine/install.sh and answer yes at Graphify prompt; "
+            "missing graphify-out/graph.json (run python3 .spine/scripts/spine.py install and answer yes at Graphify prompt; "
             "non-interactive: --with-graphify)"
         )
 
@@ -406,12 +393,12 @@ def validate_graphify(root: Path, targets: str, report: Report | None = None) ->
         if _exists(root / ".cursor" / "rules" / "02-memory-bank.md"):
             report.ok("Cursor", "Spine memory-bank rule present")
         else:
-            report.warn("Spine .cursor/rules/02-memory-bank.md not found (run bash .spine/install.sh)")
+            report.warn("Spine .cursor/rules/02-memory-bank.md not found (run python3 .spine/scripts/spine.py install)")
         if (root / ".agents" / "rules").is_dir():
             if (root / ".agents" / "rules" / "graphify.mdc").is_file():
                 report.ok("Antigravity", ".agents/rules/graphify.mdc")
             else:
-                report.warn("missing .agents/rules/graphify.mdc (re-run install-graphify or mirror from .cursor/rules/)")
+                report.warn("missing .agents/rules/graphify.mdc (re-run spine.py install --with-graphify or mirror from .cursor/rules/)")
 
     if "opencode" in selected:
         opencode_json = root / "opencode.json"
@@ -441,7 +428,7 @@ def validate_graphify(root: Path, targets: str, report: Report | None = None) ->
         if _exists(root / ".claude" / "skills"):
             report.ok("Claude", ".claude/skills present")
         else:
-            report.warn(".claude/skills not found (run bash .spine/install.sh --targets=claude)")
+            report.warn(".claude/skills not found (run python3 .spine/scripts/spine.py install --targets=claude)")
 
     return report
 
@@ -511,14 +498,14 @@ def validate_mkdocs(root: Path, report: Report | None = None) -> Report:
         report.ok("Config", MKDOCS_CONFIG)
     else:
         report.fail(
-            f"missing {MKDOCS_CONFIG} (run bash .spine/install.sh and answer yes at MkDocs prompt; "
+            f"missing {MKDOCS_CONFIG} (run python3 .spine/scripts/spine.py install and answer yes at MkDocs prompt; "
             "non-interactive: --with-mkdocs)"
         )
 
     if (root / "docs" / "mkdocs" / "index.md").is_file():
         report.ok("Index", "docs/mkdocs/index.md")
     elif config.is_file():
-        report.warn("missing docs/mkdocs/index.md (run bash .spine/install.sh --update)")
+        report.warn("missing docs/mkdocs/index.md (run python3 .spine/scripts/spine.py install --update)")
 
     runner = resolve_mkdocs_runner(root)
     if runner:

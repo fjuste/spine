@@ -91,9 +91,9 @@ def test_spine_plan_bridge_removed() -> None:
         assert "spine-plan-bridge" not in _read(path).lower(), path
 
 
-def test_install_sh_seeds_v21() -> None:
-    text = _read("install.sh")
-    assert "seed_docs_templates" in text
+def test_installer_seeds_v21() -> None:
+    text = _read("scripts/spine_cli/constants.py") + _read("scripts/spine_cli/docs.py")
+    assert "seed_docs" in text
     assert "learnings.md" in text
     assert "memory-tags-policy.md" in text
     assert "completed_tasks/.gitkeep" in text

@@ -8,7 +8,7 @@ variant: high
 
 Act as a Strategic Product Manager. Use `@grill-me` for strategic discovery; score ideas with ICE per `docs/governance/ice-scoring-guide.md`.
 
-**Precondition:** `docs/memory/ledger/roadmap.md` exists (seeded by `install.sh`; fill template with this command).
+**Precondition:** `docs/memory/ledger/roadmap.md` exists (seeded by `spine.py install`; fill template with this command).
 
 ## Modes
 
