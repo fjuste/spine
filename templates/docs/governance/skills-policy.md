@@ -91,7 +91,7 @@ Reduzir complexidade operacional e manter somente skills com valor recorrente no
 - `testing-guidelines`
 - `handoff-protocol`
 - `grill-me` (após promoção de Trial; opcional — ver Diretriz Operacional: Planejamento)
-- `documentation-driven-development` (quando MkDocs ativo no projeto; opcional — ver [README § Optional: MkDocs](https://github.com/OpsScaleAI/spine#optional-mkdocs))
+- `documentation-driven-development` (quando MkDocs ativo no projeto; opcional — ver [README § Optional: MkDocs](https://github.com/fjuste/spine#optional-mkdocs))
 
 ### Frontend Assistido (principal)
 - `frontend-dev-guidelines`

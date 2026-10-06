@@ -148,7 +148,7 @@ Spine installs **per project only**. There is no global installer (`--global` an
 
 ```bash
 # 1. Clone Spine once on the machine (outside consumer trees)
-git clone https://github.com/OpsScaleAI/spine.git ~/Workspace/ide/spine
+git clone https://github.com/fjuste/spine.git ~/Workspace/ide/spine
 
 # 2. From consumer project root — link .spine
 bash ~/Workspace/ide/spine/scripts/link-spine.sh
@@ -168,7 +168,9 @@ bash .spine/install.sh --copy --update
 
 **Bootstrap vs plan:** `/spine-bootstrap` builds agent context (code + Graphify assessment, alterations, risks, opportunities in `global/`). It does not modify `roadmap.md` or create `active_tasks/`. `/spine-plan` owns delivery planning.
 
-Readiness: `bash .spine/scripts/validate-bootstrap-ready.sh`
+Readiness: `python3 .spine/scripts/spine_validate.py bootstrap` (wrapper: `bash .spine/scripts/validate-bootstrap-ready.sh`)
+
+**Validators** live in `scripts/spine_validate.py` (cross-platform, stdlib-only Python 3.9+; subcommands `task`, `bootstrap`, `graphify`, `mkdocs`). The `scripts/validate-*.sh` files are thin wrappers kept for compatibility — change validation logic only in the Python module. On Windows use `py -3` or `python` when `python3` is unavailable.
 
 After step 2, only `bash .spine/install.sh` works from the terminal — `/spine-*` commands are not available until step 3 creates IDE command/workflow trees.
 
@@ -318,7 +320,7 @@ Canonical template: `templates/opencode.json`
 
 - Install CLI: `uv tool install graphifyy` (minimum recommended: 0.7.16)
 - Co-install: answer **yes** at Graphify prompt during `bash .spine/install.sh` (or `--update` when integration incomplete); non-interactive: `--with-graphify` or `bash .spine/scripts/update.sh --graphify-init`
-- Verify: `bash .spine/scripts/validate-graphify-integration.sh`
+- Verify: `python3 .spine/scripts/spine_validate.py graphify` (wrapper: `validate-graphify-integration.sh`)
 - Uninstall platform artifacts: `bash .spine/install.sh --graphify-uninstall`
 - Refresh: `graphify update .`
 - Full guide: README § **Optional: Graphify**
@@ -329,7 +331,7 @@ Canonical template: `templates/opencode.json`
 
 - Install CLI: `pip install mkdocs` (or `pip install mkdocs-material` for Material theme)
 - Co-install: answer **yes** at MkDocs prompt during `bash .spine/install.sh` (or `--update` when integration incomplete); non-interactive: `--with-mkdocs` or `bash .spine/scripts/update.sh --with-mkdocs`
-- Verify: `bash .spine/scripts/validate-mkdocs-integration.sh`
+- Verify: `python3 .spine/scripts/spine_validate.py mkdocs` (wrapper: `validate-mkdocs-integration.sh`)
 - Uninstall: `bash .spine/install.sh --mkdocs-uninstall`
 - Preview: `mkdocs serve -f docs/mkdocs/mkdocs.yml`
 - Full guide: README § **Optional: MkDocs**

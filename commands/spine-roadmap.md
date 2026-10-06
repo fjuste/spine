@@ -1,7 +1,6 @@
 ---
 description: Fill or update roadmap.md with GIST-informed structure (Goals + Idea Bank + ICE scoring)
 agent: build
-model: opencode-go/glm-5.2
 variant: high
 ---
 

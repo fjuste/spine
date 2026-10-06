@@ -132,8 +132,10 @@ When invoked from `/spine-plan`, after saving the task file:
 2. Run contract validation (command step 8) — **execute** from project root; do not skip if repository search misses the script (`.spine` is gitignored):
 
    ```bash
-   bash .spine/scripts/validate-task.sh docs/memory/active_tasks/<file>.md
+   python3 .spine/scripts/spine_validate.py task docs/memory/active_tasks/<file>.md
    ```
+
+   On Windows, if `python3` is unavailable, use `py -3` or `python`.
 
    Fix structural errors and re-run until the script exits 0. If the script is missing, follow `/spine-plan` bridge mode (`bash .spine/scripts/update.sh`). This checks format consistency, not plan quality.
 

@@ -94,7 +94,7 @@ This copies `.graphifyignore` if missing, runs `graphify update .`, co-installs 
 4. Verify tri-platform integration:
 
 ```bash
-bash .spine/scripts/validate-graphify-integration.sh
+python3 .spine/scripts/spine_validate.py graphify
 ```
 
 5. Refresh after large refactors: `graphify update .`
@@ -118,8 +118,10 @@ This seeds `docs/mkdocs/mkdocs.yml`, `docs/mkdocs/index.md`, `docs/mkdocs/archit
 4. Verify:
 
 ```bash
-bash .spine/scripts/validate-mkdocs-integration.sh
+python3 .spine/scripts/spine_validate.py mkdocs
 ```
+
+Validators are cross-platform Python 3.9+ (on Windows, if `python3` is unavailable, use `py -3` or `python`); `bash .spine/scripts/validate-*.sh` remain thin wrappers.
 
 5. Preview documentation: `mkdocs serve -f docs/mkdocs/mkdocs.yml`
 
@@ -135,8 +137,8 @@ Always report:
 - Symlink reconciliation result.
 - `opencode.json` mode used (merge or replace).
 - Confirmation that `docs/memory/` was preserved.
-- Graphify status when `--with-graphify` or `--graphify-init` was used: `.graphifyignore`, `graphify-out/graph.json`, per-IDE integration (Cursor mdc, OpenCode plugin, Claude hook), result of `validate-graphify-integration.sh`, and refresh command if graph build failed.
-- MkDocs status when `--with-mkdocs` was used: `docs/mkdocs/mkdocs.yml`, `docs/mkdocs/index.md`, result of `validate-mkdocs-integration.sh`, and build command if build failed.
+- Graphify status when `--with-graphify` or `--graphify-init` was used: `.graphifyignore`, `graphify-out/graph.json`, per-IDE integration (Cursor mdc, OpenCode plugin, Claude hook), result of `spine_validate.py graphify`, and refresh command if graph build failed.
+- MkDocs status when `--with-mkdocs` was used: `docs/mkdocs/mkdocs.yml`, `docs/mkdocs/index.md`, result of `spine_validate.py mkdocs`, and build command if build failed.
 - Any blockers and exact command to recover.
 
 ---
