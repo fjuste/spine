@@ -137,7 +137,7 @@ When invoked from `/spine-plan`, after saving the task file:
 
    On Windows, if `python3` is unavailable, use `py -3` or `python`.
 
-   Fix structural errors and re-run until the script exits 0. If the script is missing, follow `/spine-plan` bridge mode (`bash .spine/scripts/update.sh`). This checks format consistency, not plan quality.
+   Fix structural errors and re-run until the script exits 0. If the script is missing, follow `/spine-plan` bridge mode (`python3 .spine/scripts/spine.py update`). This checks format consistency, not plan quality.
 
 3. Stop at the `/spine-plan` approval gate (command step 9):
 

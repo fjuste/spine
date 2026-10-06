@@ -320,42 +320,11 @@ def test_mkdocs_failed_build_only_warns(tmp_path: Path, monkeypatch: pytest.Monk
     assert report.warnings == 1
 
 
-# =============================================================================
-# Bash wrappers
-# =============================================================================
-
-
-@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
-@pytest.mark.parametrize(("text", "expected_code"), [(VALID_TASK, 0), (VALID_TASK.replace("## Objective", ""), 1)])
-def test_validate_task_wrapper_matches_python_exit_code(tmp_path: Path, text: str, expected_code: int) -> None:
-    task_file = _task(tmp_path, text)
-    wrapper = subprocess.run(
-        ["bash", str(REPO_ROOT / "scripts" / "validate-task.sh"), str(task_file)],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    direct = subprocess.run(
-        [sys.executable, str(SCRIPT), "task", str(task_file)],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert wrapper.returncode == direct.returncode == expected_code
-    assert wrapper.stdout == direct.stdout
-    assert wrapper.stderr == direct.stderr
-
-
-@pytest.mark.parametrize(
-    ("wrapper", "subcommand"),
-    [
-        ("validate-task.sh", "task"),
-        ("validate-bootstrap-ready.sh", "bootstrap"),
-        ("validate-graphify-integration.sh", "graphify"),
-        ("validate-mkdocs-integration.sh", "mkdocs"),
-    ],
-)
-def test_wrappers_delegate_to_python_cli(wrapper: str, subcommand: str) -> None:
-    text = (REPO_ROOT / "scripts" / wrapper).read_text(encoding="utf-8")
-    assert f'spine_validate.py" {subcommand} "$@"' in text
-    assert "exec " in text
+def test_validator_shell_wrappers_are_not_shipped() -> None:
+    for name in (
+        "validate-task.sh",
+        "validate-bootstrap-ready.sh",
+        "validate-graphify-integration.sh",
+        "validate-mkdocs-integration.sh",
+    ):
+        assert not (REPO_ROOT / "scripts" / name).exists()
