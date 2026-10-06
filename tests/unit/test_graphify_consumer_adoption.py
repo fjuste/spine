@@ -36,7 +36,7 @@ def test_install_graphify_sh_tri_platform_co_install() -> None:
 def test_spine_bootstrap_detects_graphify_artifacts() -> None:
     text = _read("commands/spine-bootstrap.md").lower()
     assert "graphify-out/" in text
-    assert "validate-graphify-integration.sh" in text
+    assert "python3 .spine/scripts/spine_validate.py graphify" in text
     assert "graph_report.md" in text
     assert "mandatory summary" in text and "graphify" in text
 
@@ -92,7 +92,7 @@ def test_spine_update_documents_existing_project_graphify_adoption() -> None:
     text = _read("commands/spine-update.md").lower()
     assert "adopt graphify on an existing project" in text
     assert "--graphify-init" in text
-    assert "validate-graphify-integration.sh" in text
+    assert "python3 .spine/scripts/spine_validate.py graphify" in text
 
 
 def test_install_sh_prompts_graphify_interactively() -> None:
@@ -116,11 +116,12 @@ def test_spine_harvest_refreshes_graphify_when_in_use() -> None:
 def test_validate_graphify_integration_script_exists() -> None:
     path = Path("scripts/validate-graphify-integration.sh")
     assert path.exists()
-    text = path.read_text(encoding="utf-8")
+    assert "--targets=" in path.read_text(encoding="utf-8")
+    text = _read("scripts/spine_validate.py")
     assert "graphify.mdc" in text
     assert "graphify.js" in text
     assert "claude" in text.lower()
-    assert "--targets=" in text
+    assert '"--targets"' in text
 
 
 def test_merge_graphify_opencode_script_exists() -> None:
@@ -140,8 +141,9 @@ def test_agents_md_documents_tri_platform_graphify() -> None:
 
 
 def test_validate_scripts_use_interactive_first_recovery() -> None:
-    integration = _read("scripts/validate-graphify-integration.sh").lower()
-    bootstrap = _read("scripts/validate-bootstrap-ready.sh").lower()
+    validators = _read("scripts/spine_validate.py").lower()
+    integration = validators
+    bootstrap = validators
     assert "answer yes" in integration or "answering yes" in integration
     assert "answer yes" in bootstrap
     assert "--with-graphify" in integration

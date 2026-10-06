@@ -127,7 +127,7 @@ Open (or reload) the project in your agent IDE, then run:
 
 `/spine-bootstrap` performs a **deep assessment** of the codebase (and Graphify when present), then fills memory bank templates with **agent-optimized** detail: `global/*` (including project-specific alterations, known risks, and unplanned opportunities), and `progress.md` Current state. It does **not** fill `roadmap.md`, create active tasks, or produce delivery plans — use `/spine-plan` next.
 
-Readiness check: `bash .spine/scripts/validate-bootstrap-ready.sh`
+Readiness check: `python3 .spine/scripts/spine_validate.py bootstrap` (wrapper: `bash .spine/scripts/validate-bootstrap-ready.sh`). Validators are cross-platform Python 3.9+; on Windows use `py -3` or `python` when `python3` is unavailable.
 
 Requires step 3 complete.
 
@@ -267,7 +267,7 @@ Then commit the trees exactly as in **Install (maintainer)** above.
 
 Limitations:
 
-- Slash commands still call `bash .spine/scripts/*.sh` validators (`/spine-plan`, `/spine-bootstrap`). Install [Git for Windows](https://git-scm.com/download/win) and set Git Bash as the IDE default terminal so those steps run.
+- Slash-command validators (`/spine-plan`, `/spine-bootstrap`) run `scripts/spine_validate.py`, so install [Python 3.9+](https://www.python.org/downloads/windows/) (or `winget install Python.Python.3.12`). No Bash required; agents use `py -3` or `python` when `python3` is unavailable.
 - Graphify / MkDocs are not co-installed (same as `install-vendor.sh`).
 - Requires Windows PowerShell 5.1+ or PowerShell 7+; uses `robocopy` for mirroring (falls back to `Copy-Item` when unavailable).
 
@@ -330,7 +330,8 @@ bash .spine/scripts/install-graphify.sh --project-root=. --init-graph
 ### Verify activation
 
 ```bash
-bash .spine/scripts/validate-graphify-integration.sh
+python3 .spine/scripts/spine_validate.py graphify
+# wrapper: bash .spine/scripts/validate-graphify-integration.sh
 ```
 
 Reports per-IDE status (graph, Cursor mdc, OpenCode plugin, Claude hook, CLI version).
@@ -365,7 +366,7 @@ graphify update .
 | `graphify: command not found` | Install CLI: `uv tool install graphifyy` |
 | No `graphify-out/graph.json` after setup | Run `graphify update .` manually from the project root |
 | Graph build fails | Check `.graphifyignore`; ensure you are in the project root; rerun `graphify update .` |
-| Agents still scan files broadly | Run `bash .spine/scripts/validate-graphify-integration.sh`; restart agent session |
+| Agents still scan files broadly | Run `python3 .spine/scripts/spine_validate.py graphify`; restart agent session |
 | OpenCode plugin missing | Re-run `bash .spine/install.sh` and answer yes; or `--with-graphify` (non-interactive); ensure graphifyy >= 0.7.16 |
 | Root `AGENTS.md` from Graphify | Optional delete; Spine uses URL rules + Discovery Protocol, not root AGENTS.md |
 
@@ -417,7 +418,8 @@ bash .spine/scripts/install-mkdocs.sh --project-root=. --init-mkdocs
 ### Verify activation
 
 ```bash
-bash .spine/scripts/validate-mkdocs-integration.sh
+python3 .spine/scripts/spine_validate.py mkdocs
+# wrapper: bash .spine/scripts/validate-mkdocs-integration.sh
 ```
 
 Reports config, CLI, build status, and gitignore check.
@@ -526,7 +528,7 @@ docs/memory/
 
 **Task files** use Obsidian-style YAML frontmatter (`tags`, `status`, `goal`, `branch`, `base`, …). Reference template: `templates/docs/memory/active_tasks/_task-template.md`. Optional `## Implementation Plan` holds bite-sized Task/Step detail for `/spine-execute`; harvest uses frontmatter and summary only.
 
-Validate a task file manually: `bash .spine/scripts/validate-task.sh docs/memory/active_tasks/NNN-name.md`. `/spine-plan` runs this automatically before the approval gate (structure only, not plan quality).
+Validate a task file manually: `python3 .spine/scripts/spine_validate.py task docs/memory/active_tasks/NNN-name.md` (wrapper: `bash .spine/scripts/validate-task.sh ...`). `/spine-plan` runs this automatically before the approval gate (structure only, not plan quality).
 
 **Tiered SYNC** (see `rules/02-memory-bank.md`):
 
