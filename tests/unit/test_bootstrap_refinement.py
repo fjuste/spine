@@ -6,14 +6,13 @@ def _read(path: str) -> str:
 
 
 def test_validate_bootstrap_ready_script_exists() -> None:
-    path = Path("scripts/validate-bootstrap-ready.sh")
-    assert path.exists()
-    text = path.read_text(encoding="utf-8")
+    assert Path("scripts/validate-bootstrap-ready.sh").exists()
+    text = _read("scripts/spine_validate.py")
     assert "project-brief.md" in text
     assert "roadmap.md" in text
     assert "spine-bootstrap.md" in text
     assert "opencode.json" in text
-    assert "validate-task.sh" in text
+    assert "spine_validate.py" in text
 
 
 def test_global_templates_have_knowledge_sections() -> None:
@@ -49,7 +48,7 @@ def test_memory_bank_documents_bootstrap_knowledge_mapping() -> None:
 def test_spine_bootstrap_deep_assessment_and_agent_focus() -> None:
     text = _read("commands/spine-bootstrap.md")
     lower = text.lower()
-    assert "validate-bootstrap-ready.sh" in text
+    assert "python3 .spine/scripts/spine_validate.py bootstrap" in text
     assert "graphify-out/graph.json" in lower
     assert "agent-ready" in lower or "agent-optimized" in lower
     assert "maximize detail" in lower or "maximal detail" in lower

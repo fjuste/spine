@@ -47,9 +47,10 @@ def test_spine_plan_lists_implementation_plan() -> None:
     text = _read("commands/spine-plan.md")
     assert "## Implementation Plan" in text
     assert "Plan contract checklist" in text
-    assert "validate-task.sh" in text
+    assert "spine_validate.py" in text
     assert "Contract validation" in text
-    assert "bash .spine/scripts/validate-task.sh" in text
+    assert "python3 .spine/scripts/spine_validate.py task" in text
+    assert "py -3" in text
     assert "bridge mode" in text.lower()
     assert "gitignored" in text.lower()
 
@@ -80,14 +81,13 @@ def test_bootstrap_precondition_is_install_sh() -> None:
 
 
 def test_validate_task_script_exists() -> None:
-    path = Path("scripts/validate-task.sh")
-    assert path.exists()
-    text = path.read_text(encoding="utf-8")
+    assert Path("scripts/validate-task.sh").exists()
+    text = _read("scripts/spine_validate.py")
     assert "Implementation Plan" in text
     assert "superpowers:" in text
-    assert "bash .spine/scripts/validate-task.sh" in text
+    assert "python3 .spine/scripts/spine_validate.py task" in text
 
 
-def test_validate_bootstrap_ready_checks_validate_task_script() -> None:
-    text = _read("scripts/validate-bootstrap-ready.sh")
-    assert "validate-task.sh" in text
+def test_validate_bootstrap_ready_checks_validator_script() -> None:
+    text = _read("scripts/spine_validate.py")
+    assert '"scripts" / "spine_validate.py"' in text
