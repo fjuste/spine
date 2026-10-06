@@ -244,6 +244,33 @@ git push
 - Graphify / MkDocs: run existing `.spine/scripts/` helpers after vendor install if needed (not co-installed by `install-vendor.sh` in v1).
 - Uninstall vendor trees (leaves `docs/` and `opencode.json`): `bash .spine/scripts/install-vendor.sh --uninstall`
 
+### Windows (PowerShell)
+
+`install.ps1` (Spine root) is the PowerShell port of `install-vendor.sh` for native Windows: no Bash, Python, symlink privilege, or Developer Mode required. It copies the Spine directory into `<project>\.spine` (nested `.git` excluded), materializes the IDE trees as real files, seeds `docs\`, merges `opencode.json`, and writes the same `.spine-vendor` marker — so a project installed by either script can be updated by the other.
+
+```powershell
+# Spine directory obtained via git clone or .zip download (unblock the script if downloaded)
+Unblock-File C:\tools\spine\install.ps1
+
+# Install — -ProjectRoot is required (prompted when omitted)
+powershell -ExecutionPolicy Bypass -File C:\tools\spine\install.ps1 -ProjectRoot C:\dev\my-project
+# options: -Core | -Skills grill-me,python-patterns | -Targets cursor,opencode | -DryRun | -Force
+
+# Update — run the vendored copy, point -SpineDir at the upstream Spine directory
+powershell -ExecutionPolicy Bypass -File C:\dev\my-project\.spine\install.ps1 -Update -ProjectRoot C:\dev\my-project -SpineDir C:\tools\spine
+
+# Uninstall (leaves docs\ and opencode.json)
+powershell -ExecutionPolicy Bypass -File C:\dev\my-project\.spine\install.ps1 -Uninstall -ProjectRoot C:\dev\my-project
+```
+
+Then commit the trees exactly as in **Install (maintainer)** above.
+
+Limitations:
+
+- Slash commands still call `bash .spine/scripts/*.sh` validators (`/spine-plan`, `/spine-bootstrap`). Install [Git for Windows](https://git-scm.com/download/win) and set Git Bash as the IDE default terminal so those steps run.
+- Graphify / MkDocs are not co-installed (same as `install-vendor.sh`).
+- Requires Windows PowerShell 5.1+ or PowerShell 7+; uses `robocopy` for mirroring (falls back to `Copy-Item` when unavailable).
+
 ## Optional: Graphify
 
 Graphify is an optional **code-structure** layer for consumer projects. **Spine** owns conceptual/documentary context (`docs/memory/`); **Graphify** accelerates where to look in source via `GRAPH_REPORT.md` and `graphify query`. The memory bank remains the operational source of truth.
