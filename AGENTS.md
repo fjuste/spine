@@ -15,7 +15,7 @@ Spine is a workflow framework (agent OS) composed primarily of Markdown rules, B
 
 ```
 spine/
-├── templates/              # Setup templates seeded by install.sh; filled via /spine-bootstrap
+├── templates/              # Setup templates seeded by spine.py install; filled via /spine-bootstrap
 │   ├── opencode.json       # Canonical consumer OpenCode config
 │   └── docs/
 │       ├── memory/
@@ -30,7 +30,7 @@ spine/
 ├── commands/               # Slash-command templates (/spine-plan, /spine-bootstrap, etc.)
 ├── rules/                  # Source-of-truth rules in .md (Cursor, Claude Code, OpenCode)
 ├── skills/                 # Curated AI skill definitions (each has a SKILL.md)
-├── scripts/                # link-spine.sh, install-vendor.sh, update.sh, install-graphify.sh
+├── scripts/                # spine.py, spine_validate.py, spine_cli/
 ├── agents/                 # OpenCode agent definitions (e.g. ask.md)
 └── tests/                  # pytest scaffold (conftest.py + unit/ + integration/)
 ```
@@ -150,16 +150,13 @@ Spine installs **per project only**. There is no global installer (`--global` an
 # 1. Clone Spine once on the machine (outside consumer trees)
 git clone https://github.com/fjuste/spine.git ~/Workspace/ide/spine
 
-# 2. From consumer project root — link .spine
-bash ~/Workspace/ide/spine/scripts/link-spine.sh
-
-# 3. Full deterministic setup (all skills by default; --core for minimal 5-skill profile)
-bash .spine/install.sh
-bash .spine/install.sh --core
+# 2. From consumer project root — creates .spine and wires the project
+python3 ~/Workspace/ide/spine/scripts/spine.py install
+python3 ~/Workspace/ide/spine/scripts/spine.py install --core
 
 # Hybrid: physical copies of applied trees; .spine stays symlink (gitignored)
-bash .spine/install.sh --copy
-bash .spine/install.sh --copy --update
+python3 .spine/scripts/spine.py install --copy
+python3 .spine/scripts/spine.py install --copy --update
 
 # 4. In the agent IDE (slash commands exist only after step 3)
 /spine-bootstrap  # deep assessment; fill docs/memory/ global + progress (agent-optimized context)
@@ -168,54 +165,49 @@ bash .spine/install.sh --copy --update
 
 **Bootstrap vs plan:** `/spine-bootstrap` builds agent context (code + Graphify assessment, alterations, risks, opportunities in `global/`). It does not modify `roadmap.md` or create `active_tasks/`. `/spine-plan` owns delivery planning.
 
-Readiness: `python3 .spine/scripts/spine_validate.py bootstrap` (wrapper: `bash .spine/scripts/validate-bootstrap-ready.sh`)
+Readiness: `python3 .spine/scripts/spine_validate.py bootstrap`
 
-**Validators** live in `scripts/spine_validate.py` (cross-platform, stdlib-only Python 3.9+; subcommands `task`, `bootstrap`, `graphify`, `mkdocs`). The `scripts/validate-*.sh` files are thin wrappers kept for compatibility — change validation logic only in the Python module. On Windows use `py -3` or `python` when `python3` is unavailable.
+**Validators** live in `scripts/spine_validate.py` (cross-platform, stdlib-only Python 3.9+; subcommands `task`, `bootstrap`, `graphify`, `mkdocs`). Change installer and validator behavior only in `scripts/spine.py` (package `scripts/spine_cli/`) and `scripts/spine_validate.py`. On Windows use `py -3` or `python` when `python3` is unavailable.
 
-After step 2, only `bash .spine/install.sh` works from the terminal — `/spine-*` commands are not available until step 3 creates IDE command/workflow trees.
+After step 2, only `python3 .spine/scripts/spine.py install` works from the terminal — `/spine-*` commands are not available until step 3 creates IDE command/workflow trees.
 
 **Update an existing consumer project (symlink or hybrid):**
 
 ```bash
-bash .spine/scripts/update.sh
+python3 .spine/scripts/spine.py update
 # or explicitly:
-bash .spine/install.sh --update
-bash .spine/install.sh --copy --update
+python3 .spine/scripts/spine.py install --update
+python3 .spine/scripts/spine.py install --copy --update
 ```
 
 **Vendor mode (optional — copy files including `.spine/` directory, commit into the consumer repo):** for teams that need Spine itself versioned inside the consumer (no per-machine clone). Differs from `--copy`: vendor materializes `.spine/` as a real directory + `.spine-vendor` marker.
 
 ```bash
 # Install (maintainer) — copies .spine + materializes IDE trees as real files
-bash ~/Workspace/ide/spine/scripts/install-vendor.sh --spine-dir=~/Workspace/ide/spine
+python3 ~/Workspace/ide/spine/scripts/spine.py vendor --spine-dir=~/Workspace/ide/spine
 # Convert from existing symlink install:
-bash ~/Workspace/ide/spine/scripts/install-vendor.sh --force --spine-dir=~/Workspace/ide/spine
+python3 ~/Workspace/ide/spine/scripts/spine.py vendor --force --spine-dir=~/Workspace/ide/spine
 
 # Commit vendored trees, then teammates use git clone / pull only
 # Update (overwrite from upstream clone):
-bash .spine/scripts/install-vendor.sh --update --spine-dir=~/Workspace/ide/spine
+python3 ~/Workspace/ide/spine/scripts/spine.py vendor --update --spine-dir=~/Workspace/ide/spine --project-root=.
 ```
 
-**Windows (native, no Bash/symlinks):** `install.ps1` at the Spine root is the PowerShell port of `install-vendor.sh` (same flags as `-Update`, `-Uninstall`, `-Force`, `-DryRun`, `-Core`, `-Skills`, `-Targets`; same `.spine-vendor` marker). Keep both scripts in sync when changing vendor behavior.
+**Windows:** `install` uses vendor mode automatically. `py -3 C:\tools\spine\scripts\spine.py install --project-root=C:\dev\my-project`. Python 3.9+ is required. On Linux and macOS, symlink mode stays the default; vendor runs only via the `vendor` subcommand.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File C:\tools\spine\install.ps1 -ProjectRoot C:\dev\my-project
-powershell -ExecutionPolicy Bypass -File C:\dev\my-project\.spine\install.ps1 -Update -ProjectRoot C:\dev\my-project -SpineDir C:\tools\spine
-```
+Full notes: README § **Optional: Vendor install** (incl. **Windows**).
 
-Full notes: README § **Optional: Vendor install** (incl. **Windows (PowerShell)**).
-
-#### What `install.sh` creates
+#### What `spine.py install` creates
 
 | File | Source | Versioned? (symlink mode) | Versioned? (`--copy`) |
 |---|---|---|---|
 | `docs/` | `templates/docs/` | Yes | Yes |
 | `opencode.json` | template merge | Yes | Yes |
 | `.cursor/`, `.claude/`, `.opencode/` | wiring | Yes (rel. symlinks) | Yes (real files) |
-| `.agents/skills|rules|workflows` | wiring | No (`.agents/` ignored) | Yes (real files) |
-| `.spine` | `link-spine.sh` | No (symlink) | No (symlink) |
+| `.agents/skills|rules` | wiring | No (`.agents/` ignored) | Yes (real files) |
+| `.spine` | `spine.py install` | No (symlink) | No (symlink) |
 
-#### What `install-vendor.sh` / `install.ps1` creates
+#### What `spine.py vendor` creates
 
 | File | Source | Versioned in consumer project? |
 |---|---|---|
@@ -228,9 +220,8 @@ Full notes: README § **Optional: Vendor install** (incl. **Windows (PowerShell)
 ```
 PROJECT_ROOT/
 ├── .spine                  → Spine repository (symlink)
-├── .agents/skills/         per-skill symlinks hub
+├── .agents/skills/         catalog symlinks plus /spine-* skill bundles
 ├── .agents/rules/          core rules (Antigravity)
-├── .agents/workflows/      commands as slash workflows (Antigravity)
 ├── .cursor/rules/          core rule symlinks
 ├── .cursor/commands/       → .spine/commands/
 ├── .cursor/skills/         → .agents/skills/
@@ -246,18 +237,18 @@ PROJECT_ROOT/
 **Skill management:**
 
 ```bash
-bash .spine/install.sh --list-skills
-bash .spine/install.sh --add-skill=grill-me
-bash .spine/install.sh --remove-skill=astro
-bash .spine/install.sh --skills=python-patterns,fastapi-pro
-bash .spine/install.sh --skills=all             # explicit all (default)
-bash .spine/install.sh --skills=core            # minimal 5-skill profile
-bash .spine/install.sh --update
-bash .spine/install.sh --uninstall
-bash .spine/install.sh --targets=cursor,opencode,claude,antigravity
-bash .spine/install.sh --copy --targets=cursor,opencode,claude,antigravity
-bash .spine/install.sh --with-graphify   # non-interactive Graphify (prompt: answer yes during install)
-bash .spine/install.sh --with-mkdocs     # non-interactive MkDocs (prompt: answer yes during install)
+python3 .spine/scripts/spine.py install --list-skills
+python3 .spine/scripts/spine.py install --add-skill=grill-me
+python3 .spine/scripts/spine.py install --remove-skill=astro
+python3 .spine/scripts/spine.py install --skills=python-patterns,fastapi-pro
+python3 .spine/scripts/spine.py install --skills=all             # explicit all (default)
+python3 .spine/scripts/spine.py install --skills=core            # minimal 5-skill profile
+python3 .spine/scripts/spine.py install --update
+python3 .spine/scripts/spine.py install --uninstall
+python3 .spine/scripts/spine.py install --targets=cursor,opencode,claude,antigravity
+python3 .spine/scripts/spine.py install --copy --targets=cursor,opencode,claude,antigravity
+python3 .spine/scripts/spine.py install --with-graphify   # non-interactive Graphify (prompt: answer yes during install)
+python3 .spine/scripts/spine.py install --with-mkdocs     # non-interactive MkDocs (prompt: answer yes during install)
 ```
 
 **Core skills** (the `--core` profile):
@@ -319,9 +310,9 @@ Canonical template: `templates/opencode.json`
 **Graphify** (code-structure layer — optional; tri-platform: Cursor, OpenCode, Claude Code):
 
 - Install CLI: `uv tool install graphifyy` (minimum recommended: 0.7.16)
-- Co-install: answer **yes** at Graphify prompt during `bash .spine/install.sh` (or `--update` when integration incomplete); non-interactive: `--with-graphify` or `bash .spine/scripts/update.sh --graphify-init`
-- Verify: `python3 .spine/scripts/spine_validate.py graphify` (wrapper: `validate-graphify-integration.sh`)
-- Uninstall platform artifacts: `bash .spine/install.sh --graphify-uninstall`
+- Co-install: answer **yes** at Graphify prompt during `python3 .spine/scripts/spine.py install` (or `--update` when integration incomplete); non-interactive: `--with-graphify` or `python3 .spine/scripts/spine.py update --graphify-init`
+- Verify: `python3 .spine/scripts/spine_validate.py graphify`
+- Uninstall platform artifacts: `python3 .spine/scripts/spine.py install --graphify-uninstall`
 - Refresh: `graphify update .`
 - Full guide: README § **Optional: Graphify**
 
@@ -330,9 +321,9 @@ Canonical template: `templates/opencode.json`
 **MkDocs** (public-facing documentation layer — optional):
 
 - Install CLI: `pip install mkdocs` (or `pip install mkdocs-material` for Material theme)
-- Co-install: answer **yes** at MkDocs prompt during `bash .spine/install.sh` (or `--update` when integration incomplete); non-interactive: `--with-mkdocs` or `bash .spine/scripts/update.sh --with-mkdocs`
-- Verify: `python3 .spine/scripts/spine_validate.py mkdocs` (wrapper: `validate-mkdocs-integration.sh`)
-- Uninstall: `bash .spine/install.sh --mkdocs-uninstall`
+- Co-install: answer **yes** at MkDocs prompt during `python3 .spine/scripts/spine.py install` (or `--update` when integration incomplete); non-interactive: `--with-mkdocs` or `python3 .spine/scripts/spine.py update --with-mkdocs`
+- Verify: `python3 .spine/scripts/spine_validate.py mkdocs`
+- Uninstall: `python3 .spine/scripts/spine.py install --mkdocs-uninstall`
 - Preview: `mkdocs serve -f docs/mkdocs/mkdocs.yml`
 - Full guide: README § **Optional: MkDocs**
 
@@ -353,8 +344,8 @@ Rules:
 
 Available in `commands/`:
 
-- `install.sh` — deterministic setup: symlinks, `docs/` seed, `opencode.json`, Graphify and MkDocs opt-in
-- `/spine-update` — safe refresh via `scripts/update.sh`
+- `scripts/spine.py` — deterministic setup: symlinks, `docs/` seed, `opencode.json`, Graphify and MkDocs opt-in (`install`, `update`, `vendor`, `uninstall`)
+- `/spine-update` — safe refresh via `python3 .spine/scripts/spine.py update`
 - `/spine-bootstrap` — initial assessment and memory bank fill
 - `/spine-plan` — task plan in memory bank (native Plan draft as input; conditional `@grill-me` discovery)
 - `/spine-execute` — implement active task with validation
@@ -370,7 +361,7 @@ Available in `commands/`:
 
 **Machine-specific (gitignored):** `.spine` (symlink to local Spine clone); in default symlink wiring also `.agents/`. `graphify-out/cache/` (recommended).
 
-**Committable IDE trees:** `.cursor/`, `.claude/`, `.opencode/` — and with `--copy`, also `.agents/` (skills/rules/workflows as real files). `install.sh --update` strips obsolete ignores for those paths.
+**Committable IDE trees:** `.cursor/`, `.claude/`, `.opencode/` — and with `--copy`, also `.agents/` (skills and rules as real files). `spine.py install --update` strips obsolete ignores for those paths.
 
 **Vendor mode:** also commits `.spine/` as a real directory plus `.spine-vendor` (not gitignored).
 

@@ -1,5 +1,5 @@
 ---
-description: Deep project assessment and agent-optimized memory bank fill after install.sh; optional $ARGUMENTS for briefing
+description: Deep project assessment and agent-optimized memory bank fill after spine.py install; optional $ARGUMENTS for briefing
 agent: build
 ---
 
@@ -13,7 +13,7 @@ Act as the project's Initial Assessment Architect.
 
 **Optional context (`$ARGUMENTS`):** Non-empty free text = project briefing (domain, stack, constraints, stakeholders, links). Highest priority when filling files; do not contradict existing valid content.
 
-**Precondition:** `bash .spine/install.sh` completed (symlinks, seeded `docs/`, `opencode.json`).
+**Precondition:** `python3 .spine/scripts/spine.py install` completed (symlinks, seeded `docs/`, `opencode.json`).
 
 ---
 
@@ -25,21 +25,21 @@ Run from project root:
 python3 .spine/scripts/spine_validate.py bootstrap
 ```
 
-Cross-platform Python 3.9+ (on Windows, if `python3` is unavailable, use `py -3` or `python`). `bash .spine/scripts/validate-bootstrap-ready.sh` remains a thin wrapper.
+Cross-platform Python 3.9+ (on Windows, if `python3` is unavailable, use `py -3` or `python`). `python3 .spine/scripts/spine_validate.py bootstrap` remains a thin wrapper.
 
 **On success:** proceed to Step 1.
 
 **On failure (bridge mode):**
 
 1. Stop assessment.
-2. Ask: "Setup incomplete. Run `bash .spine/install.sh` from the project root now?"
+2. Ask: "Setup incomplete. Run `python3 .spine/scripts/spine.py install` from the project root now?"
 3. If yes: user runs install in terminal (not a slash command), reload IDE, re-run the script.
 4. If no: list missing artifacts from script output and stop.
 
 **Forbidden (agent must never):**
 
 - Copy/seed `docs/` (`cp -R`, downloads, creating missing template files)
-- Run `install.sh` from the agent
+- Run `spine.py install` from the agent
 - Modify [`docs/memory/ledger/roadmap.md`](../../templates/docs/memory/ledger/roadmap.md)
 - Create or modify `docs/memory/active_tasks/NNN-*.md` (numbered tasks)
 

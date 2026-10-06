@@ -10,7 +10,7 @@ Act as a Senior Software Architect. Follow the instructions provided in $ARGUMEN
 
 **Native Plan input:** If `$ARGUMENTS` contains a native Plan draft (from Cursor Plan mode or similar), treat it as input to normalize into the active task artifact. Native Plan = draft; `/spine-plan` = versioned contract in `docs/memory/active_tasks/`. Discovery and GitFlow rules below still apply.
 
-**Precondition:** `.spine` symlink present and `bash .spine/install.sh` completed (same as `/spine-bootstrap`). The contract validator lives at `.spine/scripts/spine_validate.py` — **not** at `scripts/` in the consumer tree. It is cross-platform Python 3.9+ (on Windows, if `python3` is unavailable, use `py -3` or `python`); `bash .spine/scripts/validate-task.sh` remains a thin wrapper.
+**Precondition:** `.spine` symlink present and `python3 .spine/scripts/spine.py install` completed (same as `/spine-bootstrap`). The contract validator lives at `.spine/scripts/spine_validate.py` — **not** at `scripts/` in the consumer tree. It is cross-platform Python 3.9+ (on Windows, if `python3` is unavailable, use `py -3` or `python`); `python3 .spine/scripts/spine_validate.py task` remains a thin wrapper.
 
 1. **Discovery (conditional — `@grill-me`):**
    Run `@grill-me` **before** `@writing-plans` when **any** of the following applies. Otherwise skip discovery and proceed to step 2.
@@ -115,7 +115,7 @@ Act as a Senior Software Architect. Follow the instructions provided in $ARGUMEN
    - **On failure (contract errors):** fix the task file to match `_task-template.md` / Memory Bank v2.1, re-run until exit code 0. Do not open the approval gate while validation fails.
    - **On failure (script missing — bridge mode):**
      1. Stop planning; do not open the approval gate.
-     2. Ask: "Spine setup is outdated or incomplete. Run `bash .spine/scripts/update.sh` from the project root (or refresh the `.spine` symlink), then retry `/spine-plan`?"
+     2. Ask: "Spine setup is outdated or incomplete. Run `python3 .spine/scripts/spine.py update` from the project root (or refresh the `.spine` symlink), then retry `/spine-plan`?"
      3. If yes: user runs update in terminal, reload IDE, re-run validation on the task file.
      4. If no: list that `.spine/scripts/spine_validate.py` is missing and stop.
    - **On failure (Python missing):** ask the user to install Python 3.9+ (Windows: python.org installer or `winget install Python.Python.3.12`), then re-run the validator. Do not skip validation.

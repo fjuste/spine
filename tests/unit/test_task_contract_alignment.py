@@ -74,14 +74,14 @@ def test_memory_bank_rule_documents_implementation_plan() -> None:
     assert "Anti-patterns" in text
 
 
-def test_bootstrap_precondition_is_install_sh() -> None:
+def test_bootstrap_precondition_is_python_install() -> None:
     text = _read("commands/spine-bootstrap.md")
-    assert "bash .spine/install.sh" in text
+    assert "python3 .spine/scripts/spine.py install" in text
     assert "/spine-install" not in text
 
 
-def test_validate_task_script_exists() -> None:
-    assert Path("scripts/validate-task.sh").exists()
+def test_validate_task_script_is_python() -> None:
+    assert not Path("scripts/validate-task.sh").exists()
     text = _read("scripts/spine_validate.py")
     assert "Implementation Plan" in text
     assert "superpowers:" in text
