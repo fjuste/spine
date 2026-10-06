@@ -9,7 +9,7 @@ def test_mkdocs_is_optional_and_documented_in_system_patterns() -> None:
     text = _read("templates/docs/memory/global/system-patterns.md").lower()
     assert "mkdocs" in text
     assert "optional" in text or "not a dependency" in text
-    assert "validate-mkdocs-integration.sh" in text
+    assert "python3 .spine/scripts/spine_validate.py mkdocs" in text
     assert "documentation-driven-development" in text
 
 
@@ -78,13 +78,12 @@ def test_agents_md_documents_mkdocs() -> None:
 
 
 def test_validate_mkdocs_integration_script_exists() -> None:
-    path = Path("scripts/validate-mkdocs-integration.sh")
-    assert path.exists()
-    text = path.read_text(encoding="utf-8")
+    assert Path("scripts/validate-mkdocs-integration.sh").exists()
+    text = _read("scripts/spine_validate.py")
     assert "docs/mkdocs/mkdocs.yml" in text
     assert "mkdocs build" in text
     assert "--strict" in text
-    assert "pip install mkdocs" in text
+    assert "uv run --extra docs mkdocs" in text
 
 
 def test_install_mkdocs_script_exists() -> None:
@@ -122,10 +121,10 @@ def test_update_sh_has_mkdocs_passthrough() -> None:
 
 
 def test_bootstrap_ready_warns_mkdocs_incomplete() -> None:
-    text = _read("scripts/validate-bootstrap-ready.sh").lower()
+    text = _read("scripts/spine_validate.py").lower()
     assert "mkdocs" in text
     assert "docs/mkdocs/mkdocs.yml" in text
-    assert "validate-mkdocs-integration.sh" in text
+    assert "{validate_cmd} mkdocs" in text
     assert "answer yes at the mkdocs prompt" in text
     assert "--with-mkdocs" in text
 
@@ -139,12 +138,12 @@ def test_spine_update_documents_mkdocs_adoption() -> None:
     text = _read("commands/spine-update.md").lower()
     assert "mkdocs" in text.lower()
     assert "--with-mkdocs" in text
-    assert "validate-mkdocs-integration.sh" in text
+    assert "python3 .spine/scripts/spine_validate.py mkdocs" in text
 
 
 def test_system_patterns_links_to_readme_mkdocs_section() -> None:
     text = _read("templates/docs/memory/global/system-patterns.md")
-    assert "github.com/opsscaleai/spine#optional-mkdocs" in text.lower()
+    assert "github.com/fjuste/spine#optional-mkdocs" in text.lower()
 
 
 def test_mkdocs_gitignore_template_exists() -> None:

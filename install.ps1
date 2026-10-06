@@ -885,8 +885,8 @@ function Write-NextSteps {
     Write-Host 'Update later (from an upstream Spine directory):'
     Write-Host "  powershell -ExecutionPolicy Bypass -File $Root\.spine\install.ps1 -Update -ProjectRoot $Root -SpineDir C:\path\to\spine"
     Write-Host ''
-    Write-Host 'Note: slash-command validators run `bash .spine/scripts/*.sh`; install Git for Windows'
-    Write-Host '      (Git Bash) and set it as the IDE default terminal so those steps can run.'
+    Write-Host 'Note: slash-command validators run .spine\scripts\spine_validate.py; install Python 3.9+'
+    Write-Host '      (python.org or: winget install Python.Python.3.12). No Bash required.'
     if ($DryRun) {
         Write-Host ''
         Write-Host 'This was a dry run. No changes were made.'

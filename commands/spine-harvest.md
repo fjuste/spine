@@ -1,7 +1,6 @@
 ---
 description: Consolidate final delivery, update memory-bank, and close the active task with learnings
 agent: build
-model: opencode-go/glm-5.2
 variant: high
 ---
 

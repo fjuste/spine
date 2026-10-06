@@ -87,7 +87,7 @@ If a file does not exist, create it only if it is part of the current task flow.
 
 **Skill trigger:** When the user types `/graphify`, invoke the graphify skill before other work (rebuild, query, or explain per skill).
 
-**Verify integration:** `bash .spine/scripts/validate-graphify-integration.sh` (from project root after enabling Graphify via `bash .spine/install.sh` prompt or `--with-graphify`).
+**Verify integration:** `python3 .spine/scripts/spine_validate.py graphify` (from project root after enabling Graphify via `bash .spine/install.sh` prompt or `--with-graphify`).
 
 ### Core (every session)
 

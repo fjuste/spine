@@ -22,7 +22,7 @@ def test_opencode_template_registers_ask_agent() -> None:
     cfg = _load_template()
     ask = cfg["agent"]["ask"]
     assert ask["mode"] == "primary"
-    assert ask["model"] == "opencode-go/qwen3.7-max"
+    assert "model" not in ask
     assert ask["temperature"] == 0.3
     assert ask["description"]
     assert ask["prompt"] == "{file:.spine/agents/ask.md}"
