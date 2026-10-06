@@ -1,7 +1,6 @@
 ---
 description: Plan a task, create memory-bank artifact, and prepare test strategy
 agent: build
-model: opencode-go/glm-5.2
 variant: high
 ---
 

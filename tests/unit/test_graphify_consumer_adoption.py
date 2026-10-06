@@ -85,7 +85,7 @@ def test_readme_documents_graphify_interactive_first() -> None:
 
 def test_system_patterns_links_to_readme_graphify_section() -> None:
     text = _read("templates/docs/memory/global/system-patterns.md")
-    assert "github.com/opsscaleai/spine#optional-graphify" in text.lower()
+    assert "github.com/fjuste/spine#optional-graphify" in text.lower()
 
 
 def test_spine_update_documents_existing_project_graphify_adoption() -> None:

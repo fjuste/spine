@@ -148,7 +148,7 @@ Spine installs **per project only**. There is no global installer (`--global` an
 
 ```bash
 # 1. Clone Spine once on the machine (outside consumer trees)
-git clone https://github.com/OpsScaleAI/spine.git ~/Workspace/ide/spine
+git clone https://github.com/fjuste/spine.git ~/Workspace/ide/spine
 
 # 2. From consumer project root — link .spine
 bash ~/Workspace/ide/spine/scripts/link-spine.sh

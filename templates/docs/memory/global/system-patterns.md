@@ -8,13 +8,13 @@
 - When active: read `graphify-out/GRAPH_REPORT.md`, then `graphify query "<question>" --graph graphify-out/graph.json`, then targeted file reads.
 - Co-install (Cursor + OpenCode + Claude Code): answer yes at Graphify prompt during `bash .spine/install.sh` (non-interactive: `--with-graphify`)
 - Verify: `bash .spine/scripts/validate-graphify-integration.sh`
-- Full guide: [Spine README — Optional: Graphify](https://github.com/OpsScaleAI/spine#optional-graphify).
+- Full guide: [Spine README — Optional: Graphify](https://github.com/fjuste/spine#optional-graphify).
 
 - **MkDocs** is an optional public-facing documentation layer for consumer projects. When active (`docs/mkdocs/mkdocs.yml`), agents maintain `docs/mkdocs/*.md` alongside code changes, following the `documentation-driven-development` skill.
 - MkDocs is **not a dependency** of Spine. `docs/memory/` remains the operational source of truth.
 - Enable by answering yes at the MkDocs prompt during `bash .spine/install.sh` (non-interactive: `--with-mkdocs`).
 - Verify: `bash .spine/scripts/validate-mkdocs-integration.sh`
-- Full guide: [Spine README — Optional: MkDocs](https://github.com/OpsScaleAI/spine#optional-mkdocs).
+- Full guide: [Spine README — Optional: MkDocs](https://github.com/fjuste/spine#optional-mkdocs).
 
 ## Architecture
 [Fill in]

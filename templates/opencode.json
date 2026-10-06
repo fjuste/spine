@@ -2,9 +2,9 @@
   "$schema": "https://opencode.ai/config.json",
   "default_agent": "ask",
   "instructions": [
-    "https://raw.githubusercontent.com/OpsScaleAI/spine/refs/heads/master/rules/01-core-protocol.md",
-    "https://raw.githubusercontent.com/OpsScaleAI/spine/refs/heads/master/rules/02-memory-bank.md",
-    "https://raw.githubusercontent.com/OpsScaleAI/spine/refs/heads/master/rules/03-code-quality.md"
+    "https://raw.githubusercontent.com/fjuste/spine/refs/heads/master/rules/01-core-protocol.md",
+    "https://raw.githubusercontent.com/fjuste/spine/refs/heads/master/rules/02-memory-bank.md",
+    "https://raw.githubusercontent.com/fjuste/spine/refs/heads/master/rules/03-code-quality.md"
   ],
   "permission": {
     "websearch": "allow",
@@ -25,7 +25,6 @@
     "ask": {
       "description": "Read-only thinking partner — explore, critique, and plan without modifying the codebase",
       "mode": "primary",
-      "model": "opencode-go/qwen3.7-max",
       "temperature": 0.3,
       "prompt": "{file:.spine/agents/ask.md}",
       "permission": {

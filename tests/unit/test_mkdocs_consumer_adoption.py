@@ -84,7 +84,7 @@ def test_validate_mkdocs_integration_script_exists() -> None:
     assert "docs/mkdocs/mkdocs.yml" in text
     assert "mkdocs build" in text
     assert "--strict" in text
-    assert "pip install mkdocs" in text
+    assert "uv run --extra docs mkdocs" in text
 
 
 def test_install_mkdocs_script_exists() -> None:
@@ -144,7 +144,7 @@ def test_spine_update_documents_mkdocs_adoption() -> None:
 
 def test_system_patterns_links_to_readme_mkdocs_section() -> None:
     text = _read("templates/docs/memory/global/system-patterns.md")
-    assert "github.com/opsscaleai/spine#optional-mkdocs" in text.lower()
+    assert "github.com/fjuste/spine#optional-mkdocs" in text.lower()
 
 
 def test_mkdocs_gitignore_template_exists() -> None:

@@ -55,7 +55,7 @@ Spine installs **per project only**. Each consumer repository links to a local S
 Clone the Spine repository once on your machine (outside consumer project trees):
 
 ```bash
-git clone https://github.com/OpsScaleAI/spine.git ~/Workspace/ide/spine
+git clone https://github.com/fjuste/spine.git ~/Workspace/ide/spine
 ```
 
 ### 2. Link Spine to your project
@@ -144,9 +144,9 @@ Each Spine project opts in via `opencode.json` with `instructions` pointing to S
   "small_model": "nvidia/deepseek-ai/deepseek-v4-pro",
   "default_agent": "ask",
   "instructions": [
-    "https://raw.githubusercontent.com/OpsScaleAI/spine/refs/heads/master/rules/01-core-protocol.md",
-    "https://raw.githubusercontent.com/OpsScaleAI/spine/refs/heads/master/rules/02-memory-bank.md",
-    "https://raw.githubusercontent.com/OpsScaleAI/spine/refs/heads/master/rules/03-code-quality.md"
+    "https://raw.githubusercontent.com/fjuste/spine/refs/heads/master/rules/01-core-protocol.md",
+    "https://raw.githubusercontent.com/fjuste/spine/refs/heads/master/rules/02-memory-bank.md",
+    "https://raw.githubusercontent.com/fjuste/spine/refs/heads/master/rules/03-code-quality.md"
   ],
   "compaction": { "enabled": true, "strategy": "summarize", "threshold": 16000 },
   "agent": {
