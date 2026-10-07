@@ -227,6 +227,7 @@ PROJECT_ROOT/
 ├── .cursor/skills/         → .agents/skills/
 ├── .opencode/commands/     → .spine/commands/
 ├── .opencode/agents/       per-file symlinks to .spine/agents/
+├── .claude/rules/          core rule symlinks
 ├── .claude/skills/         → .agents/skills/
 ├── opencode.json           (3 rule URLs + compaction)
 ├── docs/memory/...         (memory bank)

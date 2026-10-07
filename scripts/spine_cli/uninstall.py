@@ -51,6 +51,7 @@ def uninstall_applied(project: Path, log: Log, *, remove_spine: bool) -> None:
         ".agents/workflows",
         ".cursor/rules",
         ".cursor/commands",
+        ".claude/rules",
         ".opencode/commands",
         ".opencode/agents",
     ):
@@ -58,6 +59,7 @@ def uninstall_applied(project: Path, log: Log, *, remove_spine: bool) -> None:
 
     for relative in (
         ".cursor/skills",
+        ".claude/rules",
         ".claude/skills",
         ".agents/skills",
         ".agents/rules",
