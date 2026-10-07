@@ -313,16 +313,37 @@ def install_cursor(
         create_relative_symlink("../.agents/skills", skills_dest, "skills", log, force=force)
 
 
-def install_claude(project: Path, log: Log, *, copy_mode: bool, force: bool) -> None:
-    """Wire the Claude skills hub.
+def install_claude(
+    project: Path,
+    content: Path,
+    log: Log,
+    *,
+    copy_mode: bool,
+    force: bool,
+) -> None:
+    """Wire Claude Code session rules and the skills hub.
+
+    Rules land in ``.claude/rules/`` so Claude Code loads them at session start.
+    Files without ``paths`` frontmatter are the ones Claude reads on launch.
 
     Args:
         project: Consumer project root.
+        content: Spine content root.
         log: Progress logger.
         copy_mode: Physical copies.
         force: Replace mismatched links.
     """
     print("\n=== Claude Code (project-level) ===")
+    _install_named_files(
+        list(CORE_RULES),
+        content / "rules",
+        project / ".claude" / "rules",
+        "../../.spine/rules",
+        "claude-rule",
+        log,
+        copy_mode=copy_mode,
+        force=force,
+    )
     dest = project / ".claude" / "skills"
     if copy_mode:
         copy_tree(project / ".agents" / "skills", dest, log, force=force, copy_mode=True)
@@ -583,7 +604,7 @@ def install_selected_targets(
     if "opencode" in targets:
         install_opencode(project, content, log, copy_mode=copy_mode, force=force)
     if "claude" in targets:
-        install_claude(project, log, copy_mode=copy_mode, force=force)
+        install_claude(project, content, log, copy_mode=copy_mode, force=force)
     if "antigravity" in targets:
         install_antigravity(project, content, log, copy_mode=copy_mode, force=force)
 
