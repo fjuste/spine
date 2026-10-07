@@ -91,6 +91,7 @@ PROJECT_ROOT/
 ├── .cursor/skills/     → .agents/skills/ (committable)
 ├── .opencode/commands/ command symlinks (committable)
 ├── .opencode/agents/   agent symlinks (committable)
+├── .claude/rules/      core rule symlinks (committable)
 ├── .claude/skills/     → .agents/skills/ (committable)
 ├── opencode.json       created or merged (versioned)
 └── docs/               memory bank templates (versioned)
@@ -105,7 +106,7 @@ Windows `install` produces the vendor layout in **Optional: Vendor install** (re
 | Artefato Spine | Cursor | OpenCode | Claude Code | Antigravity |
 |---|---|---|---|---|
 | `skills/` | `.cursor/skills` | (hub) | `.claude/skills` | `.agents/skills/` |
-| `rules/` | `.cursor/rules` | URLs in `opencode.json` | (via skills/CLAUDE.md) | `.agents/rules/` |
+| `rules/` | `.cursor/rules` | URLs in `opencode.json` | `.claude/rules` | `.agents/rules/` |
 | `commands/` (slash) | `.cursor/commands` | `.opencode/commands` | `.claude/skills/<name>/` via hub | `.agents/skills/<name>/` |
 
 Claude Code and Antigravity invoke `/spine-*` as skills. The installer writes `.agents/skills/<name>/SKILL.md` for each file in `commands/`. Claude Code reads that bundle through `.claude/skills`, which points at the hub. Cursor and OpenCode keep the command files themselves.
