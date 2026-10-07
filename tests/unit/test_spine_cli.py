@@ -127,6 +127,7 @@ def test_install_creates_spine_symlink_and_skill_hub(tmp_path: Path) -> None:
     assert (project / ".opencode" / "agents" / "ask.md").is_symlink()
     assert not (project / ".agents" / "skills" / "spine-plan").exists()
     assert not (project / ".agents" / "workflows").exists()
+    assert not (project / ".claude" / "rules").exists()
 
 
 def test_install_does_not_overwrite_docs_or_seed_sample_task(tmp_path: Path) -> None:
@@ -494,6 +495,10 @@ def test_default_install_wires_slash_commands_on_four_tools(tmp_path: Path) -> N
     claude_skill = project / ".claude" / "skills" / "spine-plan" / "SKILL.md"
     assert claude_skill.is_file()
     assert claude_skill.read_text(encoding="utf-8") == text
+    rule = project / ".claude" / "rules" / "02-memory-bank.md"
+    assert rule.is_symlink()
+    assert rule.resolve() == (source / "rules" / "02-memory-bank.md").resolve()
+    assert "02-memory-bank.md" in rule.read_text(encoding="utf-8")
     assert not (project / ".agents" / "workflows" / "spine-plan.md").exists()
 
 
@@ -512,6 +517,12 @@ def test_copy_install_materializes_workflow_procedure(tmp_path: Path) -> None:
     claude_skill = project / ".claude" / "skills" / "spine-plan" / "SKILL.md"
     assert claude_skill.is_file()
     assert not (project / ".claude" / "skills").is_symlink()
+    copied_rule = project / ".claude" / "rules" / "02-memory-bank.md"
+    assert copied_rule.is_file()
+    assert not copied_rule.is_symlink()
+    assert copied_rule.read_text(encoding="utf-8") == (
+        source / "rules" / "02-memory-bank.md"
+    ).read_text(encoding="utf-8")
 
 
 def test_update_keeps_workflow_skill_and_removes_legacy_workflow(tmp_path: Path) -> None:
