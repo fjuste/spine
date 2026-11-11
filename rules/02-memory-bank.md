@@ -54,6 +54,8 @@ docs/memory/
 | `global/` | Human or agent with explicit approval | Scope/architecture changes |
 | `ledger/` | Executing agent | Every delivery cycle |
 | `active_tasks/` | Executing agent | Created in PLAN; updated until harvest |
+| Task `## Execution notes` | `/spine-execute` writes; `/spine-harvest` reads | Appended when each fact happens (dated, typed, append-only); harvest only appends a destination marker (`→ LEARN-NNN`, `→ no promotion`, …) |
+| Task `## Execution evidence` | `/spine-execute` writes; `/spine-harvest` reads | Filled before `REVIEW` (tests executed, results, manual/external runs); harvest cites it in the delivery summary |
 | `completed_tasks/` | Executing agent | Written only at harvest (`git mv` from `active_tasks/`) |
 | `ledger/learnings.md` | Executing agent | At harvest when root cause / incident / rework recorded |
 
@@ -187,6 +189,24 @@ Optional body section (use when bite-sized execution steps are needed):
 **Files:** ...
 **Step 1:** ...
 ```
+
+Execution sections (after `## Implementation Plan`; written by `/spine-execute`, read by `/spine-harvest` as its primary source so harvest works in a new session):
+
+```markdown
+## Execution notes
+- 2026-11-11 — deviation — Split migration into two steps; plan assumed a single table → LEARN-023
+- 2026-11-11 — out-of-scope — Retry helper duplicated in two services → Known Opportunities
+
+## Execution evidence
+**Tests executed:** `pytest tests/`
+**Test results:** 42 passed
+**Manual / external evidence:** who, when, commit/branch, command, summary, where the raw output lives
+```
+
+- Note types: `deviation` (contradiction with the plan → record and stop for the human), `incident` (symptom, root cause, fix), `rework`, `decision`, `out-of-scope`, `environment`. With nothing to record: `No deviations from plan.`
+- Append-only: execute adds entries; harvest only appends the destination marker.
+- Never paste secrets, tokens, or keys — point to where raw output lives.
+- Legacy tasks without these sections: harvest proceeds as before and reports the absence.
 
 **Anti-patterns (do not use in task files):**
 
