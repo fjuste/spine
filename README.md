@@ -615,15 +615,22 @@ flowchart TD
 
 ## Version
 
+**v2.2.0** — Cross-platform installer and execution record.
+
+- Cross-platform Python CLI: `scripts/spine.py` (`install`, `update`, `vendor`, `uninstall`) and `scripts/spine_validate.py` replace the shell installers and validators
+- Install modes: symlink (default), hybrid `--copy`, `--rsync`, and `vendor` (copy Spine into the project, commit trees, overwrite update). On Windows, `install` uses vendor mode automatically.
+- Slash commands published as Claude Code and Antigravity skills (`.agents/skills/<name>/procedure.md`); Antigravity rules; Spine rules loaded in Claude Code at session start
+- `/spine-roadmap` (GIST-informed Goals, ICE-scored Idea Bank); deeper `/spine-bootstrap` assessment; optional Graphify and MkDocs co-install
+- Task `## Execution notes` (dated, typed, append-only) and `## Execution evidence`: `/spine-execute` records them as facts happen, `/spine-harvest` reads them as its primary source so it can run in a new session
+
+<details>
+<summary>Version history</summary>
+
 **v2.1.0** — Memory Bank v2.1.
 
 - `completed_tasks/`, `ledger/learnings.md`, structured delivery log in `progress.md`
 - Obsidian-style task frontmatter and `memory-tags-policy.md`
 - Tiered SYNC; OpenCode `ask` agent in template; native Plan input via `/spine-plan`
-- Optional vendor install on Linux and macOS: `python3 scripts/spine.py vendor` (copy Spine into the project, commit trees, overwrite update). On Windows, `install` uses vendor mode automatically.
-
-<details>
-<summary>Version history</summary>
 
 **v1.3.0** — Project-only installation.
 
