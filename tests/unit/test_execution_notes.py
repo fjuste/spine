@@ -15,6 +15,7 @@ NOTE_TYPES = (
     "decision",
     "out-of-scope",
     "environment",
+    "resume",
 )
 NO_DEVIATIONS = "No deviations from plan"
 
@@ -70,6 +71,21 @@ def test_spine_execute_writes_notes_as_they_happen() -> None:
     assert "when it happens" in lowered
     assert "not in a batch" in lowered
     assert "resume point" in lowered
+
+
+def test_resume_point_has_its_own_note_type() -> None:
+    template = _section(_read(TEMPLATE), NOTES)
+    resume_line = next(line for line in template.splitlines() if "midway" in line)
+    assert "`resume`" in resume_line
+    assert "`deviation`" not in resume_line
+    execute = _read("commands/spine-execute.md")
+    stop_line = next(line for line in execute.splitlines() if "stops midway" in line)
+    assert "`resume`" in stop_line
+    assert "`deviation`" not in stop_line
+    assert "latest `resume` entry" in execute
+    harvest = _read("commands/spine-harvest.md")
+    resume_row = next(line for line in harvest.splitlines() if line.strip().startswith("| `resume`"))
+    assert "no promotion" in resume_row.lower()
 
 
 def test_spine_execute_scope_restriction_points_to_out_of_scope_note() -> None:

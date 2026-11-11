@@ -80,8 +80,9 @@ Entry format: `- YYYY-MM-DD — <type> — <what happened>`. Types:
 - `decision` — choice made during execution and its reason (decision-log candidate).
 - `out-of-scope` — improvement found and not done.
 - `environment` — fact discovered about infrastructure or an external service.
+- `resume` — resume point when execution stops midway (see below). Temporary state; harvest does not promote it.
 
-If execution stops midway (blocker, end of session), append a `deviation` entry with the resume point: last completed step, next step, open blocker.
+If execution stops midway (blocker, end of session), append a `resume` entry with the resume point: last completed step, next step, open blocker. Record the blocker itself as a separate `incident` or `environment` entry when it is worth learning from.
 
 When nothing deviated, keep a single line: `No deviations from plan.`
 

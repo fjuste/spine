@@ -203,7 +203,7 @@ Execution sections (after `## Implementation Plan`; written by `/spine-execute`,
 **Manual / external evidence:** who, when, commit/branch, command, summary, where the raw output lives
 ```
 
-- Note types: `deviation` (contradiction with the plan → record and stop for the human), `incident` (symptom, root cause, fix), `rework`, `decision`, `out-of-scope`, `environment`. With nothing to record: `No deviations from plan.`
+- Note types: `deviation` (contradiction with the plan → record and stop for the human), `incident` (symptom, root cause, fix), `rework`, `decision`, `out-of-scope`, `environment`, `resume` (resume point when execution stops midway; never promoted). With nothing to record: `No deviations from plan.`
 - Append-only: execute adds entries; harvest only appends the destination marker.
 - Never paste secrets, tokens, or keys — point to where raw output lives.
 - Legacy tasks without these sections: harvest proceeds as before and reports the absence.

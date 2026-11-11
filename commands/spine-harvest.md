@@ -44,6 +44,7 @@ Act as a Tech Lead and Knowledge Manager.
       | `environment` | `docs/memory/global/tech-context.md` § **Known Risks** when it is a risk; otherwise no promotion |
       | `out-of-scope` | `docs/memory/global/product-context.md` § **Known Opportunities (unplanned)**, or a new task suggested to the human (do not create it) |
       | `deviation` | Stays in the task; summarize in the delivery summary. Promote to `learnings.md` only when it exposes a recurring planning gap |
+      | `resume` | No promotion — temporary state, superseded once execution continued |
       | Any note that names a new canonical domain term | `docs/memory/global/domain-glossary.md` |
       | Any note that establishes a reusable pattern | `docs/memory/global/system-patterns.md` |
 

@@ -71,7 +71,7 @@ After all work passes tests:
 
 ## When to stop and ask for help
 
-Record each deviation, incident, rework, decision, out-of-scope finding, or environment fact in `## Execution notes` when it happens (see `/spine-execute` step 6.5). Before stopping mid-task, append the resume point.
+Record each deviation, incident, rework, decision, out-of-scope finding, or environment fact in `## Execution notes` when it happens (see `/spine-execute` step 6.5). Before stopping mid-task, append a `resume` entry with the resume point.
 
 Stop immediately when:
 

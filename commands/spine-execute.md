@@ -30,7 +30,7 @@ Act as a Software Engineer focused on rigorous implementation.
    - `## Acceptance Criteria`, `## Test Strategy`
    - `## Implementation Plan` when present — use Task/Step blocks as the execution checklist (batch via `@executing-plans`)
    - If Implementation Plan is **missing** and there are **>3** acceptance criteria, stop and ask to extend the plan or proceed criterion-by-criterion
-   - `## Execution notes` and `## Execution evidence` when present — when resuming, continue from the latest resume point recorded there
+   - `## Execution notes` and `## Execution evidence` when present — when resuming, continue from the latest `resume` entry recorded there
    - Legacy task without these sections: add both headings (empty) after `## Implementation Plan` (or after `## Test Strategy`) before starting
 4. **Execution Skill Selection:**
    - Use the skill specified in frontmatter `execution_skill` (fallback: legacy `Suggested execution skill` field).
@@ -49,7 +49,8 @@ Act as a Software Engineer focused on rigorous implementation.
    - `decision` — choice made during execution and its reason (decision-log candidate; harvest decides).
    - `out-of-scope` — improvement found and not done (see step 9).
    - `environment` — fact discovered about infrastructure or an external service.
-   - If execution stops midway (blocker, end of session, user interruption), append a `deviation` entry with the resume point: last completed step, next step, open blocker. Keep `status: IN_PROGRESS`.
+   - `resume` — resume point; see next bullet.
+   - If execution stops midway (blocker, end of session, user interruption), append a `resume` entry with the resume point: last completed step, next step, open blocker. Record the blocker itself as a separate `incident` or `environment` entry when it is worth learning from. Keep `status: IN_PROGRESS`.
    - When execution finishes with nothing to record, the section holds a single line: `No deviations from plan.`
    - Never paste secrets, tokens, keys, or credentials in notes or evidence.
 7. **Validation Cycle:**
