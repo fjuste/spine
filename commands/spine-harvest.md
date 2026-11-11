@@ -33,6 +33,25 @@ Act as a Tech Lead and Knowledge Manager.
     - If none work, install docs deps (`uv sync --extra docs` or `uv pip install -r requirements-docs.txt`) and retry step 1; if still failing, report the errors.
     - If the build fails, report the errors; do not block harvest or Git consolidation.
 
+3.7. **Execution record (primary source):**
+    - Read `## Execution notes` and `## Execution evidence` from the task file. Treat them as the primary source of what happened during execution — this may be a new session with no memory of `/spine-execute`; do not rely on conversation history.
+    - For each note, decide its destination and apply it in step 4:
+
+      | Note type | Destination |
+      |---|---|
+      | `incident`, `rework` | `docs/memory/ledger/learnings.md` (step 4b) — grep existing entries by **tags** + symptoms first; append to **Recurrences** on a match, otherwise create a new `LEARN-NNN` |
+      | `decision` | `docs/memory/global/decision-log.md` only when **all three** `@grill-me` criteria hold (hard to reverse, surprising without context, result of a real trade-off); otherwise no promotion |
+      | `environment` | `docs/memory/global/tech-context.md` § **Known Risks** when it is a risk; otherwise no promotion |
+      | `out-of-scope` | `docs/memory/global/product-context.md` § **Known Opportunities (unplanned)**, or a new task suggested to the human (do not create it) |
+      | `deviation` | Stays in the task; summarize in the delivery summary. Promote to `learnings.md` only when it exposes a recurring planning gap |
+      | `resume` | No promotion — temporary state, superseded once execution continued |
+      | Any note that names a new canonical domain term | `docs/memory/global/domain-glossary.md` |
+      | Any note that establishes a reusable pattern | `docs/memory/global/system-patterns.md` |
+
+    - Mark the destination on the note itself by appending it to the end of the entry: `→ LEARN-023`, `→ LEARN-007 recurrence`, `→ decision-log 2026-11-11`, `→ domain-glossary`, `→ system-patterns`, `→ tech-context Known Risks`, `→ Known Opportunities`, `→ suggested task`, `→ no promotion`. This marker is the only edit harvest makes to existing notes — never rewrite their content.
+    - A note `No deviations from plan.` needs no routing.
+    - **Legacy task** (no `## Execution notes` / `## Execution evidence`): proceed as before (task body, git log, current session) and state in the harvest summary that the execution record was missing.
+
 4. **Memory Bank Update:**
 
    **4a. `docs/memory/ledger/progress.md`**
@@ -41,15 +60,15 @@ Act as a Tech Lead and Knowledge Manager.
      - `### YYYY-MM-DD — Title` (from frontmatter `title` or task slug)
      - `**Task:** NNN-slug | **Branch:**` from frontmatter
      - `**Tags:**` — flatten frontmatter `tags` list to comma-separated (per `docs/governance/memory-tags-policy.md`)
-     - `**Description:**` — concise delivery summary
+     - `**Description:**` — concise delivery summary that cites the execution evidence: tests executed and results, plus manual/external runs (who, when, where the raw output lives) from `## Execution evidence`
 
-   **4b. `docs/memory/ledger/learnings.md`** (when task recorded root cause, incident, or rework)
+   **4b. `docs/memory/ledger/learnings.md`** (when `## Execution notes` holds `incident` / `rework` entries routed in step 3.7, or the task recorded root cause, incident, or rework elsewhere)
    - Before new `LEARN-NNN`, grep existing entries by **tags** + symptoms per `memory-tags-policy.md`.
    - Add new `LEARN-NNN` or append to **Recurrences** on matching entry.
    - **Tags** required on new entries; copy from task frontmatter, refine if needed.
    - Mirror one-line pointer in task Delivery summary body.
 
-    **4c. Unchanged when applicable:**
+    **4c. Unchanged when applicable (apply the routing decided in step 3.7):**
     - `docs/memory/global/decision-log.md` — architectural decisions only.
     - `docs/memory/global/domain-glossary.md` — canonical terms promoted during discovery or delivery.
     - `docs/memory/global/system-patterns.md` — new patterns established.
@@ -74,10 +93,10 @@ Act as a Tech Lead and Knowledge Manager.
     - Run `uv run --extra docs mkdocs build -f docs/mkdocs/mkdocs.yml --strict` (fallback: `.venv/bin/mkdocs` or PATH `mkdocs`) to verify the documentation builds cleanly.
     - If the task does not warrant documentation updates, note the decision in the delivery summary.
 
- 6. **Active Task Closure:**
+5. **Active Task Closure:**
    - Update frontmatter: `status: DONE`, `completed_at: YYYY-MM-DD`, `updated_at: YYYY-MM-DD`.
    - Set `related_learnings:` when linked to `LEARN-NNN` entries.
-   - Add final **Delivery summary** block in task body.
+   - Add final **Delivery summary** block in task body; cite the evidence from `## Execution evidence` (tests and manual runs) and list where each execution note was promoted.
    - Record learning: root cause + prevention + regression test.
     - If there was UI/E2E with Playwright, also record:
       - skill used (`playwright-cli` or `playwright-skill`);
@@ -87,9 +106,9 @@ Act as a Tech Lead and Knowledge Manager.
    - **`git mv`** `docs/memory/active_tasks/NNN-name.md` → `docs/memory/completed_tasks/NNN-name.md` (create dir if missing).
    - Include the move in the final commit before merge to `develop`.
 
- 7. **Git Consolidation (GitFlow required):**
+6. **Git Consolidation (GitFlow required):**
    - Make the final commit with a semantic message.
    - Merge only a valid `feature/<descriptive-name>` branch into `develop`.
    - Remove the local feature branch.
 
- 8. **Summary:** Present a concise summary of what was learned and improved in the project. When step 3.5 ran (or was skipped/failed), include Graphify refresh status and whether `graphify query` was used during delivery exploration. When step 3.6 ran (or was skipped/failed), include MkDocs build status. When step 4d ran, report whether the Idea Bank row was updated and to which Status (`Done` / `In Progress` / missing), and note that `/spine-roadmap --review` was suggested for ICE re-score.
+7. **Summary:** Present a concise summary of what was learned and improved in the project. When step 3.5 ran (or was skipped/failed), include Graphify refresh status and whether `graphify query` was used during delivery exploration. When step 3.6 ran (or was skipped/failed), include MkDocs build status. Report the execution record outcome from step 3.7: how many notes were promoted and where, or that a legacy task had no `## Execution notes` / `## Execution evidence` (missing). When step 4d ran, report whether the Idea Bank row was updated and to which Status (`Done` / `In Progress` / missing), and note that `/spine-roadmap --review` was suggested for ICE re-score.

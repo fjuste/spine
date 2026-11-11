@@ -25,7 +25,7 @@ Before writing implementation code, review the task:
 3. Does it add user-facing behavior?
 4. Does it change project setup, configuration, or dependencies?
 
-If **none** of the above apply (e.g., pure refactoring, internal optimization, bug fix with no behavioral change), skip documentation updates — the harvest prompt (step 4d) will confirm this decision.
+If **none** of the above apply (e.g., pure refactoring, internal optimization, bug fix with no behavioral change), skip documentation updates — the harvest prompt (step 4e) will confirm this decision.
 
 ## Step 2: Identify affected files
 
@@ -65,7 +65,7 @@ For each affected file:
 At `/spine-harvest`:
 
 - [ ] `uv run --extra docs mkdocs build -f docs/mkdocs/mkdocs.yml --strict` passes (step 3.6)
-- [ ] Documentation reflects the delivered state (step 4d)
+- [ ] Documentation reflects the delivered state (step 4e)
 - [ ] New architectural decisions are captured in `architecture.md`
 - [ ] `docs:` commit includes MkDocs file changes
 
@@ -76,7 +76,7 @@ When `docs/mkdocs/mkdocs.yml` exists in the project root AND the task:
 - Introduces new public APIs, endpoints, or schemas
 - Establishes architectural patterns
 - Adds user-facing features
-- Is flagged by harvest step 4d as needing documentation
+- Is flagged by harvest step 4e as needing documentation
 
 ## When to skip
 

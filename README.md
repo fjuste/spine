@@ -518,7 +518,7 @@ docs/memory/
   completed_tasks/     # DONE tasks (moved at harvest via git mv)
 ```
 
-**Task files** use Obsidian-style YAML frontmatter (`tags`, `status`, `goal`, `branch`, `base`, …). Reference template: `templates/docs/memory/active_tasks/_task-template.md`. Optional `## Implementation Plan` holds bite-sized Task/Step detail for `/spine-execute`; harvest uses frontmatter and summary only.
+**Task files** use Obsidian-style YAML frontmatter (`tags`, `status`, `goal`, `branch`, `base`, …). Reference template: `templates/docs/memory/active_tasks/_task-template.md`. Optional `## Implementation Plan` holds bite-sized Task/Step detail for `/spine-execute`. Two sections follow it: `## Execution notes` (dated, typed, append-only entries written by `/spine-execute` when each deviation, incident, rework, decision, out-of-scope finding, or environment fact happens, plus a `resume` entry when execution stops midway — or `No deviations from plan.`) and `## Execution evidence` (tests executed, results, manual/external runs; never secrets). `/spine-harvest` reads both as its primary source, so it can run in a new session, and marks each note with its destination (`→ LEARN-NNN`, `→ decision-log YYYY-MM-DD`, `→ no promotion`).
 
 Validate a task file manually: `python3 .spine/scripts/spine_validate.py task docs/memory/active_tasks/NNN-name.md`. `/spine-plan` runs this automatically before the approval gate (structure only, not plan quality).
 
@@ -530,7 +530,7 @@ Validate a task file manually: `python3 .spine/scripts/spine_validate.py task do
 | Extended | Plan, harvest, ambiguous scope | `roadmap.md`, full delivery log |
 | On demand | Debugging, recurrence | `learnings.md`, `completed_tasks/` |
 
-**Harvest** (`/spine-harvest`): append delivery log entry (with **Tags**), update `learnings.md` when applicable, set frontmatter `status: DONE`, `git mv` task to `completed_tasks/`. When the task has `roadmap_idea`, update that Idea Bank row to `Done` (or keep `In Progress` if other open linked tasks remain); suggest `/spine-roadmap --review` for ICE re-score.
+**Harvest** (`/spine-harvest`): route `## Execution notes` to learnings, decision log, glossary, patterns, Known Risks, or Known Opportunities; append delivery log entry (with **Tags**, citing `## Execution evidence`), update `learnings.md` when applicable, set frontmatter `status: DONE`, `git mv` task to `completed_tasks/`. When the task has `roadmap_idea`, update that Idea Bank row to `Done` (or keep `In Progress` if other open linked tasks remain); suggest `/spine-roadmap --review` for ICE re-score.
 
 **Migration from v2.0:** Run `python3 .spine/scripts/spine.py update` (or `/spine-update` if slash commands exist), seed missing templates via `python3 .spine/scripts/spine.py install --update`, manually move DONE files from `active_tasks/` to `completed_tasks/`, optionally restructure `progress.md` (preserve legacy content under a heading).
 

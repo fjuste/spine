@@ -30,6 +30,8 @@ Act as a Software Engineer focused on rigorous implementation.
    - `## Acceptance Criteria`, `## Test Strategy`
    - `## Implementation Plan` when present — use Task/Step blocks as the execution checklist (batch via `@executing-plans`)
    - If Implementation Plan is **missing** and there are **>3** acceptance criteria, stop and ask to extend the plan or proceed criterion-by-criterion
+   - `## Execution notes` and `## Execution evidence` when present — when resuming, continue from the latest `resume` entry recorded there
+   - Legacy task without these sections: add both headings (empty) after `## Implementation Plan` (or after `## Test Strategy`) before starting
 4. **Execution Skill Selection:**
    - Use the skill specified in frontmatter `execution_skill` (fallback: legacy `Suggested execution skill` field).
    - If no skill is specified, default to `@executing-plans`.
@@ -40,6 +42,17 @@ Act as a Software Engineer focused on rigorous implementation.
    - Do not switch from `playwright-cli` to `playwright-skill` (or vice versa) without recording an objective justification in the active task.
 5. **Code discovery (when locating implementation targets):** If `graphify-out/graph.json` exists and the target file/module is unclear, follow the **Graphify Discovery Protocol** in `02-memory-bank.md` before broad Glob/grep scans.
 6. **Atomic Implementation:** Implement the required code by following `docs/memory/global/system-patterns.md` and the active task guidelines.
+6.5. **Execution Notes (continuous):** Append to `## Execution notes` in the task file when it happens — right after the fact, not in a batch at the end of execution. Entries are dated (`- YYYY-MM-DD — <type> — …`) and append-only: never rewrite or delete earlier entries.
+   - `deviation` — what changed relative to the plan and why. If the change **contradicts** the plan (acceptance criteria, scope, or approach), record it and **STOP** for the human before continuing.
+   - `incident` — symptom, root cause, fix.
+   - `rework` — what was redone and why.
+   - `decision` — choice made during execution and its reason (decision-log candidate; harvest decides).
+   - `out-of-scope` — improvement found and not done (see step 9).
+   - `environment` — fact discovered about infrastructure or an external service.
+   - `resume` — resume point; see next bullet.
+   - If execution stops midway (blocker, end of session, user interruption), append a `resume` entry with the resume point: last completed step, next step, open blocker. Record the blocker itself as a separate `incident` or `environment` entry when it is worth learning from. Keep `status: IN_PROGRESS`.
+   - When execution finishes with nothing to record, the section holds a single line: `No deviations from plan.`
+   - Never paste secrets, tokens, keys, or credentials in notes or evidence.
 7. **Validation Cycle:**
    - Run the test command defined in the active task.
    - If it fails, analyze the error and fix the code (not the test, unless the test is logically wrong).
@@ -47,10 +60,12 @@ Act as a Software Engineer focused on rigorous implementation.
 8. **Execution Status:** Update frontmatter at start and end:
    - At beginning: `status: IN_PROGRESS`, bump `updated_at`.
    - When complete: `status: REVIEW`, bump `updated_at`.
-   - When marking `REVIEW`, record a minimal checklist with tests executed and test results in the task body.
-9. **Restriction:** Do not perform refactors outside the active task scope. If you find a necessary improvement, record it in "Notes" in the task itself.
+   - When marking `REVIEW`, fill `## Execution evidence`: **Tests executed** (commands) and **Test results** (summary). Add **Manual / external evidence** for any manual or external run: who ran it, when, commit/branch, command, short summary, and where the raw output lives (path or link — not pasted inline).
+9. **Restriction:** Do not perform refactors outside the active task scope. If you find a necessary improvement, record it in `## Execution notes` as an `out-of-scope` entry (what, where, why it matters) and do not implement it.
 10. **Completion Gate (mandatory):**
    - Before sending the final execution response, verify frontmatter `status` is `REVIEW`.
    - If status is not `REVIEW`, stop and update it before completion.
-   - `REVIEW` is valid only if evidence is present: `Tests executed` list and `Test results` summary.
-   - If test evidence is missing, stop and update the active task file before completion.
+   - `REVIEW` is valid only if:
+     - `## Execution notes` is filled — at least one dated entry, or the single line `No deviations from plan.`
+     - `## Execution evidence` contains a `Tests executed` list and a `Test results` summary.
+   - If notes or test evidence are missing, stop and update the active task file before completion.
