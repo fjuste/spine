@@ -62,13 +62,16 @@ When batch complete:
 After all work passes tests:
 
 1. Update frontmatter: `status: REVIEW`, bump `updated_at`
-2. Record in task body: **Tests executed** and **Test results**
-3. Stop — do **not** merge, harvest, or move to `completed_tasks/`
-4. User runs `/spine-harvest` for delivery log, learnings, and `git mv`
+2. Record in `## Execution evidence`: **Tests executed** and **Test results** (plus manual/external runs when any)
+3. Confirm `## Execution notes` holds the dated entries written during execution, or the single line `No deviations from plan.`
+4. Stop — do **not** merge, harvest, or move to `completed_tasks/`
+5. User runs `/spine-harvest` for delivery log, learnings, and `git mv`
 
 **Do not use** `superpowers:finishing-a-development-branch`. Spine owns closure via `/spine-harvest`.
 
 ## When to stop and ask for help
+
+Record each deviation, incident, rework, decision, out-of-scope finding, or environment fact in `## Execution notes` when it happens (see `/spine-execute` step 6.5). Before stopping mid-task, append the resume point.
 
 Stop immediately when:
 

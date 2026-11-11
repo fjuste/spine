@@ -67,3 +67,39 @@ related_learnings: []
 **Step 2:** [Next action]
 
 **Step 3:** Commit with semantic message.
+
+## Execution notes
+
+(Written by `/spine-execute` at the moment each fact happens — not in a batch at the end. Append-only: add new entries, never rewrite or delete earlier ones. `/spine-harvest` reads this section as its primary source, possibly in a new session, and appends the destination to each entry, e.g. `→ LEARN-023`, `→ decision-log 2026-11-11`, `→ no promotion`.)
+
+Entry format: `- YYYY-MM-DD — <type> — <what happened>`. Types:
+
+- `deviation` — what changed relative to the plan and why. If the change contradicts the plan, record it and stop for the human before continuing.
+- `incident` — symptom, root cause, fix.
+- `rework` — what was redone and why.
+- `decision` — choice made during execution and its reason (decision-log candidate).
+- `out-of-scope` — improvement found and not done.
+- `environment` — fact discovered about infrastructure or an external service.
+
+If execution stops midway (blocker, end of session), append a `deviation` entry with the resume point: last completed step, next step, open blocker.
+
+When nothing deviated, keep a single line: `No deviations from plan.`
+
+## Execution evidence
+
+(Written by `/spine-execute` before `status: REVIEW`. Never paste secrets, tokens, keys, or credentials — redact them and point to where the raw output is stored.)
+
+**Tests executed:**
+
+- `[command]`
+
+**Test results:**
+
+- [passed/failed counts, notable failures and how they were resolved]
+
+**Manual / external evidence:** (one entry per run; omit when none)
+
+- Who ran it: [person or agent] | When: YYYY-MM-DD | Commit/branch: [sha or branch]
+  - Command: `[command or procedure]`
+  - Summary: [observed result]
+  - Raw output: [path, CI link, or ticket — not pasted inline]
