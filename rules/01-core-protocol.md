@@ -22,6 +22,7 @@ alwaysApply: true
 - [ ] Isolated branch created from `develop`
 - [ ] `docs/memory/active_tasks/<sequential-number>-<descriptive-name>.md` with frontmatter, scope, and acceptance criteria
 - [ ] Tests executed and passing
+- [ ] Task `## Execution notes` (or `No deviations from plan.`) and `## Execution evidence` filled before `REVIEW`
 - [ ] `docs/memory/ledger/progress.md` updated (Current state + delivery log entry)
 - [ ] `docs/memory/ledger/learnings.md` updated (if incident, root cause, or rework recorded)
 - [ ] Task file in `docs/memory/completed_tasks/` with `status: DONE`
