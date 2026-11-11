@@ -39,3 +39,26 @@ def test_readme_documents_vendor_install() -> None:
     text = _read("README.md")
     assert "Optional: Vendor install" in text
     assert "spine.py vendor" in text
+
+
+def test_vendor_copy_skips_root_spine_self_link_and_tool_caches(tmp_path: Path) -> None:
+    import sys
+
+    sys.path.insert(0, str(Path("scripts").resolve()))
+    from spine_cli.log import Log
+    from spine_cli.vendor_copy import copy_vendor_tree
+
+    source = tmp_path / "spine"
+    (source / "rules").mkdir(parents=True)
+    (source / "rules" / "01.md").write_text("rule", encoding="utf-8")
+    (source / "docs").mkdir()
+    (source / ".pytest_cache").mkdir()
+    (source / ".spine").symlink_to(tmp_path / "elsewhere")
+    dest = tmp_path / "project" / ".spine"
+
+    copy_vendor_tree(source, dest, Log(dry_run=False), delete=False)
+
+    assert (dest / "rules" / "01.md").is_file()
+    assert not (dest / ".spine").exists() and not (dest / ".spine").is_symlink()
+    assert not (dest / "docs").exists()
+    assert not (dest / ".pytest_cache").exists()

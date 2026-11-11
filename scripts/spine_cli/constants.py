@@ -90,6 +90,8 @@ COPY_SKIP_ANYWHERE: frozenset[str] = frozenset(
         "node_modules",
         ".venv",
         "__pycache__",
+        ".pytest_cache",
+        ".ruff_cache",
         ".spine-vendor",
     }
 )
@@ -97,8 +99,9 @@ COPY_SKIP_ANYWHERE: frozenset[str] = frozenset(
 # Skipped only at the root of an rsync-mode copy (templates/docs must remain).
 RSYNC_SKIP_ROOT: frozenset[str] = frozenset({"docs", ".spine"})
 
-# Vendor copy also drops root ``docs/`` (consumer memory bank is not Spine).
-VENDOR_SKIP_ROOT: frozenset[str] = frozenset({"docs"})
+# Vendor copy also drops root ``docs/`` (consumer memory bank is not Spine) and the
+# root ``.spine`` self-link, which is an absolute symlink only valid on the dev machine.
+VENDOR_SKIP_ROOT: frozenset[str] = frozenset({"docs", ".spine"})
 
 CANONICAL_SOURCE_FILE = ".spine-canonical-source"
 VENDOR_MARKER = ".spine-vendor"
