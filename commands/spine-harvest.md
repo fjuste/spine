@@ -68,7 +68,7 @@ Act as a Tech Lead and Knowledge Manager.
    - **Tags** required on new entries; copy from task frontmatter, refine if needed.
    - Mirror one-line pointer in task Delivery summary body.
 
-    **4c. Unchanged when applicable** (apply the routing decided in step 3.7)**:**
+    **4c. Unchanged when applicable (apply the routing decided in step 3.7):**
     - `docs/memory/global/decision-log.md` — architectural decisions only.
     - `docs/memory/global/domain-glossary.md` — canonical terms promoted during discovery or delivery.
     - `docs/memory/global/system-patterns.md` — new patterns established.
@@ -93,7 +93,7 @@ Act as a Tech Lead and Knowledge Manager.
     - Run `uv run --extra docs mkdocs build -f docs/mkdocs/mkdocs.yml --strict` (fallback: `.venv/bin/mkdocs` or PATH `mkdocs`) to verify the documentation builds cleanly.
     - If the task does not warrant documentation updates, note the decision in the delivery summary.
 
- 6. **Active Task Closure:**
+5. **Active Task Closure:**
    - Update frontmatter: `status: DONE`, `completed_at: YYYY-MM-DD`, `updated_at: YYYY-MM-DD`.
    - Set `related_learnings:` when linked to `LEARN-NNN` entries.
    - Add final **Delivery summary** block in task body; cite the evidence from `## Execution evidence` (tests and manual runs) and list where each execution note was promoted.
@@ -106,9 +106,9 @@ Act as a Tech Lead and Knowledge Manager.
    - **`git mv`** `docs/memory/active_tasks/NNN-name.md` → `docs/memory/completed_tasks/NNN-name.md` (create dir if missing).
    - Include the move in the final commit before merge to `develop`.
 
- 7. **Git Consolidation (GitFlow required):**
+6. **Git Consolidation (GitFlow required):**
    - Make the final commit with a semantic message.
    - Merge only a valid `feature/<descriptive-name>` branch into `develop`.
    - Remove the local feature branch.
 
- 8. **Summary:** Present a concise summary of what was learned and improved in the project. When step 3.5 ran (or was skipped/failed), include Graphify refresh status and whether `graphify query` was used during delivery exploration. When step 3.6 ran (or was skipped/failed), include MkDocs build status. Report the execution record outcome from step 3.7: how many notes were promoted and where, or that a legacy task had no `## Execution notes` / `## Execution evidence` (missing). When step 4d ran, report whether the Idea Bank row was updated and to which Status (`Done` / `In Progress` / missing), and note that `/spine-roadmap --review` was suggested for ICE re-score.
+7. **Summary:** Present a concise summary of what was learned and improved in the project. When step 3.5 ran (or was skipped/failed), include Graphify refresh status and whether `graphify query` was used during delivery exploration. When step 3.6 ran (or was skipped/failed), include MkDocs build status. Report the execution record outcome from step 3.7: how many notes were promoted and where, or that a legacy task had no `## Execution notes` / `## Execution evidence` (missing). When step 4d ran, report whether the Idea Bank row was updated and to which Status (`Done` / `In Progress` / missing), and note that `/spine-roadmap --review` was suggested for ICE re-score.
