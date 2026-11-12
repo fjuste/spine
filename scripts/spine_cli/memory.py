@@ -8,6 +8,7 @@ at Core SYNC. Standard library only, Python 3.9+.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 # File kinds -------------------------------------------------------------------
@@ -22,6 +23,29 @@ LOG_FILES = frozenset({"global/decision-log.md", "ledger/progress.md", "ledger/l
 EXTENDED_FILES = frozenset({"ledger/roadmap.md"})
 NARRATIVE_DIRS = ("global", "ledger")
 TASK_FILE_RE = re.compile(r"^\d{3}-.+\.md$")
+SCANNED_DIRS = ("global", "ledger", "active_tasks")
+COMPLETED_DIR = "completed_tasks"
+CORE_NARRATIVE_ORDER = (
+    "global/project-brief.md",
+    "global/product-context.md",
+    "global/domain-glossary.md",
+    "global/system-patterns.md",
+    "global/tech-context.md",
+)
+
+# Digest limits ------------------------------------------------------------------
+NEWEST_LOG_TITLES = 5
+OUTLINE_MAX_CHARS = 600
+SUMMARY_MAX_CHARS = 800
+LOG_TITLE_MAX_CHARS = 160
+TASK_LINE_MAX_CHARS = 320
+DEFAULT_SETUP_BUDGET_CHARS = 60_000
+SUMMARY_MAX_LINES = 5
+ELLIPSIS = "…"
+OPEN_STATUS_RANK = {"IN_PROGRESS": 0, "REVIEW": 1}
+OTHER_STATUS_RANK = 2
+CLOSED_STATUS = "DONE"
+UNKNOWN_STATUS = "UNKNOWN"
 
 _FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---[ \t]*(?:\n|\Z)", re.DOTALL)
 _KEY_RE = re.compile(r"^([A-Za-z_][\w-]*):[ \t]*(.*?)[ \t]*$")
@@ -128,3 +152,399 @@ def classify(relative: str) -> str:
     if folder in NARRATIVE_DIRS:
         return NARRATIVE
     return IGNORED
+
+
+# =============================================================================
+# Memory bank scan
+# =============================================================================
+
+
+@dataclass(frozen=True)
+class MemoryFile:
+    """One Markdown file of the memory bank.
+
+    Args:
+        relative: POSIX path relative to ``docs/memory/``.
+        kind: Result of :func:`classify`.
+        text: File content (LF newlines, BOM stripped).
+    """
+
+    relative: str
+    kind: str
+    text: str
+
+    @property
+    def chars(self) -> int:
+        """Character count of the file content."""
+        return len(self.text)
+
+
+def collect_files(memory_dir: Path) -> list[MemoryFile]:
+    """Read every classified Markdown file under the scanned memory folders.
+
+    Args:
+        memory_dir: The ``docs/memory/`` directory.
+
+    Returns:
+        Files sorted by relative path; ignored files are left out.
+    """
+    files: list[MemoryFile] = []
+    for folder in SCANNED_DIRS:
+        directory = memory_dir / folder
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.iterdir()):
+            relative = f"{folder}/{path.name}"
+            kind = classify(relative)
+            if kind == IGNORED or not path.is_file():
+                continue
+            files.append(MemoryFile(relative, kind, read_text(path)))
+    return files
+
+
+def _cap(text: str, limit: int) -> str:
+    text = text.strip()
+    if len(text) <= limit:
+        return text
+    return text[: limit - len(ELLIPSIS)].rstrip() + ELLIPSIS
+
+
+def _section(text: str, heading_re: str) -> str | None:
+    """Return the body of the first ``## `` section whose heading matches."""
+    match = re.search(rf"^##[ \t]+{heading_re}[^\n]*$", text, flags=re.MULTILINE | re.IGNORECASE)
+    if not match:
+        return None
+    rest = text[match.end():]
+    end = re.search(r"^##[ \t]", rest, flags=re.MULTILINE)
+    return rest[: end.start()] if end else rest
+
+
+# =============================================================================
+# Open tasks
+# =============================================================================
+
+
+@dataclass(frozen=True)
+class TaskLine:
+    """Digest view of one open task (frontmatter only)."""
+
+    task_id: str
+    status: str
+    title: str
+    goal: str
+
+    def render(self) -> str:
+        """Return ``NNN | STATUS | title — goal`` capped to one line."""
+        head = f"{self.task_id} | {self.status} | {self.title}"
+        line = f"{head} — {self.goal}" if self.goal else head
+        return _cap(" ".join(line.split()), TASK_LINE_MAX_CHARS)
+
+    def sort_key(self) -> tuple[int, int, str]:
+        """IN_PROGRESS, then REVIEW, then the rest; each group by task id."""
+        rank = OPEN_STATUS_RANK.get(self.status, OTHER_STATUS_RANK)
+        number = int(self.task_id) if self.task_id.isdigit() else 0
+        return (rank, number, self.task_id)
+
+
+def open_tasks(files: list[MemoryFile]) -> list[TaskLine]:
+    """Build task lines for open tasks, ordered for the digest.
+
+    Args:
+        files: Scanned memory files.
+
+    Returns:
+        Task lines without ``DONE`` tasks, IN_PROGRESS/REVIEW first, then by id.
+    """
+    tasks: list[TaskLine] = []
+    for item in files:
+        if item.kind != TASK:
+            continue
+        fields = read_frontmatter(item.text)
+        status = fields.get("status", "").strip().upper() or UNKNOWN_STATUS
+        if status == CLOSED_STATUS:
+            continue
+        stem = item.relative.rsplit("/", 1)[1][: -len(".md")]
+        tasks.append(
+            TaskLine(
+                task_id=fields.get("task_id", "").strip() or stem[:3],
+                status=status,
+                title=fields.get("title", "").strip() or stem,
+                goal=fields.get("goal", "").strip(),
+            )
+        )
+    return sorted(tasks, key=TaskLine.sort_key)
+
+
+# =============================================================================
+# Narrative files
+# =============================================================================
+
+_PLACEHOLDER_SUMMARY_RE = re.compile(r"^\[fill in", re.IGNORECASE)
+_H2_RE = re.compile(r"^##[ \t]+(.+?)[ \t#]*$", re.MULTILINE)
+
+
+def narrative_summary(text: str) -> str | None:
+    """Return the agent-written ``summary:`` or None when missing or a placeholder.
+
+    Args:
+        text: Narrative file content.
+
+    Returns:
+        The summary text, or None.
+    """
+    summary = read_frontmatter(text).get("summary", "").strip()
+    if not summary or _PLACEHOLDER_SUMMARY_RE.match(summary):
+        return None
+    return summary
+
+
+def outline(text: str) -> str:
+    """Return the file's ``##`` headings joined and capped at ``OUTLINE_MAX_CHARS``.
+
+    Args:
+        text: Narrative file content.
+
+    Returns:
+        ``A; B; C`` or ``(no ## headings)``.
+    """
+    headings = _H2_RE.findall(strip_frontmatter(text))
+    if not headings:
+        return "(no ## headings)"
+    return _cap("; ".join(headings), OUTLINE_MAX_CHARS)
+
+
+def _narrative_order(item: MemoryFile) -> tuple[int, str]:
+    if item.relative in CORE_NARRATIVE_ORDER:
+        return (CORE_NARRATIVE_ORDER.index(item.relative), item.relative)
+    return (len(CORE_NARRATIVE_ORDER), item.relative)
+
+
+def _render_narrative(item: MemoryFile) -> list[str]:
+    summary = narrative_summary(item.text)
+    if summary is None:
+        return [
+            f"### {item.relative} ({item.chars:,} chars) — summary missing",
+            f"Outline: {outline(item.text)}",
+        ]
+    return [f"### {item.relative} ({item.chars:,} chars)", _cap(summary, SUMMARY_MAX_CHARS)]
+
+
+# =============================================================================
+# Log files
+# =============================================================================
+
+_PLACEHOLDER_ENTRY_RE = re.compile(r"\[DATE\]|\[TITLE\]|YYYY-MM-DD")
+_ISO_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+_LEARN_ID_RE = re.compile(r"LEARN-(\d+)")
+_H3_RE = re.compile(r"^###[ \t]+(.+?)[ \t]*$", re.MULTILINE)
+_LEARN_HEADING_RE = re.compile(r"^#{2,3}[ \t]+(LEARN-\d+.*?)[ \t]*$", re.MULTILINE)
+_TABLE_SEPARATOR_RE = re.compile(r"^\|[\s:|-]+\|?$")
+
+
+def _table_rows(text: str) -> list[str]:
+    """Return ``cell1 — cell2`` for each data row of the first Markdown table."""
+    rows: list[str] = []
+    in_table = False
+    header_seen = False
+    for line in text.split("\n"):
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            if in_table:
+                break
+            continue
+        in_table = True
+        if not header_seen:
+            header_seen = True
+            continue
+        if _TABLE_SEPARATOR_RE.match(stripped):
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|") if cell.strip()]
+        rows.append(" — ".join(cells[:2]))
+    return rows
+
+
+def _order_key(title: str) -> str:
+    date = _ISO_DATE_RE.search(title)
+    if date:
+        return date.group(0)
+    learn = _LEARN_ID_RE.search(title)
+    return f"{int(learn.group(1)):09d}" if learn else ""
+
+
+def newest_first(titles: list[str]) -> list[str]:
+    """Order log entry titles newest first.
+
+    When every title carries a date (or a ``LEARN-NNN`` id), entries are sorted
+    by it; ties keep the file's own direction. Otherwise the file is assumed to
+    be newest first already.
+
+    Args:
+        titles: Entry titles in file order.
+
+    Returns:
+        Titles, newest first.
+    """
+    keys = [_order_key(title) for title in titles]
+    if len(titles) < 2 or not all(keys):
+        return list(titles)
+    chronological = keys[0] < keys[-1]
+    order = sorted(
+        range(len(titles)),
+        key=lambda index: (keys[index], index if chronological else -index),
+        reverse=True,
+    )
+    return [titles[index] for index in order]
+
+
+def log_entries(relative: str, text: str) -> list[str]:
+    """Extract log entry titles from a log file, newest first.
+
+    Args:
+        relative: Path relative to ``docs/memory/`` (selects the format).
+        text: File content.
+
+    Returns:
+        Entry titles, placeholders removed, newest first.
+    """
+    if relative == "ledger/progress.md":
+        titles = _H3_RE.findall(_section(text, r"Delivery log") or "")
+    elif relative == "ledger/learnings.md":
+        titles = _LEARN_HEADING_RE.findall(text)
+    else:
+        titles = _H3_RE.findall(text) or _table_rows(text)
+    titles = [title for title in titles if not _PLACEHOLDER_ENTRY_RE.search(title)]
+    return newest_first(titles)
+
+
+def _render_log(item: MemoryFile) -> list[str]:
+    entries = log_entries(item.relative, item.text)
+    label = f"{item.relative} delivery log" if item.relative == "ledger/progress.md" else item.relative
+    noun = "entry" if len(entries) == 1 else "entries"
+    if not entries:
+        return [f"- {label}: 0 entries"]
+    lines = [f"- {label}: {len(entries)} {noun}; newest:"]
+    lines.extend(f"  - {_cap(title, LOG_TITLE_MAX_CHARS)}" for title in entries[:NEWEST_LOG_TITLES])
+    return lines
+
+
+# =============================================================================
+# SETUP selection
+# =============================================================================
+
+
+@dataclass(frozen=True)
+class SetupCandidate:
+    """A narrative file that still needs an agent-written ``summary:``."""
+
+    relative: str
+    chars: int
+
+
+def select_setup(candidates: list[SetupCandidate], budget: int) -> tuple[list[SetupCandidate], int]:
+    """Pick files to summarize this session, largest first, within ``budget``.
+
+    Files that would push the cumulative size over ``budget`` are skipped and
+    smaller ones are still tried. When none fits, the largest file is selected
+    alone so the setup always makes progress.
+
+    Args:
+        candidates: Narrative files without a summary.
+        budget: Maximum cumulative source chars to summarize this session.
+
+    Returns:
+        Selected files (largest first) and the number of deferred files.
+    """
+    ordered = sorted(candidates, key=lambda item: (-item.chars, item.relative))
+    selected: list[SetupCandidate] = []
+    total = 0
+    for item in ordered:
+        if total + item.chars <= budget:
+            selected.append(item)
+            total += item.chars
+    if not selected and ordered:
+        selected = [ordered[0]]
+    return selected, len(ordered) - len(selected)
+
+
+def _render_setup(selected: list[SetupCandidate], deferred: int, budget: int) -> list[str]:
+    missing = len(selected) + deferred
+    lines = [
+        f"SETUP: {missing} narrative file(s) have no `summary:` frontmatter field.",
+        f"Before the task, write `summary:` (at most {SUMMARY_MAX_LINES} lines: what the file holds and "
+        "when to open it) in the YAML frontmatter of these files only:",
+    ]
+    lines.extend(f"- {MEMORY_DIR.as_posix()}/{item.relative} ({item.chars:,} chars)" for item in selected)
+    if deferred:
+        lines.append(
+            f"Deferred to later sessions: {deferred} file(s) (session budget {budget:,} chars). "
+            "Do not summarize them now."
+        )
+    return lines
+
+
+# =============================================================================
+# Digest
+# =============================================================================
+
+
+def build_digest(root: Path, budget: int = DEFAULT_SETUP_BUDGET_CHARS) -> str:
+    """Render the memory digest for a project.
+
+    Args:
+        root: Project root that contains ``docs/memory/``.
+        budget: SETUP source budget in chars.
+
+    Returns:
+        The digest text (ends with a newline).
+    """
+    memory_dir = root / MEMORY_DIR
+    if not memory_dir.is_dir():
+        return f"No memory bank at {MEMORY_DIR.as_posix()}/ — nothing to sync.\n"
+    files = collect_files(memory_dir)
+    by_relative = {item.relative: item for item in files}
+
+    lines = [
+        "# Memory digest",
+        "",
+        "Generated by `spine.py memory digest`. Open a full file only when the task needs it.",
+        "",
+        "## Current state",
+    ]
+    progress = by_relative.get("ledger/progress.md")
+    state = _section(progress.text, r"Current state") if progress else None
+    lines.append(state.strip() if state and state.strip() else "(progress.md has no `## Current state` section)")
+
+    lines += ["", "## Open tasks"]
+    tasks = open_tasks(files)
+    lines += [task.render() for task in tasks] or ["(none)"]
+
+    lines += ["", "## Narrative files"]
+    narratives = sorted((item for item in files if item.kind == NARRATIVE), key=_narrative_order)
+    for item in narratives:
+        lines += _render_narrative(item) + [""]
+    if not narratives:
+        lines += ["(none)", ""]
+
+    lines.append("## Logs")
+    logs = [item for item in files if item.kind == LOG]
+    for item in logs:
+        lines += _render_log(item)
+    if not logs:
+        lines.append("(none)")
+
+    lines += ["", "## Extended tier (read when planning, harvesting or when scope is ambiguous)"]
+    for item in files:
+        if item.kind == EXTENDED:
+            lines.append(f"- {item.relative} ({item.chars:,} chars)")
+    completed = memory_dir / COMPLETED_DIR
+    if completed.is_dir():
+        count = sum(1 for path in completed.glob("*.md") if TASK_FILE_RE.match(path.name))
+        lines.append(f"- {COMPLETED_DIR}/: {count} task file(s), on demand")
+
+    candidates = [
+        SetupCandidate(item.relative, item.chars) for item in narratives if narrative_summary(item.text) is None
+    ]
+    if candidates:
+        selected, deferred = select_setup(candidates, budget)
+        lines += [""] + _render_setup(selected, deferred, budget)
+    return "\n".join(lines) + "\n"
