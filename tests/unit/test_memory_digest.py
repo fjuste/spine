@@ -411,3 +411,64 @@ def test_cli_memory_missing_project_root_exits_one(tmp_path: Path) -> None:
     import spine
 
     assert spine.main(["memory", "digest", "--project-root", str(tmp_path / "nope")]) == 1
+
+
+# =============================================================================
+# Task 5: templates, rules, bootstrap
+# =============================================================================
+
+NARRATIVE_TEMPLATES = (
+    "project-brief",
+    "product-context",
+    "domain-glossary",
+    "system-patterns",
+    "tech-context",
+)
+
+
+@pytest.mark.parametrize("name", NARRATIVE_TEMPLATES)
+def test_narrative_templates_have_summary_frontmatter(name: str) -> None:
+    path = REPO_ROOT / "templates" / "docs" / "memory" / "global" / f"{name}.md"
+    text = memory.read_text(path)
+    assert text.startswith("---\n")
+    assert "summary" in memory.read_frontmatter(text)
+    assert memory.narrative_summary(text) is None, "seeded placeholder must trigger SETUP"
+
+
+def test_decision_log_template_has_no_summary_frontmatter() -> None:
+    text = memory.read_text(REPO_ROOT / "templates" / "docs" / "memory" / "global" / "decision-log.md")
+    assert memory.read_frontmatter(text) == {}
+
+
+def _core_tier(text: str) -> str:
+    return text.split("### Core (every session)", 1)[1].split("### Extended", 1)[0]
+
+
+def test_memory_bank_rule_core_tier_is_digest_first() -> None:
+    core = _core_tier(memory.read_text(REPO_ROOT / "rules" / "02-memory-bank.md"))
+    assert "python3 .spine/scripts/spine.py memory digest" in core
+    assert core.index("memory digest") < core.index("global/project-brief.md")
+    assert "SETUP:" in core
+    assert "python3 .spine/scripts/spine.py update" in core
+    assert "fallback" in core.lower()
+    assert "summary:" in core
+
+
+def test_memory_bank_rule_has_summary_maintenance_rule() -> None:
+    text = memory.read_text(REPO_ROOT / "rules" / "02-memory-bank.md")
+    assert "## Narrative summaries" in text
+    section = text.split("## Narrative summaries", 1)[1].split("\n## ", 1)[0]
+    assert "summary:" in section and "5 lines" in section
+    assert "decision-log.md" in section
+
+
+def test_core_protocol_sync_step_points_to_digest() -> None:
+    text = memory.read_text(REPO_ROOT / "rules" / "01-core-protocol.md")
+    step = text.split("1. **Sync & clarify:**", 1)[1].split("\n2. ", 1)[0]
+    assert "memory digest" in step
+
+
+def test_bootstrap_command_fills_summary_frontmatter() -> None:
+    text = memory.read_text(REPO_ROOT / "commands" / "spine-bootstrap.md")
+    assert "summary:" in text
+    assert "memory digest" in text

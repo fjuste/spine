@@ -93,6 +93,21 @@ If a file does not exist, create it only if it is part of the current task flow.
 
 ### Core (every session)
 
+**Digest first.** From the project root run:
+
+```bash
+python3 .spine/scripts/spine.py memory digest
+```
+
+It prints `progress.md` **Current state**, one line per open task (`NNN | STATUS | title — goal`), the `summary:` of each narrative file (or a capped outline marked `summary missing`), entry counts and newest titles of the log files, and Extended-tier pointers. The digest **is** the Core SYNC:
+
+1. Read the digest. Do not open full memory files by default.
+2. Open a full file only when the task needs it: the task file you execute or plan against, a narrative file whose area you change, a `decision-log.md` or `learnings.md` entry whose title the digest lists.
+3. **SETUP:** if the digest ends with a `SETUP:` block, first write `summary:` frontmatter for the listed files only (§ Narrative summaries), then continue the task. Files the block defers wait for later sessions.
+4. When you edit a narrative file, update its `summary:` in the same change.
+
+**Fallback (script unavailable):** if the command fails (older `.spine` without `memory`, no Python), read the legacy Core list below and suggest `python3 .spine/scripts/spine.py update` to the user:
+
 1. `global/project-brief.md` (scope)
 2. `global/product-context.md` (product context)
 3. `global/domain-glossary.md` (domain language — create lazily during `@grill-me` or `@spine-bootstrap` if missing)
@@ -101,6 +116,8 @@ If a file does not exist, create it only if it is part of the current task flow.
 6. `global/decision-log.md` (previous decisions)
 7. `ledger/progress.md` — **Current state** section only
 8. `active_tasks/` — open tasks only (files matching `^\d{3}-`; skip `_task-template.md`)
+
+Measure the load on any project with `python3 .spine/scripts/spine.py memory stats` (per-file chars, legacy Core total, digest size).
 
 ### Extended (planning, harvest, ambiguous scope)
 
@@ -117,6 +134,26 @@ After SYNC, before any code change, state:
 - Key assumptions about the task derived from the memory bank.
 - Any ambiguities, gaps, or conflicts found in the context — present them; do not pick silently.
 - The simplest approach that satisfies the requirements. If a simpler alternative exists, name it and push back.
+
+## Narrative summaries
+
+Narrative files carry an agent-written `summary:` in YAML frontmatter; the digest shows it instead of the file.
+
+- **Narrative:** `global/*.md` except `decision-log.md`, plus any `ledger/*.md` other than `progress.md`, `learnings.md` and `roadmap.md`.
+- **Log files** (`decision-log.md`, `progress.md`, `learnings.md`) need no summary: the digest counts entries and lists the newest titles. `roadmap.md` stays Extended tier. Tasks use their existing frontmatter (`task_id`, `status`, `title`, `goal`).
+
+```yaml
+---
+summary: >-
+  Stack, layers and request flow; Project-Specific Alterations for payment
+  and auth. Open before changing architecture or integrations.
+---
+```
+
+- At most 5 lines: what the file holds and when to open it. Leave out facts that change every task.
+- Whoever edits a narrative file (bootstrap, harvest, any agent edit) updates its `summary:` in the same change.
+- A value starting with `[Fill in` (seeded template placeholder) counts as missing.
+- Write missing summaries only when a digest `SETUP:` block lists them; the block paces the one-time setup by a source budget per session.
 
 ## Template: active_tasks/_task-template.md
 

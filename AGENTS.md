@@ -283,9 +283,11 @@ docs/memory/
 
 | Tier | When | Read |
 |------|------|------|
-| Core | Every session | global 1–6, progress Current state, open `active_tasks/` |
+| Core | Every session | `spine.py memory digest` (fallback: global 1–6, progress Current state, open `active_tasks/`) |
 | Extended | Plan, harvest, ambiguous scope | `roadmap.md`, full delivery log |
 | On demand | Debugging, recurrence | `learnings.md`, `completed_tasks/` |
+
+**Memory digest** (Core SYNC): `python3 .spine/scripts/spine.py memory digest` prints a compact view of `docs/memory/` — Current state, one line per open task, each narrative file's `summary:` frontmatter (outline when missing), log entry counts with the newest 5 titles, Extended-tier pointers. Output goes to stdout only; nothing is written. When summaries are missing, a closing `SETUP:` block asks the agent to write them for a few files per session (largest first, `--budget` source chars, default 60,000), so existing projects set up over their next sessions without a migration step. `python3 .spine/scripts/spine.py memory stats` prints chars per memory file, the legacy Core SYNC total and the digest size. Both accept `--project-root=PATH`.
 
 **Harvest outcomes:** delivery log append, `learnings.md` when applicable, frontmatter `status: DONE`, `git mv` to `completed_tasks/`. When `roadmap_idea` is set, update Idea Bank Status (`Done` / still `In Progress`) and suggest `/spine-roadmap --review` for ICE re-score.
 

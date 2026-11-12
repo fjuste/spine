@@ -526,9 +526,11 @@ Validate a task file manually: `python3 .spine/scripts/spine_validate.py task do
 
 | Tier | When | Read |
 |------|------|------|
-| Core | Every session | global 1–6, progress Current state, open `active_tasks/` |
+| Core | Every session | `spine.py memory digest` (fallback: global 1–6, progress Current state, open `active_tasks/`) |
 | Extended | Plan, harvest, ambiguous scope | `roadmap.md`, full delivery log |
 | On demand | Debugging, recurrence | `learnings.md`, `completed_tasks/` |
+
+**Memory digest** (Core SYNC): `python3 .spine/scripts/spine.py memory digest` prints a compact view of `docs/memory/` — Current state, one line per open task, each narrative file's `summary:` frontmatter (outline when missing), log entry counts with the newest 5 titles, Extended-tier pointers. Output goes to stdout only; nothing is written. When summaries are missing, a closing `SETUP:` block asks the agent to write them for a few files per session (largest first, `--budget` source chars, default 60,000), so existing projects set up over their next sessions without a migration step. `python3 .spine/scripts/spine.py memory stats` prints chars per memory file, the legacy Core SYNC total and the digest size. Both accept `--project-root=PATH`.
 
 **Harvest** (`/spine-harvest`): route `## Execution notes` to learnings, decision log, glossary, patterns, Known Risks, or Known Opportunities; append delivery log entry (with **Tags**, citing `## Execution evidence`), update `learnings.md` when applicable, set frontmatter `status: DONE`, `git mv` task to `completed_tasks/`. When the task has `roadmap_idea`, update that Idea Bank row to `Done` (or keep `In Progress` if other open linked tasks remain); suggest `/spine-roadmap --review` for ICE re-score.
 
