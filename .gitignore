@@ -8,6 +8,7 @@ CLAUDE.md
 .opencode/
 .agents/
 /opencode.json
+.spine
 
 # Python
 __pycache__/
