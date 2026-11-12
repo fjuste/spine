@@ -140,6 +140,15 @@ _Applies to consumer application code._
 - Use `docs/memory/` to track Spine's own development progress
 - `templates/opencode.json` is the canonical template for consumer projects
 
+**Dogfooding: install Spine into this repo.** This repository is also a Spine consumer (its local `docs/memory/` tracks Spine's own work). Wire it so sessions load the three rules, the `/spine-*` commands and the core skills:
+
+```bash
+python3 scripts/spine.py install --core --project-root=.
+python3 scripts/spine.py install --add-skill=grill-me --project-root=.   # optional
+```
+
+The installer detects the self-install (project root is the Spine clone) and keeps `.spine`, `.agents/`, `.cursor/`, `.claude/` and `.opencode/` ignored, so the framework repo never versions its own wiring. The wired rules and commands are links into the working tree: agents follow whatever branch is checked out, including unfinished rule edits on a feature branch.
+
 ### Consumer installation (v1.3 — project-only)
 
 Spine installs **per project only**. There is no global installer (`--global` and `--project` flags were removed in v1.3.0).

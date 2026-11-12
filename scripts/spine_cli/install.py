@@ -368,7 +368,9 @@ def run_install(options: Options) -> int:
             project,
             log,
         )
-        adjust_install_gitignore(project, options.copy_mode, log)
+        adjust_install_gitignore(
+            project, options.copy_mode, log, self_install=same_path(project, spine)
+        )
 
         _maybe_prompt_graphify(project, options)
         if options.with_graphify or options.graphify_init:
