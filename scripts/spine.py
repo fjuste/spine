@@ -7,6 +7,8 @@ Usage (from a consumer project, or pass ``--project-root``)::
     python3 /path/to/spine/scripts/spine.py vendor --project-root=.
     python3 .spine/scripts/spine.py update
     python3 .spine/scripts/spine.py uninstall
+    python3 .spine/scripts/spine.py memory digest
+    python3 .spine/scripts/spine.py memory stats
 
 ``update`` pulls the Spine clone and then reconciles wiring.
 ``install --update`` only reconciles wiring; it does not run ``git pull``.
@@ -27,6 +29,7 @@ from typing import NoReturn
 
 from spine_cli.constants import DEFAULT_TARGETS
 from spine_cli.install import run_install, run_vendor
+from spine_cli.memory import DEFAULT_SETUP_BUDGET_CHARS, run_memory
 from spine_cli.options import Options
 from spine_cli.uninstall import run_uninstall
 from spine_cli.update import run_update
@@ -105,6 +108,10 @@ def _cmd_uninstall(args: argparse.Namespace) -> int:
     return run_uninstall(_options_from(args))
 
 
+def _cmd_memory(args: argparse.Namespace) -> int:
+    return run_memory(args.action, args.project_root, args.budget)
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the spine.py argument parser.
 
@@ -163,6 +170,17 @@ def build_parser() -> argparse.ArgumentParser:
     uninstall = sub.add_parser("uninstall", help="Remove Spine artefacts for the detected mode")
     _add_project_flags(uninstall)
     uninstall.set_defaults(handler=_cmd_uninstall)
+
+    memory = sub.add_parser("memory", help="Memory bank digest and stats")
+    memory.add_argument("action", choices=("stats", "digest"), help="stats: char counts; digest: Core SYNC view")
+    memory.add_argument("--project-root", default=None, help="Consumer project root")
+    memory.add_argument(
+        "--budget",
+        type=int,
+        default=DEFAULT_SETUP_BUDGET_CHARS,
+        help="Source chars of missing summaries to request per session",
+    )
+    memory.set_defaults(handler=_cmd_memory)
     return parser
 
 

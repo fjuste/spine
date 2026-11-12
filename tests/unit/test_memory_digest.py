@@ -349,3 +349,65 @@ def test_setup_lists_largest_file_alone_when_it_exceeds_budget(tmp_path: Path) -
 def test_no_setup_block_when_all_summaries_present(bank: Path) -> None:
     _write(bank, "global/tech-context.md", "---\nsummary: Dev setup and risks.\n---\n# Tech\n")
     assert "SETUP:" not in memory.build_digest(bank)
+
+
+# =============================================================================
+# Task 4: stats and CLI wiring
+# =============================================================================
+
+
+def test_stats_reports_legacy_core_total_and_digest_size(tmp_path: Path) -> None:
+    brief = _write(tmp_path, "global/project-brief.md", "b" * 1_000)
+    log = _write(tmp_path, "global/decision-log.md", "d" * 2_000)
+    progress = _write(tmp_path, "ledger/progress.md", "## Current state\n- x\n" + "p" * 3_000)
+    _write(tmp_path, "ledger/learnings.md", "l" * 7_000)
+    _write(tmp_path, "ledger/roadmap.md", "r" * 9_000)
+    open_task = _write(tmp_path, "active_tasks/001-open.md", _task("001", "PLANNING", "Open", "g", "t" * 4_000))
+    _write(tmp_path, "active_tasks/002-done.md", _task("002", "DONE", "Done", "g", "t" * 5_000))
+    _write(tmp_path, "active_tasks/_task-template.md", "x" * 6_000)
+
+    stats = memory.collect_stats(tmp_path)
+    expected = sum(len(path.read_text(encoding="utf-8")) for path in (brief, log, progress, open_task))
+    assert stats.legacy_core_chars == expected
+    assert stats.digest_chars == len(memory.build_digest(tmp_path))
+
+    report = memory.render_stats(stats)
+    assert "global/decision-log.md" in report and "ledger/roadmap.md" in report
+    assert f"{expected:,}" in report
+    assert f"{stats.digest_chars:,}" in report
+    assert "_task-template.md" not in report
+
+
+def test_cli_memory_digest_prints_digest_and_exits_zero(
+    bank: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    import spine
+
+    assert spine.main(["memory", "digest", "--project-root", str(bank)]) == 0
+    out = capsys.readouterr().out
+    assert out.startswith("# Memory digest")
+    assert "009 | IN_PROGRESS | Ninth — Do nine" in out
+
+
+def test_cli_memory_stats_exits_zero(bank: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    import spine
+
+    assert spine.main(["memory", "stats", f"--project-root={bank}", "--budget", "1000"]) == 0
+    assert "Legacy Core SYNC" in capsys.readouterr().out
+
+
+def test_cli_memory_budget_changes_setup_selection(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    import spine
+
+    _write(tmp_path, "global/project-brief.md", _narrative(3_000))
+    _write(tmp_path, "global/tech-context.md", _narrative(2_000))
+    assert spine.main(["memory", "digest", "--project-root", str(tmp_path), "--budget", "3500"]) == 0
+    assert "Deferred to later sessions: 1 file" in capsys.readouterr().out
+
+
+def test_cli_memory_missing_project_root_exits_one(tmp_path: Path) -> None:
+    import spine
+
+    assert spine.main(["memory", "digest", "--project-root", str(tmp_path / "nope")]) == 1

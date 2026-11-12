@@ -8,8 +8,12 @@ at Core SYNC. Standard library only, Python 3.9+.
 from __future__ import annotations
 
 import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
+
+from spine_cli.log import SpineExit
+from spine_cli.paths import resolve_project_root
 
 # File kinds -------------------------------------------------------------------
 NARRATIVE = "narrative"
@@ -548,3 +552,118 @@ def build_digest(root: Path, budget: int = DEFAULT_SETUP_BUDGET_CHARS) -> str:
         selected, deferred = select_setup(candidates, budget)
         lines += [""] + _render_setup(selected, deferred, budget)
     return "\n".join(lines) + "\n"
+
+
+# =============================================================================
+# Stats
+# =============================================================================
+
+CHARS_PER_TOKEN = 4
+PERCENT = 100
+
+
+@dataclass(frozen=True)
+class MemoryStats:
+    """Char counts that make the digest gain measurable.
+
+    Args:
+        files: ``(relative, kind, chars)`` for each scanned memory file.
+        legacy_core_chars: Global files + whole ``progress.md`` + open task files.
+        digest_chars: Size of :func:`build_digest` output.
+        completed_files: Number of ``completed_tasks/`` task files.
+        completed_chars: Total chars of ``completed_tasks/`` task files.
+    """
+
+    files: list[tuple[str, str, int]]
+    legacy_core_chars: int
+    digest_chars: int
+    completed_files: int
+    completed_chars: int
+
+
+def _in_legacy_core(item: MemoryFile) -> bool:
+    if item.relative.startswith("global/") or item.relative == "ledger/progress.md":
+        return True
+    if item.kind != TASK:
+        return False
+    return read_frontmatter(item.text).get("status", "").strip().upper() != CLOSED_STATUS
+
+
+def collect_stats(root: Path, budget: int = DEFAULT_SETUP_BUDGET_CHARS) -> MemoryStats:
+    """Measure the legacy Core SYNC load and the digest size for a project.
+
+    Args:
+        root: Project root that contains ``docs/memory/``.
+        budget: SETUP source budget passed to the digest.
+
+    Returns:
+        The measured stats (all zero when there is no memory bank).
+    """
+    memory_dir = root / MEMORY_DIR
+    files = collect_files(memory_dir) if memory_dir.is_dir() else []
+    completed = memory_dir / COMPLETED_DIR
+    completed_paths = (
+        [path for path in completed.glob("*.md") if TASK_FILE_RE.match(path.name)] if completed.is_dir() else []
+    )
+    return MemoryStats(
+        files=[(item.relative, item.kind, item.chars) for item in files],
+        legacy_core_chars=sum(item.chars for item in files if _in_legacy_core(item)),
+        digest_chars=len(build_digest(root, budget)),
+        completed_files=len(completed_paths),
+        completed_chars=sum(len(read_text(path)) for path in completed_paths),
+    )
+
+
+def _tokens(chars: int) -> str:
+    return f"≈ {chars // CHARS_PER_TOKEN:,} tokens"
+
+
+def render_stats(stats: MemoryStats) -> str:
+    """Format stats as a plain-text report.
+
+    Args:
+        stats: Result of :func:`collect_stats`.
+
+    Returns:
+        Report text ending with a newline.
+    """
+    width = max([len(f"{chars:,}") for _, _, chars in stats.files] + [len(f"{stats.legacy_core_chars:,}")])
+    lines = [f"Memory bank: {MEMORY_DIR.as_posix()}/", ""]
+    lines += [f"  {chars:>{width},}  {kind:<9}  {relative}" for relative, kind, chars in stats.files]
+    if stats.completed_files:
+        lines.append(
+            f"  {stats.completed_chars:>{width},}  {'on-demand':<9}  "
+            f"{COMPLETED_DIR}/ ({stats.completed_files} files)"
+        )
+    lines += [
+        "",
+        f"Legacy Core SYNC: {stats.legacy_core_chars:,} chars ({_tokens(stats.legacy_core_chars)})"
+        " — global/ + whole progress.md + open task files",
+        f"Digest:           {stats.digest_chars:,} chars ({_tokens(stats.digest_chars)})",
+    ]
+    if stats.legacy_core_chars:
+        saved = PERCENT - stats.digest_chars * PERCENT // stats.legacy_core_chars
+        lines.append(f"Reduction:        {saved}%")
+    return "\n".join(lines) + "\n"
+
+
+def run_memory(action: str, project_root: str | None, budget: int) -> int:
+    """Run ``spine.py memory <action>``.
+
+    Args:
+        action: ``stats`` or ``digest``.
+        project_root: ``--project-root`` value, or None for the git toplevel.
+        budget: SETUP source budget in chars.
+
+    Returns:
+        Process exit code.
+    """
+    try:
+        root = resolve_project_root(project_root)
+    except SpineExit as exc:
+        return exc.code
+    if action == "stats":
+        sys.stdout.write(render_stats(collect_stats(root, budget)))
+    else:
+        sys.stdout.write(build_digest(root, budget))
+    return 0
