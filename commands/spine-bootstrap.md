@@ -108,6 +108,7 @@ Goal: **complete project understanding**. Do not write memory bank files until a
 | Conflict (repo vs `$ARGUMENTS` vs existing doc) | Do not overwrite; record in **Gaps** |
 | `domain-glossary.md` | Add terms; never delete existing entries |
 | `decision-log.md` | Append bootstrap baseline entry (date, baseline established, key facts + WHY) |
+| `summary:` frontmatter (every narrative file you write: all `global/*.md` except `decision-log.md`) | Replace the `[Fill in…]` placeholder (or add the field) with at most 5 lines: what the file holds and when to open it. On re-bootstrap, update it to match the new content. See `02-memory-bank.md` § Narrative summaries |
 
 **Files to fill:**
 
@@ -119,6 +120,8 @@ Goal: **complete project understanding**. Do not write memory bank files until a
 - `docs/memory/global/decision-log.md`
 
 If a new section is missing in an older consumer template, add the section during fill.
+
+After writing, run `python3 .spine/scripts/spine.py memory digest`: the files you filled must show their summary, and no `SETUP:` line may list them.
 
 ---
 

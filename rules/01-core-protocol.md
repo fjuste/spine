@@ -7,7 +7,7 @@ alwaysApply: true
 # CORE PROTOCOL (Solo Lean)
 
 ## 1. Mandatory minimum flow
-1. **Sync & clarify:** Follow `02-memory-bank.md` — tiered SYNC; when `graphify-out/graph.json` exists, follow the **Graphify Discovery Protocol** (`GRAPH_REPORT.md` → `graphify query` → targeted file reads), then post-SYNC assumptions, ambiguities, and simplest approach.
+1. **Sync & clarify:** Follow `02-memory-bank.md` — tiered SYNC, Core tier via `python3 .spine/scripts/spine.py memory digest` (do its `SETUP:` work when flagged; legacy file list only if the command fails); when `graphify-out/graph.json` exists, follow the **Graphify Discovery Protocol** (`GRAPH_REPORT.md` → `graphify query` → targeted file reads), then post-SYNC assumptions, ambiguities, and simplest approach.
 2. **Plan:** create/update `docs/memory/active_tasks/<sequential-number>-<descriptive-name>.md` matching `_task-template.md` (Obsidian frontmatter + body sections; optional `## Implementation Plan` for bite-sized steps). Do not create the branch during planning.
 3. **Branch:** at execution time, create or switch to `branch` from task frontmatter, based on `base`.
 4. **Test (TDD):**
