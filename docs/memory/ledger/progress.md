@@ -1,9 +1,9 @@
 # Progress
 
 ## Current state
-- In flight: none. 018-memory-digest delivered (2026-11-12): Core SYNC is digest-first via `python3 .spine/scripts/spine.py memory digest`.
+- In flight: none. 019-self-install-gitignore delivered (2026-11-12): this repo now runs on its own Spine install (`install --core`); rules, `/spine-*` commands and core skills load in Cursor, OpenCode, Claude Code and Antigravity, and IDE trees stay gitignored.
 - Blocked: nothing.
-- Next: `/spine-roadmap --review` to re-score I1–I3 from delivery evidence; G1 target (≤ 8,000 chars) not yet met (worst case 13,039) — budgets (I4), indexes (I5) and archive (I6) are the follow-ups; hook injection is I11 (needs I12).
+- Next: first digest-driven session writes `summary:` for Spine's 5 narrative files (digest `SETUP:` block). `/spine-roadmap --review` to re-score I1–I3; G1 target (≤ 8,000 chars) not yet met (worst case 13,039) — follow-ups I4, I5, I6, I11. Candidate task: `vendor` refuses the Spine repo as project.
 - Legacy sections below (`O que funciona` … `Issues Conhecidos`) predate Memory Bank v2.1 and are kept for history.
 
 ## O que funciona
@@ -40,6 +40,11 @@
 - Risco de dispersão em frontend sem skill principal padronizada.
 
 ## Delivery log (newest first)
+### 2026-11-12 — Self-install keeps IDE trees ignored in the Spine repository
+**Task:** 019-self-install-gitignore | **Branch:** feature/self-install-gitignore
+**Tags:** type/bug, area/infra, stack/python
+**Description:** `spine.py install`/`update` detect a self-install (project root is the Spine clone, `same_path(project, spine)`) and keep `.spine`, `.agents/`, `.cursor/`, `.claude/` and `.opencode/` ignored instead of removing the IDE-tree ignores consumer installs drop (`SELF_INSTALL_GITIGNORE_KEEP`, `adjust_install_gitignore(..., self_install=)`). `AGENTS.md` § 6 documents the self-install (`install --core --project-root=.`, working-tree caveat). Before the task, commit `1b85e7e` untracked the committed absolute `.spine` symlink. Evidence: `pytest -q tests/` 229 passed (7 new in `test_spine_cli.py`). Manual runs by the agent on 2026-11-12 at `ab0c327`: dry run with 0 ignore removals and 0 conflicts; real `install --core` exit 0, 0 conflicts, 0 warnings, `.gitignore` unchanged, no new untracked trees (raw output in the session scratchpad, temporary). Graphify and MkDocs not active.
+
 ### 2026-11-12 — Memory digest — summary-first Core SYNC for growing memory banks
 **Task:** 018-memory-digest | **Branch:** feature/memory-digest
 **Tags:** type/feature, area/memory, stack/python
