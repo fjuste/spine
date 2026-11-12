@@ -70,6 +70,16 @@ COPY_GITIGNORE_REMOVE: tuple[str, ...] = SYMLINK_GITIGNORE_REMOVE + (
     ".agents",
 )
 
+# Spine repository installed into itself (dogfooding): every wired tree stays local,
+# so the framework repo never versions its own install.
+SELF_INSTALL_GITIGNORE_KEEP: tuple[str, ...] = (
+    ".spine",
+    ".agents/",
+    ".cursor/",
+    ".claude/",
+    ".opencode/",
+)
+
 VENDOR_GITIGNORE_STRIP: tuple[str, ...] = (
     ".spine",
     ".agents/",

@@ -8,6 +8,7 @@ from spine_cli.constants import (
     COPY_GITIGNORE_ADD,
     COPY_GITIGNORE_REMOVE,
     MKDOCS_GITIGNORE_ENTRY,
+    SELF_INSTALL_GITIGNORE_KEEP,
     SYMLINK_GITIGNORE_ADD,
     SYMLINK_GITIGNORE_REMOVE,
     VENDOR_GITIGNORE_STRIP,
@@ -32,17 +33,26 @@ def _exact_present(lines: list[str], entry: str) -> bool:
     return any(line == entry for line in lines)
 
 
-def adjust_install_gitignore(project: Path, copy_mode: bool, log: Log) -> None:
+def adjust_install_gitignore(
+    project: Path, copy_mode: bool, log: Log, *, self_install: bool = False
+) -> None:
     """Add mode-specific ignores and drop obsolete ones.
 
     Args:
         project: Consumer project root.
         copy_mode: Hybrid ``--copy`` install versions ``.agents/``.
         log: Progress logger.
+        self_install: The project is the Spine repository itself. Nothing is
+            removed and every wired tree is kept ignored.
     """
     print("\nGitignore:")
-    to_add = COPY_GITIGNORE_ADD if copy_mode else SYMLINK_GITIGNORE_ADD
-    to_remove = COPY_GITIGNORE_REMOVE if copy_mode else SYMLINK_GITIGNORE_REMOVE
+    if self_install:
+        to_add: tuple[str, ...] = SELF_INSTALL_GITIGNORE_KEEP
+        to_remove: tuple[str, ...] = ()
+        log.info("Spine repository self-install: IDE trees stay ignored")
+    else:
+        to_add = COPY_GITIGNORE_ADD if copy_mode else SYMLINK_GITIGNORE_ADD
+        to_remove = COPY_GITIGNORE_REMOVE if copy_mode else SYMLINK_GITIGNORE_REMOVE
     gitignore = project / ".gitignore"
 
     if not gitignore.is_file():
