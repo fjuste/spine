@@ -247,3 +247,46 @@ def test_validate_memory_cli_project_root(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert "[DRY-RUN]" in result.stdout
     assert "OK: memory bank within budget." in result.stdout
+
+
+# =============================================================================
+# Task 3: harvest step, rule and docs
+# =============================================================================
+
+MEMORY_VALIDATE_CMD = "python3 .spine/scripts/spine_validate.py memory"
+
+
+def _read(relative: str) -> str:
+    return memory.read_text(REPO_ROOT / relative)
+
+
+def test_harvest_runs_memory_budget_step() -> None:
+    text = _read("commands/spine-harvest.md")
+    step = text.split("**4a.1 Memory budgets", 1)[1].split("**4b.", 1)[0]
+    assert text.index("**4a.") < text.index("**4a.1 Memory budgets")
+    assert MEMORY_VALIDATE_CMD in step
+    assert "Current state" in step
+    assert "global/" in step and "diff" in step
+    summary = text.split("7. **Summary:**", 1)[1]
+    assert "memory budget" in summary.lower()
+
+
+def test_memory_bank_rule_documents_budgets() -> None:
+    text = _read("rules/02-memory-bank.md")
+    assert "## Memory budgets" in text
+    section = text.split("## Memory budgets", 1)[1].split("\n## ", 1)[0]
+    assert MEMORY_VALIDATE_CMD in section
+    for limit in (
+        memory.DIGEST_BUDGET_CHARS,
+        memory.CURRENT_STATE_BUDGET_CHARS,
+        memory.NARRATIVE_BODY_BUDGET_CHARS,
+        *memory.LOG_BUDGET_CHARS.values(),
+    ):
+        assert f"{limit:,}" in section
+    assert "WARNING" in section and "exit" in section.lower()
+    assert "global/" in section and "diff" in section
+
+
+@pytest.mark.parametrize("relative", ["README.md", "AGENTS.md"])
+def test_docs_list_memory_validator(relative: str) -> None:
+    assert MEMORY_VALIDATE_CMD in _read(relative)

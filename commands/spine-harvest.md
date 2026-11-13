@@ -62,6 +62,12 @@ Act as a Tech Lead and Knowledge Manager.
      - `**Tags:**` — flatten frontmatter `tags` list to comma-separated (per `docs/governance/memory-tags-policy.md`)
      - `**Description:**` — concise delivery summary that cites the execution evidence: tests executed and results, plus manual/external runs (who, when, where the raw output lives) from `## Execution evidence`
 
+   **4a.1 Memory budgets** (after 4a; see `02-memory-bank.md` § Memory budgets)
+   - Run `python3 .spine/scripts/spine_validate.py memory` from the project root. Warnings never block harvest (exit 0); an `ERROR:` means `docs/memory/` is missing.
+   - **Current state over budget:** rewrite the **Current state** block of `progress.md` to fit (keep In flight / Blocked / Next; drop delivered detail that the delivery log already holds), then re-run the validator.
+   - **Every other warning** (digest total, log files, narrative files): do not fix it here. List it in the step 7 summary as a follow-up — log files → roadmap I6 (archive), open-task list → close or harvest stale tasks (I5), narrative files → the human.
+   - Never edit `global/` to meet a budget without showing the diff to the human and getting approval first.
+
    **4b. `docs/memory/ledger/learnings.md`** (when `## Execution notes` holds `incident` / `rework` entries routed in step 3.7, or the task recorded root cause, incident, or rework elsewhere)
    - Before new `LEARN-NNN`, grep existing entries by **tags** + symptoms per `memory-tags-policy.md`.
    - Add new `LEARN-NNN` or append to **Recurrences** on matching entry.
@@ -111,4 +117,4 @@ Act as a Tech Lead and Knowledge Manager.
    - Merge only a valid `feature/<descriptive-name>` branch into `develop`.
    - Remove the local feature branch.
 
-7. **Summary:** Present a concise summary of what was learned and improved in the project. When step 3.5 ran (or was skipped/failed), include Graphify refresh status and whether `graphify query` was used during delivery exploration. When step 3.6 ran (or was skipped/failed), include MkDocs build status. Report the execution record outcome from step 3.7: how many notes were promoted and where, or that a legacy task had no `## Execution notes` / `## Execution evidence` (missing). When step 4d ran, report whether the Idea Bank row was updated and to which Status (`Done` / `In Progress` / missing), and note that `/spine-roadmap --review` was suggested for ICE re-score.
+7. **Summary:** Present a concise summary of what was learned and improved in the project. When step 3.5 ran (or was skipped/failed), include Graphify refresh status and whether `graphify query` was used during delivery exploration. When step 3.6 ran (or was skipped/failed), include MkDocs build status. Report the execution record outcome from step 3.7: how many notes were promoted and where, or that a legacy task had no `## Execution notes` / `## Execution evidence` (missing). When step 4d ran, report whether the Idea Bank row was updated and to which Status (`Done` / `In Progress` / missing), and note that `/spine-roadmap --review` was suggested for ICE re-score. Report the memory budget outcome from step 4a.1: whether Current state was compacted, and each remaining `WARNING:` as a follow-up (scope, chars, limit, suggested owner).

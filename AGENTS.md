@@ -176,7 +176,7 @@ python3 .spine/scripts/spine.py install --copy --update
 
 Readiness: `python3 .spine/scripts/spine_validate.py bootstrap`
 
-**Validators** live in `scripts/spine_validate.py` (cross-platform, stdlib-only Python 3.9+; subcommands `task`, `bootstrap`, `graphify`, `mkdocs`). Change installer and validator behavior only in `scripts/spine.py` (package `scripts/spine_cli/`) and `scripts/spine_validate.py`. On Windows use `py -3` or `python` when `python3` is unavailable.
+**Validators** live in `scripts/spine_validate.py` (cross-platform, stdlib-only Python 3.9+; subcommands `task`, `bootstrap`, `graphify`, `mkdocs`, `memory`). Change installer and validator behavior only in `scripts/spine.py` (package `scripts/spine_cli/`) and `scripts/spine_validate.py`. On Windows use `py -3` or `python` when `python3` is unavailable.
 
 After step 2, only `python3 .spine/scripts/spine.py install` works from the terminal — `/spine-*` commands are not available until step 3 creates IDE command/workflow trees.
 
@@ -297,6 +297,8 @@ docs/memory/
 | On demand | Debugging, recurrence | `learnings.md`, `completed_tasks/` |
 
 **Memory digest** (Core SYNC): `python3 .spine/scripts/spine.py memory digest` prints a compact view of `docs/memory/` — Current state, one line per open task, each narrative file's `summary:` frontmatter (outline when missing), log entry counts with the newest 5 titles, Extended-tier pointers. Output goes to stdout only; nothing is written. When summaries are missing, a closing `SETUP:` block asks the agent to write them for a few files per session (largest first, `--budget` source chars, default 60,000), so existing projects set up over their next sessions without a migration step. `python3 .spine/scripts/spine.py memory stats` prints chars per memory file, the legacy Core SYNC total and the digest size. Both accept `--project-root=PATH`.
+
+**Memory budgets:** `python3 .spine/scripts/spine_validate.py memory` warns (exit 0) when the digest, Current state or an on-demand memory file exceeds its budget (`rules/02-memory-bank.md` § Memory budgets). `/spine-harvest` compacts Current state and reports the rest as follow-ups.
 
 **Harvest outcomes:** delivery log append, `learnings.md` when applicable, frontmatter `status: DONE`, `git mv` to `completed_tasks/`. When `roadmap_idea` is set, update Idea Bank Status (`Done` / still `In Progress`) and suggest `/spine-roadmap --review` for ICE re-score.
 
