@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import importlib.util
+import subprocess
 import sys
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
@@ -167,3 +170,80 @@ def test_digest_has_no_budget_line_when_over_budget(tmp_path: Path) -> None:
 
     assert "budget" not in digest.lower()
     assert "WARNING" not in digest
+
+
+# =============================================================================
+# Task 2: spine_validate.py memory
+# =============================================================================
+
+
+def _load_validator() -> ModuleType:
+    spec = importlib.util.spec_from_file_location("spine_validate", REPO_ROOT / "scripts" / "spine_validate.py")
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+sv = _load_validator()
+
+
+def test_validate_memory_within_budget_prints_ok_exit_0(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _write(tmp_path, "ledger/progress.md", _progress(10))
+    monkeypatch.chdir(tmp_path)
+
+    assert sv.main(["memory"]) == 0
+
+    captured = capsys.readouterr()
+    assert f"{memory.DIGEST_SCOPE}: OK" in captured.out
+    assert f"{memory.CURRENT_STATE_SCOPE}: OK" in captured.out
+    assert "OK: memory bank within budget." in captured.out
+    assert "WARNING:" not in captured.err
+
+
+def test_validate_memory_over_budget_warns_exit_0(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    limit = memory.LOG_BUDGET_CHARS["global/decision-log.md"]
+    _write(tmp_path, "global/decision-log.md", FILLER * (limit + 1))
+    _write(tmp_path, "ledger/progress.md", _progress(memory.CURRENT_STATE_BUDGET_CHARS + 1))
+    monkeypatch.chdir(tmp_path)
+
+    assert sv.main(["memory"]) == 0
+
+    captured = capsys.readouterr()
+    assert (
+        f"WARNING: {_log_scope('global/decision-log.md')}: {limit + 1:,} chars > {limit:,} — {memory.LOG_HINT}"
+        in captured.err
+    )
+    assert f"WARNING: {memory.CURRENT_STATE_SCOPE}:" in captured.err
+    assert memory.CURRENT_STATE_HINT in captured.err
+    assert "OK: memory budgets checked with 2 warning(s)." in captured.out
+
+
+def test_validate_memory_without_memory_dir_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    assert sv.main(["memory"]) == 1
+
+    assert "ERROR: missing docs/memory/" in capsys.readouterr().err
+
+
+def test_validate_memory_cli_project_root(tmp_path: Path) -> None:
+    _write(tmp_path, "ledger/progress.md", _progress(10))
+
+    result = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "scripts" / "spine_validate.py"), "memory", f"--project-root={tmp_path}", "--dry-run"],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=REPO_ROOT.parent,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "[DRY-RUN]" in result.stdout
+    assert "OK: memory bank within budget." in result.stdout

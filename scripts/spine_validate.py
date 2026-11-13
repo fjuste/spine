@@ -6,6 +6,7 @@ Usage (from consumer project root; on Windows use ``py -3`` or ``python``):
     python3 .spine/scripts/spine_validate.py bootstrap
     python3 .spine/scripts/spine_validate.py graphify --targets=cursor,opencode,claude
     python3 .spine/scripts/spine_validate.py mkdocs
+    python3 .spine/scripts/spine_validate.py memory [--project-root=PATH]
 
 Every subcommand accepts ``--dry-run``. Exit code 0 means OK (warnings allowed),
 1 means at least one error. ``ERROR:``/``WARNING:``/``NOTE:`` go to stderr and
@@ -27,6 +28,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from spine_cli.constants import DOCS_SEED_PATHS
+from spine_cli.memory import MEMORY_DIR, check_budgets
 
 VALIDATE_CMD = "python3 .spine/scripts/spine_validate.py"
 
@@ -563,6 +565,53 @@ def run_mkdocs(args: argparse.Namespace) -> int:
 
 
 # =============================================================================
+# memory
+# =============================================================================
+
+
+def validate_memory(root: Path, report: Report | None = None) -> Report:
+    """Measure ``docs/memory/`` against the digest-first budgets.
+
+    Over-budget scopes are warnings; only a missing memory bank is an error.
+
+    Args:
+        root: Consumer project root.
+        report: Optional report to append to.
+
+    Returns:
+        The report with recorded errors and warnings.
+    """
+    report = report or Report()
+    if not (root / MEMORY_DIR).is_dir():
+        report.fail(f"missing {MEMORY_DIR.as_posix()}/ (run python3 .spine/scripts/spine.py install)")
+        return report
+    report.out("Memory budget report")
+    for check in check_budgets(root):
+        if check.over:
+            report.warn(f"{check.scope}: {check.chars:,} chars > {check.limit:,} — {check.detail}")
+        else:
+            report.ok(check.scope, f"{check.chars:,} / {check.limit:,} chars")
+    return report
+
+
+def run_memory(args: argparse.Namespace) -> int:
+    """CLI handler for ``memory``."""
+    root = Path(args.project_root).resolve() if args.project_root else Path.cwd()
+    if args.dry_run:
+        print(f"[DRY-RUN] Would check memory budgets in: {root}")
+
+    report = validate_memory(root)
+    if not report.passed:
+        print(f"Memory budget check failed with {report.errors} error(s).", file=sys.stderr)
+        return 1
+    if report.warnings:
+        print(f"OK: memory budgets checked with {report.warnings} warning(s).")
+    else:
+        print("OK: memory bank within budget.")
+    return 0
+
+
+# =============================================================================
 # CLI
 # =============================================================================
 
@@ -603,6 +652,11 @@ def build_parser() -> argparse.ArgumentParser:
     mkdocs = subparsers.add_parser("mkdocs", help="Check MkDocs configuration, CLI, and build.")
     mkdocs.add_argument("--dry-run", action="store_true")
     mkdocs.set_defaults(handler=run_mkdocs)
+
+    memory = subparsers.add_parser("memory", help="Check docs/memory/ against digest-first budgets.")
+    memory.add_argument("--project-root", help="Project root (default: current directory)")
+    memory.add_argument("--dry-run", action="store_true")
+    memory.set_defaults(handler=run_memory)
 
     return parser
 
