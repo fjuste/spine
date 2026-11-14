@@ -940,7 +940,7 @@ LOG_BUDGET_CHARS = {
 DIGEST_SCOPE = "memory digest (Core SYNC)"
 CURRENT_STATE_SCOPE = f"{MEMORY_DIR.as_posix()}/ledger/progress.md § Current state"
 CURRENT_STATE_HINT = "compact Current state at /spine-harvest"
-LOG_HINT = "archive old entries (roadmap I6)"
+LOG_HINT = "legacy file, frozen — split it into ledger entries with spine.py memory migrate (roadmap I25)"
 NARRATIVE_HINT = "split or trim with human approval"
 SETUP_LABEL = "SETUP"
 
@@ -1023,4 +1023,65 @@ def check_budgets(root: Path) -> list[BudgetCheck]:
         elif item.kind == NARRATIVE:
             body = len(strip_frontmatter(item.text))
             checks.append(BudgetCheck(scope, body, NARRATIVE_BODY_BUDGET_CHARS, NARRATIVE_HINT))
+    return checks
+
+
+# =============================================================================
+# Ledger checks (read by ``spine_validate.py memory``)
+# =============================================================================
+
+INDEX_CMD = "python3 .spine/scripts/spine.py memory index"
+PROBLEM_FILES_SHOWN = 5
+
+
+@dataclass(frozen=True)
+class LedgerCheck:
+    """Health of one ledger folder.
+
+    Args:
+        scope: Folder path such as ``docs/memory/ledger/decisions/``.
+        entries: Number of entry files.
+        problems: One message per problem kind (empty when healthy).
+    """
+
+    scope: str
+    entries: int
+    problems: tuple[str, ...]
+
+
+def _file_list(entries: list[LedgerEntry]) -> str:
+    names = [entry.filename for entry in entries[:PROBLEM_FILES_SHOWN]]
+    more = len(entries) - len(names)
+    return ", ".join(names) + (f" (+{more} more)" if more else "")
+
+
+def check_ledger(root: Path) -> list[LedgerCheck]:
+    """Check entry summaries and INDEX.md freshness in every existing ledger folder.
+
+    Args:
+        root: Project root that contains ``docs/memory/``.
+
+    Returns:
+        One check per existing ledger folder, in ``LEDGER_FOLDERS`` order.
+    """
+    memory_dir = root / MEMORY_DIR
+    checks: list[LedgerCheck] = []
+    for folder in LEDGER_FOLDERS:
+        path = index_path(memory_dir, folder)
+        if not path.parent.is_dir():
+            continue
+        entries = collect_entries(memory_dir, folder)
+        problems: list[str] = []
+        missing = [entry for entry in entries if not entry.summary]
+        if missing:
+            problems.append(f"{len(missing)} {_noun(len(missing))} without `summary:` — {_file_list(missing)}")
+        long = [entry for entry in entries if len(entry.summary) > ENTRY_SUMMARY_MAX_CHARS]
+        if long:
+            problems.append(f"{len(long)} `summary:` over {ENTRY_SUMMARY_MAX_CHARS} chars — {_file_list(long)}")
+        if not path.is_file():
+            problems.append(f"{INDEX_NAME} missing — run {INDEX_CMD}")
+        elif read_text(path) != render_index(folder, entries):
+            problems.append(f"{INDEX_NAME} is stale — run {INDEX_CMD}")
+        scope = f"{MEMORY_DIR.as_posix()}/{LEDGER_DIR}/{folder}/"
+        checks.append(LedgerCheck(scope, len(entries), tuple(problems)))
     return checks

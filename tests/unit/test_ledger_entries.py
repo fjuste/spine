@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import importlib.util
 import sys
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
@@ -305,3 +307,109 @@ def test_digest_omits_progress_without_delivery_log(tmp_path: Path) -> None:
 
     assert "progress.md" not in logs
     assert logs.strip() == "(none)"
+
+
+# =============================================================================
+# Task 4: validator warnings
+# =============================================================================
+
+
+def _load_validator() -> ModuleType:
+    spec = importlib.util.spec_from_file_location("spine_validate", REPO_ROOT / "scripts" / "spine_validate.py")
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+sv = _load_validator()
+
+
+def _validate(root: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> tuple[int, str, str]:
+    monkeypatch.chdir(root)
+    code = sv.main(["memory"])
+    captured = capsys.readouterr()
+    return code, captured.out, captured.err
+
+
+def _check(root: Path, folder: str) -> memory.LedgerCheck:
+    [check] = [item for item in memory.check_ledger(root) if item.scope.endswith(f"ledger/{folder}/")]
+    return check
+
+
+def test_validate_warns_missing_entry_summary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _write_entry(tmp_path, "decisions", "2026-01-01-a.md", _entry("2026-01-01-a", "2026-01-01", "A", summary=""))
+    _write_entry(tmp_path, "decisions", "2026-01-02-b.md", _entry("2026-01-02-b", "2026-01-02", "B", summary=""))
+    memory.write_indexes(tmp_path)
+
+    code, _, err = _validate(tmp_path, monkeypatch, capsys)
+
+    assert code == 0
+    warnings = [line for line in err.splitlines() if "without `summary:`" in line]
+    assert len(warnings) == 1
+    assert "2 entries" in warnings[0]
+    assert "2026-01-01-a.md" in warnings[0] and "2026-01-02-b.md" in warnings[0]
+
+
+def test_validate_warns_long_entry_summary(tmp_path: Path) -> None:
+    long_summary = "s" * (memory.ENTRY_SUMMARY_MAX_CHARS + 1)
+    exact_summary = "s" * memory.ENTRY_SUMMARY_MAX_CHARS
+    _write_entry(tmp_path, "learnings", "LEARN-001-a.md", _entry("LEARN-001", "2026-01-01", "A", summary=long_summary))
+    _write_entry(tmp_path, "learnings", "LEARN-002-b.md", _entry("LEARN-002", "2026-01-02", "B", summary=exact_summary))
+    memory.write_indexes(tmp_path)
+
+    check = _check(tmp_path, "learnings")
+
+    assert check.entries == 2
+    [problem] = check.problems
+    assert f"over {memory.ENTRY_SUMMARY_MAX_CHARS} chars" in problem
+    assert "LEARN-001-a.md" in problem and "LEARN-002-b.md" not in problem
+
+
+def test_validate_warns_stale_index(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _write_entry(tmp_path, "deliveries", "2026-01-01-a.md", _entry("2026-01-01-a", "2026-01-01", "A"))
+    memory.write_indexes(tmp_path)
+    _write_entry(tmp_path, "deliveries", "2026-01-02-b.md", _entry("2026-01-02-b", "2026-01-02", "B"))
+
+    code, _, err = _validate(tmp_path, monkeypatch, capsys)
+
+    assert code == 0
+    assert "INDEX.md is stale" in err
+    assert memory.INDEX_CMD in err
+
+
+def test_validate_warns_missing_index(tmp_path: Path) -> None:
+    _write_entry(tmp_path, "deliveries", "2026-01-01-a.md", _entry("2026-01-01-a", "2026-01-01", "A"))
+
+    assert any("INDEX.md missing" in problem for problem in _check(tmp_path, "deliveries").problems)
+
+
+def test_validate_fresh_ledger_is_ok(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _write_entry(tmp_path, "decisions", "2026-01-01-a.md", _entry("2026-01-01-a", "2026-01-01", "A"))
+    memory.write_indexes(tmp_path)
+
+    code, out, err = _validate(tmp_path, monkeypatch, capsys)
+
+    assert code == 0
+    assert "docs/memory/ledger/decisions/: OK (1 entry, INDEX.md up to date)" in out
+    assert "WARNING:" not in err
+
+
+def test_validate_legacy_file_hint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    limit = memory.LOG_BUDGET_CHARS["ledger/learnings.md"]
+    path = _memory_dir(tmp_path) / "ledger" / "learnings.md"
+    path.parent.mkdir(parents=True)
+    path.write_text("x" * (limit + 1), encoding="utf-8")
+
+    _, _, err = _validate(tmp_path, monkeypatch, capsys)
+
+    assert "legacy" in memory.LOG_HINT and "migrate" in memory.LOG_HINT
+    assert f"docs/memory/ledger/learnings.md: {limit + 1:,} chars > {limit:,} — {memory.LOG_HINT}" in err

@@ -28,7 +28,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from spine_cli.constants import DOCS_SEED_PATHS
-from spine_cli.memory import MEMORY_DIR, check_budgets
+from spine_cli.memory import INDEX_NAME, MEMORY_DIR, check_budgets, check_ledger
 
 VALIDATE_CMD = "python3 .spine/scripts/spine_validate.py"
 
@@ -570,9 +570,10 @@ def run_mkdocs(args: argparse.Namespace) -> int:
 
 
 def validate_memory(root: Path, report: Report | None = None) -> Report:
-    """Measure ``docs/memory/`` against the digest-first budgets.
+    """Measure ``docs/memory/`` against its budgets and check the ledger folders.
 
-    Over-budget scopes are warnings; only a missing memory bank is an error.
+    Over-budget scopes, entries without a valid ``summary:`` and stale
+    ``INDEX.md`` files are warnings; only a missing memory bank is an error.
 
     Args:
         root: Consumer project root.
@@ -591,6 +592,12 @@ def validate_memory(root: Path, report: Report | None = None) -> Report:
             report.warn(f"{check.scope}: {check.chars:,} chars > {check.limit:,} — {check.detail}")
         else:
             report.ok(check.scope, f"{check.chars:,} / {check.limit:,} chars")
+    for ledger in check_ledger(root):
+        for problem in ledger.problems:
+            report.warn(f"{ledger.scope}: {problem}")
+        if not ledger.problems:
+            noun = "entry" if ledger.entries == 1 else "entries"
+            report.ok(ledger.scope, f"{ledger.entries} {noun}, {INDEX_NAME} up to date")
     return report
 
 
