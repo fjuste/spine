@@ -1,8 +1,8 @@
 """Split legacy memory log files into ledger entries (``spine.py memory migrate``).
 
 Legacy single files — ``global/decision-log.md``, ``ledger/learnings.md`` and
-the ``## Delivery log`` section of ``ledger/progress.md`` — become one entry
-file each under ``ledger/{decisions,learnings,deliveries}/``. Bodies are copied
+the legacy ``## Delivery log`` section of ``ledger/progress.md`` — become one
+entry file each under ``ledger/{decisions,learnings,deliveries}/``. Bodies are copied
 verbatim; ``summary:`` is the title. The default run is a dry run; ``--apply``
 writes only when the plan has no unparsed text and no ID conflicts.
 Standard library only, Python 3.9+.
@@ -29,8 +29,8 @@ from spine_cli.memory import (
 )
 from spine_cli.paths import resolve_project_root
 
-DECISION_LOG = "global/decision-log.md"
-LEARNINGS_LOG = "ledger/learnings.md"
+DECISION_LOG = "global/decision-log.md"  # legacy
+LEARNINGS_LOG = "ledger/learnings.md"  # legacy
 PROGRESS = "ledger/progress.md"
 DECISIONS = "decisions"
 LEARNINGS = "learnings"
@@ -49,7 +49,7 @@ _PLACEHOLDER_RE = re.compile(
     _PLACEHOLDER_ENTRY_RE.pattern + r"|\[DATA\]|\[TITULO\]|LEARN-NNN|Example incident slug"
 )
 _ISO_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
-_DELIVERY_LOG_RE = re.compile(r"^##[ \t]+Delivery log", re.IGNORECASE)
+_DELIVERY_LOG_RE = re.compile(r"^##[ \t]+Delivery log", re.IGNORECASE)  # legacy section
 _H2_RE = re.compile(r"^##[ \t]")
 _FENCE_RE = re.compile(r"^[ \t]{0,3}(`{3,}|~{3,})")
 _TASK_RE = re.compile(r"\*\*Task:\*\*[ \t]*`?(\d{3,}-[A-Za-z0-9._-]+)`?")
@@ -188,14 +188,14 @@ def _entry(kind: str, line: int, head: re.Match[str], body_lines: list[str]) -> 
 
 
 # =============================================================================
-# Heading-based parser (heading decisions, learnings, Delivery log)
+# Heading-based parser (legacy heading decisions, learnings, Delivery log)
 # =============================================================================
 
 _PREAMBLE = "preamble"
 _ENTRY = "entry"
 _PLACEHOLDER = "placeholder"
 _ORPHAN = "orphan"
-_ENTRY_LEVELS = {DECISIONS: (2, 3), LEARNINGS: (2, 3), DELIVERIES: (3,)}  # Delivery log entries sit under its ##
+_ENTRY_LEVELS = {DECISIONS: (2, 3), LEARNINGS: (2, 3), DELIVERIES: (3,)}  # legacy Delivery log entries sit under its ##
 
 
 def _classify_heading(kind: str, level: int, text: str) -> tuple[str, re.Match[str] | None]:
@@ -249,7 +249,7 @@ def _parse_headed(kind: str, lines: list[str], offset: int) -> ParseResult:
 
 
 # =============================================================================
-# Table parser (decision-log as a 4-column table)
+# Table parser (legacy decision-log as a 4-column table)
 # =============================================================================
 
 
@@ -331,7 +331,7 @@ def parse_learnings(text: str) -> ParseResult:
 
 
 def delivery_log_span(text: str) -> tuple[int, int] | None:
-    """Return ``(start, end)`` char offsets of the ``## Delivery log`` section.
+    """Return ``(start, end)`` char offsets of the legacy ``## Delivery log`` section.
 
     Args:
         text: ``progress.md`` content (LF newlines).
@@ -362,7 +362,7 @@ def parse_delivery_log(text: str) -> ParseResult | None:
 
     Returns:
         The parse result (line numbers refer to ``progress.md``), or None when
-        the file has no Delivery log section.
+        the file has no legacy Delivery log section.
     """
     span = delivery_log_span(text)
     if span is None:
@@ -454,7 +454,7 @@ class SourcePlan:
 
     Args:
         relative: Legacy file path relative to ``docs/memory/``.
-        result: Parse result of that file (or of the Delivery log section).
+        result: Parse result of that legacy file (or of the Delivery log section).
     """
 
     relative: str
@@ -558,7 +558,7 @@ def _quote(text: str) -> str:
 
 
 def _removal(relative: str) -> str:
-    return f"cut § Delivery log from {relative}" if relative == PROGRESS else f"remove {relative}"
+    return f"cut § Delivery log from {relative}" if relative == PROGRESS else f"remove {relative}"  # legacy parts
 
 
 def render_report(plan: MigrationPlan, apply: bool) -> str:
