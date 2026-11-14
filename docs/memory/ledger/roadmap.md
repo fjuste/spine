@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-11-13
+last_updated: 2026-11-14
 last_reviewed: 2026-11-11
 review_cadence: monthly
 goals_active: 7
@@ -88,7 +88,7 @@ sources:
 | I1  | Measure baseline: chars/tokens of Core SYNC and of each growing file on AgentHub (prerequisite for budgets) | G1 | 384 (6×8×8) | 8 | Candidate |
 | I2  | Summary-first frontmatter (`summary`, `entries`, `last_entry`, `budget_chars`) on growing files + task `summary` | G1 | 343 (7×7×7) | 7 | Candidate |
 | I3  | Generated `docs/memory/digest.md` (`spine.py memory digest`); Core SYNC reads digest first | G1 | 336 (8×7×6) | 7 | Done |
-| I4  | Memory budgets in `spine_validate.py memory` + harvest compaction step | G1 | 294 (6×7×7) | 7 | In Progress |
+| I4  | Memory budgets in `spine_validate.py memory` + harvest compaction step | G1 | 294 (6×7×7) | 7 | Done |
 | I5  | Generated indexes: `completed_tasks/INDEX.md`, `ledger/learnings-index.md` | G1 | 245 (5×7×7) | 7 | Candidate |
 | I6  | Rolling window + archive (`progress`, `decision-log`, roadmap Review Log) via `spine.py memory compact`; agent writes period summary | G1 | 216 (6×6×6) | 6 | Candidate |
 | I7  | Generated short `AGENTS.md` entry file (summary + pointers, ≤ 4k chars, never rule copies) + `CLAUDE.md` `@AGENTS.md`; optional per-directory | G1 | 210 (6×5×7) | 5 | Candidate |
@@ -141,3 +141,4 @@ sources:
 | 2026-11-11 | I3 | Planned as task 018-memory-digest (In Progress); folds in I1 baseline and I2 summary frontmatter |
 | 2026-11-12 | I3 | Harvested task 018-memory-digest → Done. Digest goes to stdout (no committed `digest.md`); I1 baseline shipped as `memory stats`, I2 shipped as narrative `summary:` only (no `entries`/`last_entry`/`budget_chars`, no task `summary`) |
 | 2026-11-13 | I4 | Planned as task 020-memory-budgets (In Progress); digest-first budgets, harvest compacts Current state only, archive stays in I6 |
+| 2026-11-14 | I4 | Harvested task 020-memory-budgets → Done. `spine_validate.py memory` + harvest step 4a.1; log-file budgets warn on all three real projects (input for the per-entry ledger plan that replaces I6's archive) |
