@@ -1,5 +1,7 @@
-# Memory bank local (uso interno do Spine)
-/docs/
+# Spine's memory bank (docs/memory/) is versioned and public.
+# Local-only: personal notes and third-party research clones.
+/docs/documentation/
+/docs/discovery/
 
 # Agent local config (root-level only, templates/ are versioned)
 .cursor/

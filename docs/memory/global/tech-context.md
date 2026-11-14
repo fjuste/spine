@@ -2,8 +2,8 @@
 summary: >-
   Dev setup (feature/* from develop, promotion chain), main dependencies of
   target projects, technical constraints (no overengineering, curated skills,
-  tests + memory update per delivery), example env vars and Known Risks (partly
-  tracked docs/memory). Open before changing workflow constraints or setup.
+  tests + memory update per delivery), example env vars and Known Risks (public
+  memory bank: no confidential content). Open before changing workflow constraints or setup.
 ---
 
 # Tech Context
@@ -32,4 +32,4 @@ summary: >-
 | WORKFLOW_MODE | Modo do ciclo | solo-gitflow |
 
 ## Known Risks
-- Spine's `docs/` is gitignored, but some memory files are force-tracked (globals, `progress.md`, `roadmap.md`, ledger `INDEX.md` files and harvested entries). Task files and new entry files stay untracked unless added with `git add -f`; changes to tracked files under `docs/` stage with `git add -u -- <paths>`. A plain `git add docs/...` fails with an "ignored" error. Task 022.
+- Spine's memory bank (`docs/memory/`, `docs/governance/`) is versioned in a public repository. Never record client or employer names, private project names, local paths outside the repo or secrets; name consumer projects generically. `docs/documentation/` and `docs/discovery/` stay gitignored.

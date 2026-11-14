@@ -32,7 +32,7 @@ spine/
 │       ├── governance/
 │       ├── quality/
 │       └── workflow/
-├── docs/ (internal Spine use - not versioned)
+├── docs/ (Spine's own memory bank - versioned, public)
 ├── commands/
 │   ... (execution command templates)
 ├── agents/

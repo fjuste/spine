@@ -26,7 +26,7 @@ spine/
 │       ├── governance/     # Skills policy (allowlist, trial criteria), ICE scoring guide
 │       ├── quality/        # Guardrails documentation
 │       └── workflow/       # GitFlow and delivery cycle guides
-├── docs/                   # Local memory bank for Spine development (NOT versioned)
+├── docs/                   # Spine's own memory bank (versioned, public)
 ├── commands/               # Slash-command templates (/spine-plan, /spine-bootstrap, etc.)
 ├── rules/                  # Source-of-truth rules in .md (Cursor, Claude Code, OpenCode)
 ├── skills/                 # Curated AI skill definitions (each has a SKILL.md)
@@ -37,8 +37,8 @@ spine/
 
 **Important:**
 - `templates/` contains setup files for new consumer projects (versioned)
-- `docs/` is the local memory bank for Spine development (NOT versioned — see `.gitignore`)
-- `.gitignore` excludes: `docs/`, `.cursor/`, `CLAUDE.md`, local `opencode.json`
+- `docs/` is Spine's own memory bank: versioned and public (except `docs/documentation/` and `docs/discovery/`, which stay local)
+- `.gitignore` excludes: `docs/documentation/`, `docs/discovery/`, `.cursor/`, `CLAUDE.md`, local `opencode.json`
 - `AGENTS.md` is versioned in this repository
 
 ---
@@ -134,7 +134,8 @@ _Applies to consumer application code._
 
 ### Development (this repository)
 
-- `docs/` is the local memory bank for Spine development (ignored by git)
+- `docs/` is Spine's own memory bank, versioned in this **public** repository. Never write confidential content into it: client or employer names, private project names, local paths outside this repo, metrics from private projects, secrets. Refer to consumer projects generically ("a consumer project", "onboarding-hub").
+- `docs/documentation/` (personal notes) and `docs/discovery/` (third-party research clones) stay local (ignored by git)
 - `.cursor/`, `CLAUDE.md`, and root `opencode.json` are local dev configs (ignored by git)
 - Version changes in `templates/`, `commands/`, `skills/`, `rules/`, `AGENTS.md`
 - Use `docs/memory/` to track Spine's own development progress
