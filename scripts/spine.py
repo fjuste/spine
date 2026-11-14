@@ -10,6 +10,7 @@ Usage (from a consumer project, or pass ``--project-root``)::
     python3 .spine/scripts/spine.py memory digest
     python3 .spine/scripts/spine.py memory stats
     python3 .spine/scripts/spine.py memory index
+    python3 .spine/scripts/spine.py memory migrate [--apply]
 
 ``update`` pulls the Spine clone and then reconciles wiring.
 ``install --update`` only reconciles wiring; it does not run ``git pull``.
@@ -31,6 +32,7 @@ from typing import NoReturn
 from spine_cli.constants import DEFAULT_TARGETS
 from spine_cli.install import run_install, run_vendor
 from spine_cli.memory import DEFAULT_SETUP_BUDGET_CHARS, run_memory
+from spine_cli.migrate import run_migrate
 from spine_cli.options import Options
 from spine_cli.uninstall import run_uninstall
 from spine_cli.update import run_update
@@ -110,6 +112,8 @@ def _cmd_uninstall(args: argparse.Namespace) -> int:
 
 
 def _cmd_memory(args: argparse.Namespace) -> int:
+    if args.action == "migrate":
+        return run_migrate(args.project_root, args.apply)
     return run_memory(args.action, args.project_root, args.budget)
 
 
@@ -175,8 +179,11 @@ def build_parser() -> argparse.ArgumentParser:
     memory = sub.add_parser("memory", help="Memory bank digest, stats and ledger indexes")
     memory.add_argument(
         "action",
-        choices=("stats", "digest", "index"),
-        help="stats: char counts; digest: Core SYNC view; index: regenerate ledger INDEX.md files",
+        choices=("stats", "digest", "index", "migrate"),
+        help=(
+            "stats: char counts; digest: Core SYNC view; index: regenerate ledger INDEX.md files; "
+            "migrate: split legacy log files into ledger entries"
+        ),
     )
     memory.add_argument("--project-root", default=None, help="Consumer project root")
     memory.add_argument(
@@ -184,6 +191,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=DEFAULT_SETUP_BUDGET_CHARS,
         help="Source chars of missing summaries to request per session",
+    )
+    memory.add_argument(
+        "--apply",
+        action="store_true",
+        help="With migrate: write entries and remove legacy files; default is a dry run",
     )
     memory.set_defaults(handler=_cmd_memory)
     return parser
