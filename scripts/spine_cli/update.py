@@ -10,6 +10,7 @@ from pathlib import Path
 from spine_cli.constants import CANONICAL_SOURCE_FILE, VENDOR_MARKER
 from spine_cli.install import run_install
 from spine_cli.log import Log, SpineExit, die
+from spine_cli.migrate import MIGRATE_CMD, has_legacy_logs
 from spine_cli.opencode_merge import merge_project_opencode, replace_project_opencode
 from spine_cli.options import Options
 from spine_cli.paths import resolve_project_root
@@ -122,6 +123,8 @@ def run_update(options: Options) -> int:
         print("\nStep 4/4: Memory bank")
         if (project / "docs" / "memory").is_dir():
             print("  docs/memory/ present (install seeds missing templates without overwriting)")
+            if has_legacy_logs(project / "docs" / "memory"):
+                print(f"  Legacy log files remain — preview the split into ledger entries: {MIGRATE_CMD} (then --apply)")
         else:
             print("  Note: docs/memory/ still missing — run: python3 .spine/scripts/spine.py install --update")
         print("\nUpdate complete.")

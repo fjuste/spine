@@ -191,7 +191,9 @@ superseded_by:
 - Learning recurrences: append `- YYYY-MM-DD — task NNN-slug (brief)` under `**Recurrences:**` in the existing `LEARN-NNN` file instead of creating a new entry.
 - **INDEX.md** in each folder is generated from entry frontmatter: run `python3 .spine/scripts/spine.py memory index` after adding or editing entries; never edit it by hand. It is committed; the installer adds `docs/memory/ledger/*/INDEX.md merge=union` to `.gitattributes`, so parallel branches merge their new rows without conflict. Re-run `memory index` after a merge to restore order.
 - `spine_validate.py memory` warns on entries with a missing or over-160-char `summary:` and on a stale or missing `INDEX.md`.
-- **Legacy single files** — `global/decision-log.md`, `ledger/learnings.md` and the legacy delivery log section of `progress.md` — are frozen in projects created before the per-entry ledger: read them, never append to them. The digest labels them legacy; the recurrence check at harvest also searches a legacy `learnings.md`. `spine.py memory migrate` (planned) splits them into entries.
+- **Legacy single files** — `global/decision-log.md`, `ledger/learnings.md` and the legacy delivery log section of `progress.md` — are frozen in projects created before the per-entry ledger: read them, never append to them. The digest labels them legacy; the recurrence check at harvest also searches a legacy `learnings.md`.
+- **Migrating legacy files:** `python3 .spine/scripts/spine.py memory migrate` splits the legacy files into entries: one file per legacy entry, body copied verbatim, `summary:` set to the title (capped at 160 chars), `tags`, `task` and date read from `**Tags:**`, `**Task:**` and `**First seen:**` lines when present. The default run is a dry run: it prints the entry files it would create, skipped placeholders, the dropped preamble (text before the first entry), unparsed lines with line numbers and ID conflicts, and writes nothing.
+- `--apply` writes the entries, deletes the legacy `global/decision-log.md` and `ledger/learnings.md`, cuts only the legacy `## Delivery log` section from `progress.md` and runs `memory index`. It refuses (exit 1, nothing written) while unparsed lines or conflicts (an entry with that id already exists) remain: fix them by hand, then run it again. `spine.py update` prints a hint while legacy files remain.
 
 ## Memory budgets
 
@@ -204,7 +206,7 @@ superseded_by:
 | Each narrative file body (frontmatter excluded) | 3,000 | Split or trim with human approval |
 | Each ledger entry `summary:` | 160 | Validator names the files; also warns on a stale `INDEX.md` |
 | Legacy `decision-log.md` | 5,000 | Frozen; split with `spine.py memory migrate` |
-| `progress.md` whole file (legacy delivery log included) | 6,000 | Frozen legacy part; split with `spine.py memory migrate` |
+| `progress.md` whole file (legacy delivery log included) | 6,000 | Legacy delivery log: split with `spine.py memory migrate`; other pre-v2.1 legacy sections: trim with human approval |
 | Legacy `learnings.md` | 6,000 | Frozen; split with `spine.py memory migrate` |
 
 Task files, `roadmap.md`, `completed_tasks/` and whole `INDEX.md` files have no budget (an index grows by one line per entry; agents search it). The digest never shows budgets. `/spine-harvest` runs the validator, rewrites an over-budget Current state (which it owns) and reports every other warning as a follow-up. Never edit `global/` to meet a budget without showing the diff to the human first.

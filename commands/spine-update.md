@@ -35,6 +35,8 @@ This performs:
 
 **Memory Bank v2.1 migration (manual, after update):** If DONE tasks remain in `active_tasks/`, run `git mv docs/memory/active_tasks/<file>.md docs/memory/completed_tasks/`. Seed the missing `ledger/{decisions,learnings,deliveries}/` folders (templates + `INDEX.md`), `.gitattributes` and `memory-tags-policy.md` via `python3 .spine/scripts/spine.py install --update` (idempotent). See Spine README § Memory Bank v2.1.
 
+**Legacy log files (after update):** when step 4 prints `Legacy log files remain`, run `python3 .spine/scripts/spine.py memory migrate` (dry run, writes nothing) and show the report to the user. If it lists unparsed lines or conflicts, stop: the user fixes them by hand in the legacy files. With a clean report and the user's go-ahead, run it again with `--apply`; it writes one ledger entry per legacy entry, removes the legacy `decision-log.md` and `learnings.md` and the `## Delivery log` section of `progress.md`, and regenerates `INDEX.md`. Review the diff and commit it.
+
 ---
 
 ## 3. Optional modes
@@ -137,6 +139,7 @@ Always report:
 - Symlink reconciliation result.
 - `opencode.json` mode used (merge or replace).
 - Confirmation that `docs/memory/` was preserved.
+- Whether update printed the legacy log files hint, and the `spine.py memory migrate` result when it was run.
 - Graphify status when `--with-graphify` or `--graphify-init` was used: `.graphifyignore`, `graphify-out/graph.json`, per-IDE integration (Cursor mdc, OpenCode plugin, Claude hook), result of `spine_validate.py graphify`, and refresh command if graph build failed.
 - MkDocs status when `--with-mkdocs` was used: `docs/mkdocs/mkdocs.yml`, `docs/mkdocs/index.md`, result of `spine_validate.py mkdocs`, and build command if build failed.
 - Any blockers and exact command to recover.

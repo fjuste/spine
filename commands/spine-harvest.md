@@ -82,7 +82,7 @@ Act as a Tech Lead and Knowledge Manager.
     - Run `python3 .spine/scripts/spine_validate.py memory`. Warnings never block harvest (exit 0); an `ERROR:` means `docs/memory/` is missing.
     - **Entry warnings** (missing or over-160-char `summary:`, stale `INDEX.md`) on entries written in this harvest: fix them now and re-run both commands.
     - **Current state over budget:** rewrite the **Current state** block of `progress.md` to fit (keep In flight / Blocked / Next; drop delivered detail that the delivery entries already hold), then re-run the validator.
-    - **Every other warning** (digest total, legacy log files, narrative files, older entries): do not fix it here. List it in the step 7 summary as a follow-up — legacy log files → `spine.py memory migrate`, open-task list → close or harvest stale tasks, narrative files → the human.
+    - **Every other warning** (digest total, legacy log files, narrative files, older entries): do not fix it here. List it in the step 7 summary as a follow-up — legacy log files → `spine.py memory migrate` (dry run, then `--apply`), open-task list → close or harvest stale tasks, narrative files → the human.
     - Never edit `global/` to meet a budget without showing the diff to the human and getting approval first.
 
      **4d. Roadmap lifecycle update (when `roadmap_idea` is set):**

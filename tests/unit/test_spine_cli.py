@@ -686,3 +686,37 @@ def test_self_install_skips_gitattributes(tmp_path: Path) -> None:
     assert _install(source, source) == 0
 
     assert not (source / ".gitattributes").exists()
+
+
+def _update_output(project: Path, capsys: pytest.CaptureFixture[str]) -> str:
+    capsys.readouterr()
+    assert spine.main(["update", "--project-root", str(project), "--no-pull", "--no-graphify-prompt", "--no-mkdocs-prompt"]) == 0
+    return capsys.readouterr().out
+
+
+def test_update_hints_migrate_when_legacy_files_exist(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    source = tmp_path / "spine"
+    project = tmp_path / "proj"
+    _spine_fixture(source)
+    project.mkdir()
+    assert _install(project, source) == 0
+    legacy = project / "docs" / "memory" / "global" / "decision-log.md"
+    legacy.parent.mkdir(parents=True, exist_ok=True)
+    legacy.write_text("# Decision Log\n\n### 2026-01-01 - Old decision\n\nBody.\n", encoding="utf-8")
+
+    assert "spine.py memory migrate" in _update_output(project, capsys)
+
+    legacy.unlink()
+    progress = project / "docs" / "memory" / "ledger" / "progress.md"
+    progress.write_text("# Progress\n\n## Current state\n- x\n\n## Delivery log (newest first)\n", encoding="utf-8")
+    assert "spine.py memory migrate" in _update_output(project, capsys)
+
+
+def test_update_no_hint_without_legacy_files(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    source = tmp_path / "spine"
+    project = tmp_path / "proj"
+    _spine_fixture(source)
+    project.mkdir()
+    assert _install(project, source) == 0
+
+    assert "memory migrate" not in _update_output(project, capsys)
