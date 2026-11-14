@@ -143,3 +143,4 @@ sources:
 | 2026-11-13 | I4 | Planned as task 020-memory-budgets (In Progress); digest-first budgets, harvest compacts Current state only, archive stays in I6 |
 | 2026-11-14 | I4 | Harvested task 020-memory-budgets → Done. `spine_validate.py memory` + harvest step 4a.1; log-file budgets warn on all three real projects (input for the per-entry ledger plan that replaces I6's archive) |
 | 2026-11-14 | I25 | Planned as task 021-per-entry-ledger (In Progress); ledger/{decisions,learnings,deliveries}/ + generated INDEX.md (merge=union); migrate is a follow-up task |
+| 2026-11-14 | I25 | Harvested task 021-per-entry-ledger — still In Progress: `spine.py memory migrate` (split legacy files) is the remaining I25 work, not yet planned |

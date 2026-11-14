@@ -262,8 +262,8 @@ def _read(relative: str) -> str:
 
 def test_harvest_runs_memory_budget_step() -> None:
     text = _read("commands/spine-harvest.md")
-    step = text.split("**4a.1 Memory budgets", 1)[1].split("**4b.", 1)[0]
-    assert text.index("**4a.") < text.index("**4a.1 Memory budgets")
+    step = text.split("**4c.1 Ledger index and memory budgets", 1)[1].split("**4d.", 1)[0]
+    assert text.index("**4c.") < text.index("**4c.1 Ledger index and memory budgets")
     assert MEMORY_VALIDATE_CMD in step
     assert "Current state" in step
     assert "global/" in step and "diff" in step

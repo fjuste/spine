@@ -123,8 +123,8 @@ def test_spine_harvest_routes_each_note_type_to_a_destination() -> None:
     for note_type in NOTE_TYPES:
         assert f"`{note_type}`" in step, f"harvest does not route {note_type}"
     for destination in (
-        "learnings.md",
-        "decision-log.md",
+        "ledger/learnings/",
+        "ledger/decisions/",
         "domain-glossary.md",
         "system-patterns.md",
         "Known Risks",

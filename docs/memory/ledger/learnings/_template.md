@@ -1,15 +1,13 @@
-# Learnings Registry
-
-Recurring problems, root causes, and prevention notes. Updated at `/spine-harvest` when a task records non-trivial incidents or rework.
-
-Tag policy: `docs/governance/memory-tags-policy.md`
-
 ---
-
-## LEARN-001 — Example incident slug
-
-**First seen:** 2026-01-15 | **Task:** 001-example-task
-**Tags:** area/api, type/incident
+id: LEARN-NNN
+date: YYYY-MM-DD
+title: Short slug title
+summary: One line, at most 160 chars, shown in INDEX.md
+tags:
+  - area/example
+  - type/incident
+task: NNN-slug
+---
 
 **Symptoms:** Brief description of what users or tests observed.
 

@@ -11,19 +11,19 @@ Operational classification for correlating tasks, deliveries, and recurring inci
 | **Syntax** | Lowercase `kebab-case`; optional prefix `area/`, `type/`, `stack/` |
 | **Cardinality** | 1–5 tags per artifact; reuse existing tags before inventing new ones |
 | **Task files** | YAML frontmatter `tags:` list (Obsidian-compatible) |
-| **Ledger files** | Inline `**Tags:**` comma-separated (progress delivery log, `learnings.md`) |
+| **Ledger entries** | YAML frontmatter `tags:` list in each `ledger/{decisions,learnings,deliveries}/` entry file; the generated `INDEX.md` shows them per row |
 
 ## When to tag
 
 | Command | Action |
 |---------|--------|
 | `/spine-plan` | Required in task frontmatter |
-| `/spine-harvest` | Copy tags to progress delivery log and learnings entries |
+| `/spine-harvest` | Copy tags to the delivery entry and to learning entries |
 | `/spine-harvest` | Required on new `LEARN-NNN` entries |
 
 ## Recurrence matching
 
-Before creating a new `LEARN-NNN`, grep `ledger/learnings.md` by **tags** and **symptoms**. If the same tag cluster matches, update **Recurrences** on the existing entry instead of duplicating.
+Before creating a new `LEARN-NNN`, search `ledger/learnings/INDEX.md` (and a legacy `ledger/learnings.md` if the project still has one) by **tags** and **symptoms**. If the same tag cluster matches, update **Recurrences** on the existing entry instead of duplicating.
 
 ## Starter set
 
@@ -55,8 +55,8 @@ Projects extend this list in-place as needed. Document new recurring tags here w
 # Task frontmatter
 rg -n "^tags:|^- area/|^- type/" docs/memory/active_tasks/
 
-# Ledger entries
-rg -n "\*\*Tags:\*\*" docs/memory/ledger/
+# Ledger entries (frontmatter tags; INDEX.md lists them per row)
+rg -n "^  - (area|type|stack)/" docs/memory/ledger/
 ```
 
 Obsidian users may query frontmatter fields with Dataview.

@@ -22,7 +22,7 @@ Act as a Strategic Product Manager. Use `@grill-me` for strategic discovery; sco
 
 1. Read `docs/memory/ledger/roadmap.md` frontmatter and content.
 2. Read `docs/governance/ice-scoring-guide.md` for scoring criteria.
-3. Read `docs/memory/global/` Core SYNC files for domain context (product-context, project-brief, decision-log).
+3. Read `docs/memory/global/` Core SYNC files for domain context (product-context, project-brief) and `docs/memory/ledger/decisions/INDEX.md`.
 
 ## Step 2 — Fill mode (default, no flags)
 

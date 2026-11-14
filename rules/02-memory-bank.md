@@ -15,24 +15,27 @@ Tag conventions: see `docs/governance/memory-tags-policy.md`.
 
 ```
 docs/memory/
-  global/                    # Stable base (changes with explicit justification)
+  global/                    # Stable narrative (changes with explicit justification)
     project-brief.md         # Scope, goals, project boundaries
     product-context.md       # Why the project exists, problems it solves, UX goals; § Known Opportunities (unplanned)
     domain-glossary.md       # Ubiquitous language: canonical domain terms (language only)
     system-patterns.md       # Stack, architecture, design patterns; § Project-Specific Alterations
     tech-context.md          # Dev setup, constraints, infra; § Known Risks
-    decision-log.md          # Record of architectural decisions with WHY
-  ledger/                    # Current state (updated on each task)
+  ledger/                    # Changes every delivery cycle
     roadmap.md               # Prioritized milestones (filled by /spine-roadmap — not filled at bootstrap)
-    progress.md              # Current state + delivery log (append-only)
-    learnings.md             # Recurrence registry (incidents, root causes — harvest only)
+    progress.md              # Current state only (snapshot rewritten at harvest)
+    decisions/               # One file per architectural decision (WHY) + generated INDEX.md
+    learnings/               # One file per LEARN-NNN (incidents, root causes — harvest only) + INDEX.md
+    deliveries/              # One file per harvested delivery + INDEX.md
   active_tasks/              # Open work only (PLANNING | IN_PROGRESS | REVIEW)
     <sequential-number>-<descriptive-name>.md
   completed_tasks/           # DONE tasks moved on harvest
     <sequential-number>-<descriptive-name>.md
 ```
 
-### Global file semantics (agent-oriented)
+Projects created before the per-entry ledger may still hold the legacy single files `global/decision-log.md`, `ledger/learnings.md` and a legacy delivery log section in `progress.md`: they are frozen (§ Ledger entries).
+
+### File semantics (agent-oriented)
 
 | File | Bootstrap fills | Notes |
 |------|-----------------|-------|
@@ -41,11 +44,12 @@ docs/memory/
 | `domain-glossary.md` | Yes | Terms + code location hints |
 | `system-patterns.md` | Yes | Architecture; § **Project-Specific Alterations** (custom payment, auth, etc.) — agents must not revert |
 | `tech-context.md` | Yes | Dev commands, env; § **Known Risks** |
-| `decision-log.md` | Yes | WHY for major alterations and bootstrap baseline |
 | `roadmap.md` | **No** | Seeded with GIST-informed template; filled by `/spine-roadmap`; `/spine-plan` sets Idea Bank `In Progress` + `roadmap_idea`; `/spine-harvest` marks `Done`; optional split-plan notes from `/spine-plan` |
-| `learnings.md` | Rarely at bootstrap | Incidents at `/spine-harvest` only |
+| `ledger/decisions/` | Yes (baseline entry) | WHY for major alterations; one entry per decision |
+| `ledger/learnings/` | Rarely at bootstrap | Incidents at `/spine-harvest` only |
+| `ledger/deliveries/` | No | One entry per `/spine-harvest` |
 
-`/spine-bootstrap` runs after `python3 .spine/scripts/spine.py install` and fills placeholders in `global/` plus `progress.md` Current state. It does **not** create `active_tasks/` files — use `/spine-plan`.
+`/spine-bootstrap` runs after `python3 .spine/scripts/spine.py install` and fills placeholders in `global/`, `progress.md` Current state and the baseline entry in `ledger/decisions/`. It does **not** create `active_tasks/` files — use `/spine-plan`.
 
 ## Access Rules (pragmatic)
 
@@ -57,7 +61,7 @@ docs/memory/
 | Task `## Execution notes` | `/spine-execute` writes; `/spine-harvest` reads | Appended when each fact happens (dated, typed, append-only); harvest only appends a destination marker (`→ LEARN-NNN`, `→ no promotion`, …) |
 | Task `## Execution evidence` | `/spine-execute` writes; `/spine-harvest` reads | Filled before `REVIEW` (tests executed, results, manual/external runs); harvest cites it in the delivery summary |
 | `completed_tasks/` | Executing agent | Written only at harvest (`git mv` from `active_tasks/`) |
-| `ledger/learnings.md` | Executing agent | At harvest when root cause / incident / rework recorded |
+| `ledger/decisions/`, `learnings/`, `deliveries/` | Executing agent | At harvest: new entry files (learnings when root cause / incident / rework recorded); `INDEX.md` only via `spine.py memory index` |
 
 ## Tiered SYNC (reading rules)
 
@@ -99,10 +103,10 @@ If a file does not exist, create it only if it is part of the current task flow.
 python3 .spine/scripts/spine.py memory digest
 ```
 
-It prints `progress.md` **Current state**, one line per open task (`NNN | STATUS | title — goal`), the `summary:` of each narrative file (or a capped outline marked `summary missing`), entry counts and newest titles of the log files, and Extended-tier pointers. The digest **is** the Core SYNC:
+It prints `progress.md` **Current state**, one line per open task (`NNN | STATUS | title — goal`), the `summary:` of each narrative file (or a capped outline marked `summary missing`), entry counts and newest titles of the ledger folders (plus any legacy log file), and Extended-tier pointers. The digest **is** the Core SYNC:
 
 1. Read the digest. Do not open full memory files by default.
-2. Open a full file only when the task needs it: the task file you execute or plan against, a narrative file whose area you change, a `decision-log.md` or `learnings.md` entry whose title the digest lists.
+2. Open a full file only when the task needs it: the task file you execute or plan against, a narrative file whose area you change, a ledger entry whose title the digest or a `ledger/<folder>/INDEX.md` row lists.
 3. **SETUP:** if the digest ends with a `SETUP:` block, first write `summary:` frontmatter for the listed files only (§ Narrative summaries), then continue the task. Files the block defers wait for later sessions.
 4. When you edit a narrative file, update its `summary:` in the same change.
 
@@ -113,7 +117,7 @@ It prints `progress.md` **Current state**, one line per open task (`NNN | STATUS
 3. `global/domain-glossary.md` (domain language — create lazily during `@grill-me` or `@spine-bootstrap` if missing)
 4. `global/system-patterns.md` (how to build)
 5. `global/tech-context.md` (constraints)
-6. `global/decision-log.md` (previous decisions)
+6. `ledger/decisions/INDEX.md` (previous decisions; legacy projects: `global/decision-log.md`)
 7. `ledger/progress.md` — **Current state** section only
 8. `active_tasks/` — open tasks only (files matching `^\d{3}-`; skip `_task-template.md`)
 
@@ -122,13 +126,14 @@ Measure the load on any project with `python3 .spine/scripts/spine.py memory sta
 ### Extended (planning, harvest, ambiguous scope)
 
 - `ledger/roadmap.md`
-- `ledger/progress.md` — full **Delivery log**
+- `ledger/deliveries/INDEX.md` — delivery history (open single entries as needed)
 
 ### On demand (debugging, recurrence, audits)
 
-- `ledger/learnings.md`
+- `ledger/learnings/INDEX.md`, then the entries it links
+- `ledger/decisions/INDEX.md` for decision history (skip rows marked superseded)
 - `completed_tasks/`
-- Grep task frontmatter (`tags:`) and ledger `**Tags:**` per `memory-tags-policy.md`
+- Grep task and ledger entry frontmatter (`tags:`) per `memory-tags-policy.md`
 
 After SYNC, before any code change, state:
 - Key assumptions about the task derived from the memory bank.
@@ -139,8 +144,8 @@ After SYNC, before any code change, state:
 
 Narrative files carry an agent-written `summary:` in YAML frontmatter; the digest shows it instead of the file.
 
-- **Narrative:** `global/*.md` except `decision-log.md`, plus any `ledger/*.md` other than `progress.md`, `learnings.md` and `roadmap.md`.
-- **Log files** (`decision-log.md`, `progress.md`, `learnings.md`) need no summary: the digest counts entries and lists the newest titles. `roadmap.md` stays Extended tier. Tasks use their existing frontmatter (`task_id`, `status`, `title`, `goal`).
+- **Narrative:** `global/*.md` and any `ledger/*.md` file other than `progress.md` and `roadmap.md` (the legacy single log files `global/decision-log.md` and `ledger/learnings.md` are not narrative).
+- **Ledger entries** (`ledger/decisions/`, `learnings/`, `deliveries/`) carry a one-line `summary:` each instead (§ Ledger entries); the digest counts them and lists the newest titles. `progress.md` holds only Current state; `roadmap.md` stays Extended tier. Tasks use their existing frontmatter (`task_id`, `status`, `title`, `goal`).
 
 ```yaml
 ---
@@ -155,6 +160,39 @@ summary: >-
 - A value starting with `[Fill in` (seeded template placeholder) counts as missing.
 - Write missing summaries only when a digest `SETUP:` block lists them; the block paces the one-time setup by a source budget per session.
 
+## Ledger entries
+
+Append-only memory is one Markdown file per entry, in three folders under `ledger/`. Agents read the digest, then a folder's `INDEX.md`, and open only the entries they need.
+
+| Folder | One file per | File name (`id:`) | Written by |
+|---|---|---|---|
+| `decisions/` | Architectural decision with its WHY | `YYYY-MM-DD-short-slug.md` (reference: `DEC YYYY-MM-DD-short-slug`) | `/spine-bootstrap` (baseline), `/spine-harvest` |
+| `learnings/` | Incident, rework or root cause | `LEARN-NNN-short-slug.md` (`id: LEARN-NNN`) | `/spine-harvest` |
+| `deliveries/` | Harvested task | `YYYY-MM-DD-NNN-task-slug.md` | `/spine-harvest` |
+
+Copy the folder's `_template.md`. Frontmatter:
+
+```yaml
+---
+id: 2026-11-12-memory-digest
+date: 2026-11-12
+title: Core SYNC reads the memory digest
+summary: Digest replaces full-file Core SYNC; narrative files carry summary frontmatter.
+tags:
+  - area/memory
+  - type/feature
+task: 018-memory-digest
+superseded_by:
+---
+```
+
+- `summary:` is required: one line, at most 160 chars. It is the entry's row in `INDEX.md`.
+- `superseded_by:` (decisions only): when a new decision replaces an older one, set it on the old entry to the new entry's `id`. `INDEX.md` marks the old row superseded so agents skip it.
+- Learning recurrences: append `- YYYY-MM-DD — task NNN-slug (brief)` under `**Recurrences:**` in the existing `LEARN-NNN` file instead of creating a new entry.
+- **INDEX.md** in each folder is generated from entry frontmatter: run `python3 .spine/scripts/spine.py memory index` after adding or editing entries; never edit it by hand. It is committed; the installer adds `docs/memory/ledger/*/INDEX.md merge=union` to `.gitattributes`, so parallel branches merge their new rows without conflict. Re-run `memory index` after a merge to restore order.
+- `spine_validate.py memory` warns on entries with a missing or over-160-char `summary:` and on a stale or missing `INDEX.md`.
+- **Legacy single files** — `global/decision-log.md`, `ledger/learnings.md` and the legacy delivery log section of `progress.md` — are frozen in projects created before the per-entry ledger: read them, never append to them. The digest labels them legacy; the recurrence check at harvest also searches a legacy `learnings.md`. `spine.py memory migrate` (planned) splits them into entries.
+
 ## Memory budgets
 
 `python3 .spine/scripts/spine_validate.py memory` measures the memory bank against fixed char budgets. Over-budget scopes print `WARNING:` lines (exit 0); only a missing `docs/memory/` is an error (exit 1).
@@ -164,11 +202,12 @@ summary: >-
 | `memory digest` total (Core SYNC) | 8,000 | Warning lists digest sections largest first |
 | `progress.md` § Current state | 1,500 | `/spine-harvest` compacts it |
 | Each narrative file body (frontmatter excluded) | 3,000 | Split or trim with human approval |
-| `decision-log.md` | 5,000 | Archive old entries (roadmap I6) |
-| `progress.md` (whole file) | 6,000 | Archive old entries (roadmap I6) |
-| `learnings.md` | 6,000 | Archive old entries (roadmap I6) |
+| Each ledger entry `summary:` | 160 | Validator names the files; also warns on a stale `INDEX.md` |
+| Legacy `decision-log.md` | 5,000 | Frozen; split with `spine.py memory migrate` |
+| `progress.md` whole file (legacy delivery log included) | 6,000 | Frozen legacy part; split with `spine.py memory migrate` |
+| Legacy `learnings.md` | 6,000 | Frozen; split with `spine.py memory migrate` |
 
-Task files, `roadmap.md` and `completed_tasks/` have no budget. The digest never shows budgets. `/spine-harvest` runs the validator, rewrites an over-budget Current state (which it owns) and reports every other warning as a follow-up. Never edit `global/` to meet a budget without showing the diff to the human first.
+Task files, `roadmap.md`, `completed_tasks/` and whole `INDEX.md` files have no budget (an index grows by one line per entry; agents search it). The digest never shows budgets. `/spine-harvest` runs the validator, rewrites an over-budget Current state (which it owns) and reports every other warning as a follow-up. Never edit `global/` to meet a budget without showing the diff to the human first.
 
 ## Template: active_tasks/_task-template.md
 
@@ -273,30 +312,9 @@ Execution sections (after `## Implementation Plan`; written by `/spine-execute`,
 - In flight: ...
 - Blocked: ...
 - Next: ...
-
-## Delivery log (newest first)
-### YYYY-MM-DD — Title
-**Task:** NNN-slug | **Branch:** feature/slug
-**Tags:** area/example, type/feature
-**Description:** ...
 ```
 
-## Template: ledger/learnings.md
-
-```markdown
-## LEARN-001 — Short slug title
-**First seen:** YYYY-MM-DD | **Task:** NNN-slug
-**Tags:** area/example, type/incident
-
-**Symptoms:** ...
-**Root cause:** ...
-**Detect early:** ...
-**Prevention:** ...
-**Regression test:** ...
-
-**Recurrences:**
-- YYYY-MM-DD — task NNN-slug (brief)
-```
+Deliveries, learnings and decisions are entry files: see § Ledger entries and each folder's `_template.md`.
 
 ## Template: completed_tasks/
 

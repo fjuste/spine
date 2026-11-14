@@ -23,7 +23,8 @@ EXTENDED = "extended"
 IGNORED = "ignored"
 
 MEMORY_DIR = Path("docs") / "memory"
-LOG_FILES = frozenset({"global/decision-log.md", "ledger/progress.md", "ledger/learnings.md"})
+# Legacy single log files: frozen, read-only (entries now live in ledger/<folder>/).
+LOG_FILES = frozenset({"global/decision-log.md", "ledger/progress.md", "ledger/learnings.md"})  # legacy
 EXTENDED_FILES = frozenset({"ledger/roadmap.md"})
 NARRATIVE_DIRS = ("global", "ledger")
 TASK_FILE_RE = re.compile(r"^\d{3}-.+\.md$")
@@ -411,8 +412,8 @@ def log_entries(relative: str, text: str) -> list[str]:
         Entry titles, placeholders removed, newest first.
     """
     if relative == "ledger/progress.md":
-        titles = _H3_RE.findall(_section(text, r"Delivery log") or "")
-    elif relative == "ledger/learnings.md":
+        titles = _H3_RE.findall(_section(text, r"Delivery log") or "")  # legacy section
+    elif relative == "ledger/learnings.md":  # legacy file
         titles = _LEARN_HEADING_RE.findall(text)
     else:
         titles = _H3_RE.findall(text) or _table_rows(text)
@@ -420,15 +421,265 @@ def log_entries(relative: str, text: str) -> list[str]:
     return newest_first(titles)
 
 
+LEGACY_LABEL = "(legacy file, frozen until migrate)"
+
+
+def _noun(count: int) -> str:
+    return "entry" if count == 1 else "entries"
+
+
 def _render_log(item: MemoryFile) -> list[str]:
+    """Render a legacy single log file; ``progress.md`` only when it still has a delivery log."""
+    is_progress = item.relative == "ledger/progress.md"
+    if is_progress and _section(item.text, r"Delivery log") is None:  # no legacy section
+        return []
     entries = log_entries(item.relative, item.text)
-    label = f"{item.relative} delivery log" if item.relative == "ledger/progress.md" else item.relative
-    noun = "entry" if len(entries) == 1 else "entries"
+    label = f"{item.relative} delivery log" if is_progress else item.relative  # legacy
     if not entries:
-        return [f"- {label}: 0 entries"]
-    lines = [f"- {label}: {len(entries)} {noun}; newest:"]
+        return [f"- {label}: 0 entries {LEGACY_LABEL}"]
+    lines = [f"- {label}: {len(entries)} {_noun(len(entries))} {LEGACY_LABEL}; newest:"]
     lines.extend(f"  - {_cap(title, LOG_TITLE_MAX_CHARS)}" for title in entries[:NEWEST_LOG_TITLES])
     return lines
+
+
+# =============================================================================
+# Ledger entries (ledger/<folder>/<entry>.md + generated INDEX.md)
+# =============================================================================
+
+LEDGER_DIR = "ledger"
+LEDGER_FOLDERS = ("decisions", "learnings", "deliveries")
+INDEX_NAME = "INDEX.md"
+TEMPLATE_PREFIX = "_"
+ENTRY_SUMMARY_MAX_CHARS = 160
+
+_RECURRENCES_RE = re.compile(r"^\*\*Recurrences:\*\*[ \t]*$", re.MULTILINE)
+_RECURRENCE_PLACEHOLDER_RE = re.compile(r"^-[ \t]+\(")
+
+
+def read_frontmatter_list(text: str, key: str) -> list[str]:
+    """Return a frontmatter list field (block ``- item`` list, ``[a, b]`` or a scalar).
+
+    Args:
+        text: Full file content (LF newlines).
+        key: Top-level frontmatter key, e.g. ``tags``.
+
+    Returns:
+        The items in order; empty when the key or the frontmatter is missing.
+    """
+    match = _FRONTMATTER_RE.match(text)
+    if not match:
+        return []
+    lines = match.group(1).split("\n")
+    for index, line in enumerate(lines):
+        key_match = _KEY_RE.match(line)
+        if not key_match or key_match.group(1) != key:
+            continue
+        value = key_match.group(2)
+        if value.startswith("[") and value.endswith("]"):
+            return [_unquote(item.strip()) for item in value[1:-1].split(",") if item.strip()]
+        if value:
+            return [_unquote(value)]
+        items: list[str] = []
+        for following in lines[index + 1:]:
+            stripped = following.strip()
+            if stripped.startswith("- "):
+                items.append(_unquote(stripped[2:].strip()))
+            elif stripped:
+                break
+        return items
+    return []
+
+
+def _count_recurrences(text: str) -> int:
+    match = _RECURRENCES_RE.search(text)
+    if not match:
+        return 0
+    count = 0
+    for line in text[match.end():].split("\n"):
+        stripped = line.strip()
+        if not stripped:
+            if count:
+                break
+            continue
+        if not stripped.startswith("- "):
+            break
+        if not _RECURRENCE_PLACEHOLDER_RE.match(stripped):
+            count += 1
+    return count
+
+
+@dataclass(frozen=True)
+class LedgerEntry:
+    """One entry file of a ledger folder (frontmatter view).
+
+    Args:
+        filename: File name inside the folder.
+        entry_id: ``id:`` (falls back to the file stem).
+        date: ``date:`` (ISO ``YYYY-MM-DD``; empty when missing).
+        title: ``title:`` (falls back to the file stem).
+        summary: ``summary:`` one-liner (empty when missing).
+        tags: ``tags:`` items.
+        task: ``task:`` (``NNN-slug``; empty when none).
+        superseded_by: ``superseded_by:`` id of the replacing decision.
+        recurrences: Items under ``**Recurrences:**`` (learnings).
+    """
+
+    filename: str
+    entry_id: str
+    date: str
+    title: str
+    summary: str
+    tags: tuple[str, ...]
+    task: str
+    superseded_by: str
+    recurrences: int
+
+
+def _is_entry_file(path: Path) -> bool:
+    return path.is_file() and path.suffix == ".md" and path.name != INDEX_NAME and not path.name.startswith(TEMPLATE_PREFIX)
+
+
+def read_entry(path: Path) -> LedgerEntry:
+    """Read one ledger entry file.
+
+    Args:
+        path: Entry Markdown file.
+
+    Returns:
+        The entry's frontmatter view.
+    """
+    text = read_text(path)
+    fields = read_frontmatter(text)
+    stem = path.stem
+    return LedgerEntry(
+        filename=path.name,
+        entry_id=fields.get("id", "").strip() or stem,
+        date=fields.get("date", "").strip(),
+        title=fields.get("title", "").strip() or stem,
+        summary=fields.get("summary", "").strip(),
+        tags=tuple(read_frontmatter_list(text, "tags")),
+        task=fields.get("task", "").strip(),
+        superseded_by=fields.get("superseded_by", "").strip(),
+        recurrences=_count_recurrences(strip_frontmatter(text)),
+    )
+
+
+def collect_entries(memory_dir: Path, folder: str) -> list[LedgerEntry]:
+    """Read every entry of ``ledger/<folder>/``, newest first.
+
+    ``INDEX.md``, ``_``-prefixed templates and non-Markdown files are skipped.
+
+    Args:
+        memory_dir: The ``docs/memory/`` directory.
+        folder: One of ``LEDGER_FOLDERS``.
+
+    Returns:
+        Entries sorted by date, then id, newest first; empty when the folder is missing.
+    """
+    directory = memory_dir / LEDGER_DIR / folder
+    if not directory.is_dir():
+        return []
+    entries = [read_entry(path) for path in directory.iterdir() if _is_entry_file(path)]
+    return sorted(entries, key=lambda entry: (entry.date, entry.entry_id), reverse=True)
+
+
+def _render_ledger_folders(memory_dir: Path) -> list[str]:
+    """Render one digest block per existing ledger folder (count + newest titles)."""
+    lines: list[str] = []
+    for folder in LEDGER_FOLDERS:
+        if not (memory_dir / LEDGER_DIR / folder).is_dir():
+            continue
+        entries = collect_entries(memory_dir, folder)
+        label = f"- {LEDGER_DIR}/{folder}/: {len(entries)} {_noun(len(entries))}"
+        if not entries:
+            lines.append(label)
+            continue
+        superseded = sum(1 for entry in entries if entry.superseded_by)
+        if superseded:
+            label += f" ({superseded} superseded)"
+        lines.append(f"{label}, see {INDEX_NAME}; newest:")
+        for entry in entries[:NEWEST_LOG_TITLES]:
+            head = entry.entry_id if folder == "learnings" else entry.date
+            lines.append(f"  - {_cap(f'{head} — {entry.title}', LOG_TITLE_MAX_CHARS)}")
+    return lines
+
+
+INDEX_NOTE = "Generated by `spine.py memory index` from entry frontmatter, newest first. Do not edit by hand."
+INDEX_HEADINGS = {"decisions": "Decisions", "learnings": "Learnings", "deliveries": "Deliveries"}
+INDEX_COLUMNS = {
+    "decisions": ("Date", "Decision", "Status", "Tags", "Summary"),
+    "learnings": ("ID", "Title", "Tags", "Recurrences", "Summary"),
+    "deliveries": ("Date", "Delivery", "Task", "Tags", "Summary"),
+}
+ACTIVE_STATUS = "active"
+
+
+def _cell(text: str) -> str:
+    return " ".join(text.split()).replace("|", "\\|")
+
+
+def _index_row(folder: str, entry: LedgerEntry) -> tuple[str, ...]:
+    link = f"[{_cell(entry.title)}]({entry.filename})"
+    tags = _cell(", ".join(entry.tags))
+    summary = _cell(entry.summary)
+    if folder == "decisions":
+        target = entry.superseded_by
+        status = f"superseded by [{_cell(target)}]({target}.md)" if target else ACTIVE_STATUS
+        return (entry.date, link, status, tags, summary)
+    if folder == "learnings":
+        return (_cell(entry.entry_id), link, tags, str(entry.recurrences), summary)
+    return (entry.date, link, _cell(entry.task), tags, summary)
+
+
+def render_index(folder: str, entries: list[LedgerEntry]) -> str:
+    """Render ``INDEX.md`` for one ledger folder.
+
+    Args:
+        folder: One of ``LEDGER_FOLDERS``.
+        entries: Entries as returned by :func:`collect_entries` (newest first).
+
+    Returns:
+        Markdown with a heading, a do-not-edit note and one table row per entry.
+    """
+    columns = INDEX_COLUMNS[folder]
+    lines = [
+        f"# {INDEX_HEADINGS[folder]}",
+        "",
+        INDEX_NOTE,
+        "",
+        "| " + " | ".join(columns) + " |",
+        "|" + "---|" * len(columns),
+    ]
+    lines += ["| " + " | ".join(_index_row(folder, entry)) + " |" for entry in entries]
+    return "\n".join(lines) + "\n"
+
+
+def index_path(memory_dir: Path, folder: str) -> Path:
+    """Return ``docs/memory/ledger/<folder>/INDEX.md``."""
+    return memory_dir / LEDGER_DIR / folder / INDEX_NAME
+
+
+def write_indexes(root: Path) -> list[Path]:
+    """Regenerate ``INDEX.md`` in every existing ledger folder.
+
+    Args:
+        root: Project root that contains ``docs/memory/``.
+
+    Returns:
+        Index files whose content changed (missing folders are skipped, never created).
+    """
+    memory_dir = root / MEMORY_DIR
+    written: list[Path] = []
+    for folder in LEDGER_FOLDERS:
+        path = index_path(memory_dir, folder)
+        if not path.parent.is_dir():
+            continue
+        content = render_index(folder, collect_entries(memory_dir, folder))
+        if path.is_file() and read_text(path) == content:
+            continue
+        path.write_text(content, encoding="utf-8")
+        written.append(path)
+    return written
 
 
 # =============================================================================
@@ -530,11 +781,11 @@ def build_digest(root: Path, budget: int = DEFAULT_SETUP_BUDGET_CHARS) -> str:
         lines += ["(none)", ""]
 
     lines.append("## Logs")
-    logs = [item for item in files if item.kind == LOG]
-    for item in logs:
-        lines += _render_log(item)
-    if not logs:
-        lines.append("(none)")
+    log_lines = _render_ledger_folders(memory_dir)
+    for item in files:
+        if item.kind == LOG:
+            log_lines += _render_log(item)
+    lines += log_lines or ["(none)"]
 
     lines += ["", "## Extended tier (read when planning, harvesting or when scope is ambiguous)"]
     for item in files:
@@ -651,7 +902,7 @@ def run_memory(action: str, project_root: str | None, budget: int) -> int:
     """Run ``spine.py memory <action>``.
 
     Args:
-        action: ``stats`` or ``digest``.
+        action: ``stats``, ``digest`` or ``index``.
         project_root: ``--project-root`` value, or None for the git toplevel.
         budget: SETUP source budget in chars.
 
@@ -664,6 +915,12 @@ def run_memory(action: str, project_root: str | None, budget: int) -> int:
         return exc.code
     if action == "stats":
         sys.stdout.write(render_stats(collect_stats(root, budget)))
+    elif action == "index":
+        written = write_indexes(root)
+        for path in written:
+            sys.stdout.write(f"Updated: {path.relative_to(root).as_posix()}\n")
+        if not written:
+            sys.stdout.write("Ledger INDEX.md files are up to date.\n")
     else:
         sys.stdout.write(build_digest(root, budget))
     return 0
@@ -677,14 +934,14 @@ DIGEST_BUDGET_CHARS = 8_000
 CURRENT_STATE_BUDGET_CHARS = 1_500
 NARRATIVE_BODY_BUDGET_CHARS = 3_000
 LOG_BUDGET_CHARS = {
-    "global/decision-log.md": 5_000,
+    "global/decision-log.md": 5_000,  # legacy
     "ledger/progress.md": 6_000,
-    "ledger/learnings.md": 6_000,
+    "ledger/learnings.md": 6_000,  # legacy
 }
 DIGEST_SCOPE = "memory digest (Core SYNC)"
 CURRENT_STATE_SCOPE = f"{MEMORY_DIR.as_posix()}/ledger/progress.md § Current state"
 CURRENT_STATE_HINT = "compact Current state at /spine-harvest"
-LOG_HINT = "archive old entries (roadmap I6)"
+LOG_HINT = "legacy file, frozen — split it into ledger entries with spine.py memory migrate (roadmap I25)"
 NARRATIVE_HINT = "split or trim with human approval"
 SETUP_LABEL = "SETUP"
 
@@ -767,4 +1024,65 @@ def check_budgets(root: Path) -> list[BudgetCheck]:
         elif item.kind == NARRATIVE:
             body = len(strip_frontmatter(item.text))
             checks.append(BudgetCheck(scope, body, NARRATIVE_BODY_BUDGET_CHARS, NARRATIVE_HINT))
+    return checks
+
+
+# =============================================================================
+# Ledger checks (read by ``spine_validate.py memory``)
+# =============================================================================
+
+INDEX_CMD = "python3 .spine/scripts/spine.py memory index"
+PROBLEM_FILES_SHOWN = 5
+
+
+@dataclass(frozen=True)
+class LedgerCheck:
+    """Health of one ledger folder.
+
+    Args:
+        scope: Folder path such as ``docs/memory/ledger/decisions/``.
+        entries: Number of entry files.
+        problems: One message per problem kind (empty when healthy).
+    """
+
+    scope: str
+    entries: int
+    problems: tuple[str, ...]
+
+
+def _file_list(entries: list[LedgerEntry]) -> str:
+    names = [entry.filename for entry in entries[:PROBLEM_FILES_SHOWN]]
+    more = len(entries) - len(names)
+    return ", ".join(names) + (f" (+{more} more)" if more else "")
+
+
+def check_ledger(root: Path) -> list[LedgerCheck]:
+    """Check entry summaries and INDEX.md freshness in every existing ledger folder.
+
+    Args:
+        root: Project root that contains ``docs/memory/``.
+
+    Returns:
+        One check per existing ledger folder, in ``LEDGER_FOLDERS`` order.
+    """
+    memory_dir = root / MEMORY_DIR
+    checks: list[LedgerCheck] = []
+    for folder in LEDGER_FOLDERS:
+        path = index_path(memory_dir, folder)
+        if not path.parent.is_dir():
+            continue
+        entries = collect_entries(memory_dir, folder)
+        problems: list[str] = []
+        missing = [entry for entry in entries if not entry.summary]
+        if missing:
+            problems.append(f"{len(missing)} {_noun(len(missing))} without `summary:` — {_file_list(missing)}")
+        long = [entry for entry in entries if len(entry.summary) > ENTRY_SUMMARY_MAX_CHARS]
+        if long:
+            problems.append(f"{len(long)} `summary:` over {ENTRY_SUMMARY_MAX_CHARS} chars — {_file_list(long)}")
+        if not path.is_file():
+            problems.append(f"{INDEX_NAME} missing — run {INDEX_CMD}")
+        elif read_text(path) != render_index(folder, entries):
+            problems.append(f"{INDEX_NAME} is stale — run {INDEX_CMD}")
+        scope = f"{MEMORY_DIR.as_posix()}/{LEDGER_DIR}/{folder}/"
+        checks.append(LedgerCheck(scope, len(entries), tuple(problems)))
     return checks

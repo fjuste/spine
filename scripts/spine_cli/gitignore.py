@@ -153,6 +153,27 @@ def ensure_gitignore_line(project: Path, entry: str, log: Log) -> None:
     print(f"    added '{entry}' to .gitignore")
 
 
+def ensure_gitattributes_line(project: Path, entry: str, log: Log) -> None:
+    """Append ``entry`` to ``.gitattributes`` when the exact line is absent.
+
+    Args:
+        project: Consumer project root.
+        entry: Attribute line, e.g. ``docs/memory/ledger/*/INDEX.md merge=union``.
+        log: Progress logger.
+    """
+    gitattributes = project / ".gitattributes"
+    if log.dry_run:
+        log.dry(f"Would add '{entry}' to .gitattributes")
+        return
+    lines = _read_lines(gitattributes)
+    if _exact_present(lines, entry):
+        log.skip(f".gitattributes: {entry} (already present)")
+        return
+    lines.append(entry)
+    _write_lines(gitattributes, lines)
+    log.plus(f".gitattributes: +{entry}")
+
+
 def remove_gitignore_line(project: Path, entry: str, log: Log) -> None:
     """Remove every line equal to ``entry``.
 

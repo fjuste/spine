@@ -39,46 +39,51 @@ Act as a Tech Lead and Knowledge Manager.
 
       | Note type | Destination |
       |---|---|
-      | `incident`, `rework` | `docs/memory/ledger/learnings.md` (step 4b) — grep existing entries by **tags** + symptoms first; append to **Recurrences** on a match, otherwise create a new `LEARN-NNN` |
-      | `decision` | `docs/memory/global/decision-log.md` only when **all three** `@grill-me` criteria hold (hard to reverse, surprising without context, result of a real trade-off); otherwise no promotion |
+      | `incident`, `rework` | `docs/memory/ledger/learnings/` (step 4b) — search `ledger/learnings/INDEX.md` by **tags** + symptoms first; append to **Recurrences** of the matching entry, otherwise create a new `LEARN-NNN` entry |
+      | `decision` | New entry in `docs/memory/ledger/decisions/` (step 4c) only when **all three** `@grill-me` criteria hold (hard to reverse, surprising without context, result of a real trade-off); otherwise no promotion |
       | `environment` | `docs/memory/global/tech-context.md` § **Known Risks** when it is a risk; otherwise no promotion |
       | `out-of-scope` | `docs/memory/global/product-context.md` § **Known Opportunities (unplanned)**, or a new task suggested to the human (do not create it) |
-      | `deviation` | Stays in the task; summarize in the delivery summary. Promote to `learnings.md` only when it exposes a recurring planning gap |
+      | `deviation` | Stays in the task; summarize in the delivery summary. Promote to a `ledger/learnings/` entry only when it exposes a recurring planning gap |
       | `resume` | No promotion — temporary state, superseded once execution continued |
       | Any note that names a new canonical domain term | `docs/memory/global/domain-glossary.md` |
       | Any note that establishes a reusable pattern | `docs/memory/global/system-patterns.md` |
 
-    - Mark the destination on the note itself by appending it to the end of the entry: `→ LEARN-023`, `→ LEARN-007 recurrence`, `→ decision-log 2026-11-11`, `→ domain-glossary`, `→ system-patterns`, `→ tech-context Known Risks`, `→ Known Opportunities`, `→ suggested task`, `→ no promotion`. This marker is the only edit harvest makes to existing notes — never rewrite their content.
+    - Mark the destination on the note itself by appending it to the end of the entry: `→ LEARN-023`, `→ LEARN-007 recurrence`, `→ DEC 2026-11-11-short-slug`, `→ domain-glossary`, `→ system-patterns`, `→ tech-context Known Risks`, `→ Known Opportunities`, `→ suggested task`, `→ no promotion`. This marker is the only edit harvest makes to existing notes — never rewrite their content.
     - A note `No deviations from plan.` needs no routing.
     - **Legacy task** (no `## Execution notes` / `## Execution evidence`): proceed as before (task body, git log, current session) and state in the harvest summary that the execution record was missing.
 
 4. **Memory Bank Update:**
 
-   **4a. `docs/memory/ledger/progress.md`**
-   - Refresh **Current state** (short bullet list).
-   - **Append** one delivery log block at the top of **Delivery log (newest first)** — do not rewrite history:
-     - `### YYYY-MM-DD — Title` (from frontmatter `title` or task slug)
-     - `**Task:** NNN-slug | **Branch:**` from frontmatter
-     - `**Tags:**` — flatten frontmatter `tags` list to comma-separated (per `docs/governance/memory-tags-policy.md`)
-     - `**Description:**` — concise delivery summary that cites the execution evidence: tests executed and results, plus manual/external runs (who, when, where the raw output lives) from `## Execution evidence`
+   Entries are one file each (`02-memory-bank.md` § Ledger entries): copy the folder's `_template.md`, fill the frontmatter (`summary:` is one line of at most 160 chars) and create the file. Never read or append to a legacy single file (`global/decision-log.md`, `ledger/learnings.md`, the legacy delivery log section of `progress.md`).
 
-   **4a.1 Memory budgets** (after 4a; see `02-memory-bank.md` § Memory budgets)
-   - Run `python3 .spine/scripts/spine_validate.py memory` from the project root. Warnings never block harvest (exit 0); an `ERROR:` means `docs/memory/` is missing.
-   - **Current state over budget:** rewrite the **Current state** block of `progress.md` to fit (keep In flight / Blocked / Next; drop delivered detail that the delivery log already holds), then re-run the validator.
-   - **Every other warning** (digest total, log files, narrative files): do not fix it here. List it in the step 7 summary as a follow-up — log files → roadmap I6 (archive), open-task list → close or harvest stale tasks (I5), narrative files → the human.
-   - Never edit `global/` to meet a budget without showing the diff to the human and getting approval first.
+   **4a. Delivery entry and Current state**
+   - Create `docs/memory/ledger/deliveries/YYYY-MM-DD-NNN-task-slug.md`:
+     - `id:` the file stem; `date:` today; `title:` from task frontmatter `title`; `task:` `NNN-slug`
+     - `tags:` copied from task frontmatter (per `docs/governance/memory-tags-policy.md`)
+     - `summary:` one line: what was delivered
+     - Body: `**Branch:**` from frontmatter; `**Description:**` — concise delivery summary that cites the execution evidence: tests executed and results, plus manual/external runs (who, when, where the raw output lives) from `## Execution evidence`
+   - Refresh **Current state** in `docs/memory/ledger/progress.md` (short bullet list).
 
-   **4b. `docs/memory/ledger/learnings.md`** (when `## Execution notes` holds `incident` / `rework` entries routed in step 3.7, or the task recorded root cause, incident, or rework elsewhere)
-   - Before new `LEARN-NNN`, grep existing entries by **tags** + symptoms per `memory-tags-policy.md`.
-   - Add new `LEARN-NNN` or append to **Recurrences** on matching entry.
+   **4b. Learning entries** (when `## Execution notes` holds `incident` / `rework` entries routed in step 3.7, or the task recorded root cause, incident, or rework elsewhere)
+   - Before a new `LEARN-NNN`, search `docs/memory/ledger/learnings/INDEX.md` by **tags** + symptoms per `memory-tags-policy.md`; in a project that still has a legacy `ledger/learnings.md`, search it too.
+   - On a match, append `- YYYY-MM-DD — task NNN-slug (brief)` under **Recurrences** in that entry file. Otherwise create `docs/memory/ledger/learnings/LEARN-NNN-short-slug.md` with the next free number (highest `LEARN-NNN` in the index or the legacy file, plus one).
    - **Tags** required on new entries; copy from task frontmatter, refine if needed.
    - Mirror one-line pointer in task Delivery summary body.
 
-    **4c. Unchanged when applicable (apply the routing decided in step 3.7):**
-    - `docs/memory/global/decision-log.md` — architectural decisions only.
+    **4c. Decision entries and global files (apply the routing decided in step 3.7):**
+    - Architectural decisions only: create `docs/memory/ledger/decisions/YYYY-MM-DD-short-slug.md` (Context, Decision, Why, Alternatives considered, Consequences).
+    - When the new decision replaces an earlier one, set `superseded_by:` on the earlier entry to the new entry's `id` (search `ledger/decisions/INDEX.md`).
     - `docs/memory/global/domain-glossary.md` — canonical terms promoted during discovery or delivery.
     - `docs/memory/global/system-patterns.md` — new patterns established.
-    - `## Implementation Plan` in the task body is not copied to the delivery log (summary uses frontmatter `title`, `tags`, and delivery description only).
+    - `## Implementation Plan` in the task body is not copied to the delivery entry (it uses frontmatter `title`, `tags`, and the delivery description only).
+
+    **4c.1 Ledger index and memory budgets** (see `02-memory-bank.md` § Ledger entries and § Memory budgets)
+    - Run `python3 .spine/scripts/spine.py memory index` from the project root to regenerate the `INDEX.md` files; never edit them by hand.
+    - Run `python3 .spine/scripts/spine_validate.py memory`. Warnings never block harvest (exit 0); an `ERROR:` means `docs/memory/` is missing.
+    - **Entry warnings** (missing or over-160-char `summary:`, stale `INDEX.md`) on entries written in this harvest: fix them now and re-run both commands.
+    - **Current state over budget:** rewrite the **Current state** block of `progress.md` to fit (keep In flight / Blocked / Next; drop delivered detail that the delivery entries already hold), then re-run the validator.
+    - **Every other warning** (digest total, legacy log files, narrative files, older entries): do not fix it here. List it in the step 7 summary as a follow-up — legacy log files → `spine.py memory migrate`, open-task list → close or harvest stale tasks, narrative files → the human.
+    - Never edit `global/` to meet a budget without showing the diff to the human and getting approval first.
 
      **4d. Roadmap lifecycle update (when `roadmap_idea` is set):**
      - Read `docs/memory/ledger/roadmap.md`.
@@ -117,4 +122,4 @@ Act as a Tech Lead and Knowledge Manager.
    - Merge only a valid `feature/<descriptive-name>` branch into `develop`.
    - Remove the local feature branch.
 
-7. **Summary:** Present a concise summary of what was learned and improved in the project. When step 3.5 ran (or was skipped/failed), include Graphify refresh status and whether `graphify query` was used during delivery exploration. When step 3.6 ran (or was skipped/failed), include MkDocs build status. Report the execution record outcome from step 3.7: how many notes were promoted and where, or that a legacy task had no `## Execution notes` / `## Execution evidence` (missing). When step 4d ran, report whether the Idea Bank row was updated and to which Status (`Done` / `In Progress` / missing), and note that `/spine-roadmap --review` was suggested for ICE re-score. Report the memory budget outcome from step 4a.1: whether Current state was compacted, and each remaining `WARNING:` as a follow-up (scope, chars, limit, suggested owner).
+7. **Summary:** Present a concise summary of what was learned and improved in the project. When step 3.5 ran (or was skipped/failed), include Graphify refresh status and whether `graphify query` was used during delivery exploration. When step 3.6 ran (or was skipped/failed), include MkDocs build status. Report the execution record outcome from step 3.7: how many notes were promoted and where, or that a legacy task had no `## Execution notes` / `## Execution evidence` (missing). When step 4d ran, report whether the Idea Bank row was updated and to which Status (`Done` / `In Progress` / missing), and note that `/spine-roadmap --review` was suggested for ICE re-score. Report the memory budget outcome from step 4c.1: whether Current state was compacted, and each remaining `WARNING:` as a follow-up (scope, chars, limit, suggested owner).

@@ -509,16 +509,18 @@ Operational source of truth: `docs/memory/` (Markdown in git). Tag policy: `docs
 
 ```text
 docs/memory/
-  global/              # Stable context (brief, glossary, patterns, decisions)
+  global/              # Stable narrative (brief, product, glossary, patterns, tech context)
   ledger/
     roadmap.md        # GIST-informed: Goals + Idea Bank with ICE scoring (optional; filled by /spine-roadmap)
-    progress.md        # Current state + append-only delivery log
-    learnings.md       # Recurrence registry (LEARN-NNN)
+    progress.md        # Current state only
+    decisions/         # One file per decision + generated INDEX.md
+    learnings/         # One file per LEARN-NNN + generated INDEX.md
+    deliveries/        # One file per harvested delivery + generated INDEX.md
   active_tasks/        # Open work (PLANNING | IN_PROGRESS | REVIEW)
   completed_tasks/     # DONE tasks (moved at harvest via git mv)
 ```
 
-**Task files** use Obsidian-style YAML frontmatter (`tags`, `status`, `goal`, `branch`, `base`, …). Reference template: `templates/docs/memory/active_tasks/_task-template.md`. Optional `## Implementation Plan` holds bite-sized Task/Step detail for `/spine-execute`. Two sections follow it: `## Execution notes` (dated, typed, append-only entries written by `/spine-execute` when each deviation, incident, rework, decision, out-of-scope finding, or environment fact happens, plus a `resume` entry when execution stops midway — or `No deviations from plan.`) and `## Execution evidence` (tests executed, results, manual/external runs; never secrets). `/spine-harvest` reads both as its primary source, so it can run in a new session, and marks each note with its destination (`→ LEARN-NNN`, `→ decision-log YYYY-MM-DD`, `→ no promotion`).
+**Task files** use Obsidian-style YAML frontmatter (`tags`, `status`, `goal`, `branch`, `base`, …). Reference template: `templates/docs/memory/active_tasks/_task-template.md`. Optional `## Implementation Plan` holds bite-sized Task/Step detail for `/spine-execute`. Two sections follow it: `## Execution notes` (dated, typed, append-only entries written by `/spine-execute` when each deviation, incident, rework, decision, out-of-scope finding, or environment fact happens, plus a `resume` entry when execution stops midway — or `No deviations from plan.`) and `## Execution evidence` (tests executed, results, manual/external runs; never secrets). `/spine-harvest` reads both as its primary source, so it can run in a new session, and marks each note with its destination (`→ LEARN-NNN`, `→ DEC YYYY-MM-DD-slug`, `→ no promotion`).
 
 Validate a task file manually: `python3 .spine/scripts/spine_validate.py task docs/memory/active_tasks/NNN-name.md`. `/spine-plan` runs this automatically before the approval gate (structure only, not plan quality).
 
@@ -527,14 +529,16 @@ Validate a task file manually: `python3 .spine/scripts/spine_validate.py task do
 | Tier | When | Read |
 |------|------|------|
 | Core | Every session | `spine.py memory digest` (fallback: global 1–6, progress Current state, open `active_tasks/`) |
-| Extended | Plan, harvest, ambiguous scope | `roadmap.md`, full delivery log |
-| On demand | Debugging, recurrence | `learnings.md`, `completed_tasks/` |
+| Extended | Plan, harvest, ambiguous scope | `roadmap.md`, `ledger/deliveries/INDEX.md` |
+| On demand | Debugging, recurrence | `ledger/learnings/INDEX.md`, `ledger/decisions/INDEX.md`, `completed_tasks/` |
 
-**Memory digest** (Core SYNC): `python3 .spine/scripts/spine.py memory digest` prints a compact view of `docs/memory/` — Current state, one line per open task, each narrative file's `summary:` frontmatter (outline when missing), log entry counts with the newest 5 titles, Extended-tier pointers. Output goes to stdout only; nothing is written. When summaries are missing, a closing `SETUP:` block asks the agent to write them for a few files per session (largest first, `--budget` source chars, default 60,000), so existing projects set up over their next sessions without a migration step. `python3 .spine/scripts/spine.py memory stats` prints chars per memory file, the legacy Core SYNC total and the digest size. Both accept `--project-root=PATH`.
+**Ledger entries:** decisions, learnings and deliveries are one Markdown file per entry under `docs/memory/ledger/{decisions,learnings,deliveries}/`, each with frontmatter (`id`, `date`, `title`, a one-line `summary:` of at most 160 chars, `tags`, `task`; `superseded_by` for decisions). `python3 .spine/scripts/spine.py memory index` regenerates each folder's committed `INDEX.md`; the installer adds `docs/memory/ledger/*/INDEX.md merge=union` to `.gitattributes` so parallel harvests merge cleanly. Agents read the index and open only the entries they need. Projects created earlier keep their legacy single files (`global/decision-log.md`, `ledger/learnings.md`, the legacy delivery log in `progress.md`) frozen until `spine.py memory migrate` splits them. Spec: `rules/02-memory-bank.md` § Ledger entries.
 
-**Memory budgets:** `python3 .spine/scripts/spine_validate.py memory` warns (exit 0) when the digest exceeds 8,000 chars, Current state 1,500, a narrative file body 3,000, `decision-log.md` 5,000, or `progress.md`/`learnings.md` 6,000. `/spine-harvest` compacts Current state and reports the other warnings as follow-ups. Limits: `rules/02-memory-bank.md` § Memory budgets.
+**Memory digest** (Core SYNC): `python3 .spine/scripts/spine.py memory digest` prints a compact view of `docs/memory/` — Current state, one line per open task, each narrative file's `summary:` frontmatter (outline when missing), ledger entry counts with the newest 5 titles, Extended-tier pointers. Output goes to stdout only; nothing is written. When summaries are missing, a closing `SETUP:` block asks the agent to write them for a few files per session (largest first, `--budget` source chars, default 60,000), so existing projects set up over their next sessions without a migration step. `python3 .spine/scripts/spine.py memory stats` prints chars per memory file, the legacy Core SYNC total and the digest size. Both accept `--project-root=PATH`.
 
-**Harvest** (`/spine-harvest`): route `## Execution notes` to learnings, decision log, glossary, patterns, Known Risks, or Known Opportunities; append delivery log entry (with **Tags**, citing `## Execution evidence`), update `learnings.md` when applicable, set frontmatter `status: DONE`, `git mv` task to `completed_tasks/`. When the task has `roadmap_idea`, update that Idea Bank row to `Done` (or keep `In Progress` if other open linked tasks remain); suggest `/spine-roadmap --review` for ICE re-score.
+**Memory budgets:** `python3 .spine/scripts/spine_validate.py memory` warns (exit 0) when the digest exceeds 8,000 chars, Current state 1,500, a narrative file body 3,000 or a ledger entry `summary:` 160, when an `INDEX.md` is stale, and when a legacy `decision-log.md` (5,000) or `progress.md`/`learnings.md` (6,000) grows past its budget. `/spine-harvest` compacts Current state and reports the other warnings as follow-ups. Limits: `rules/02-memory-bank.md` § Memory budgets.
+
+**Harvest** (`/spine-harvest`): route `## Execution notes` to learning or decision entries, glossary, patterns, Known Risks, or Known Opportunities; write the delivery entry in `ledger/deliveries/` (with tags, citing `## Execution evidence`), refresh Current state, run `spine.py memory index`, set frontmatter `status: DONE`, `git mv` task to `completed_tasks/`. When the task has `roadmap_idea`, update that Idea Bank row to `Done` (or keep `In Progress` if other open linked tasks remain); suggest `/spine-roadmap --review` for ICE re-score.
 
 **Migration from v2.0:** Run `python3 .spine/scripts/spine.py update` (or `/spine-update` if slash commands exist), seed missing templates via `python3 .spine/scripts/spine.py install --update`, manually move DONE files from `active_tasks/` to `completed_tasks/`, optionally restructure `progress.md` (preserve legacy content under a heading).
 
@@ -602,9 +606,10 @@ flowchart TD
   - avoid new abstractions without at least two real use cases;
   - record relevant technical decisions.
 - Before closing the task (`/spine-harvest`):
-  - append delivery log in `docs/memory/ledger/progress.md` (with **Tags**);
-  - register recurrences in `docs/memory/ledger/learnings.md` when applicable;
-  - record decisions in `docs/memory/global/decision-log.md`;
+  - write the delivery entry in `docs/memory/ledger/deliveries/` and refresh Current state in `docs/memory/ledger/progress.md`;
+  - add or update `docs/memory/ledger/learnings/` entries when applicable;
+  - record decisions as `docs/memory/ledger/decisions/` entries;
+  - run `python3 .spine/scripts/spine.py memory index`;
   - move task to `docs/memory/completed_tasks/`.
 
 ## Monthly Maintenance
@@ -632,7 +637,7 @@ flowchart TD
 
 **v2.1.0** — Memory Bank v2.1.
 
-- `completed_tasks/`, `ledger/learnings.md`, structured delivery log in `progress.md`
+- `completed_tasks/`, `ledger/learnings.md` and a structured delivery log in `progress.md` (now the legacy layout)
 - Obsidian-style task frontmatter and `memory-tags-policy.md`
 - Tiered SYNC; OpenCode `ask` agent in template; native Plan input via `/spine-plan`
 

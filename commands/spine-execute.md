@@ -46,7 +46,7 @@ Act as a Software Engineer focused on rigorous implementation.
    - `deviation` — what changed relative to the plan and why. If the change **contradicts** the plan (acceptance criteria, scope, or approach), record it and **STOP** for the human before continuing.
    - `incident` — symptom, root cause, fix.
    - `rework` — what was redone and why.
-   - `decision` — choice made during execution and its reason (decision-log candidate; harvest decides).
+   - `decision` — choice made during execution and its reason (candidate for a `ledger/decisions/` entry; harvest decides).
    - `out-of-scope` — improvement found and not done (see step 9).
    - `environment` — fact discovered about infrastructure or an external service.
    - `resume` — resume point; see next bullet.

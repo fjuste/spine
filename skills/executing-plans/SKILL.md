@@ -65,7 +65,7 @@ After all work passes tests:
 2. Record in `## Execution evidence`: **Tests executed** and **Test results** (plus manual/external runs when any)
 3. Confirm `## Execution notes` holds the dated entries written during execution, or the single line `No deviations from plan.`
 4. Stop — do **not** merge, harvest, or move to `completed_tasks/`
-5. User runs `/spine-harvest` for delivery log, learnings, and `git mv`
+5. User runs `/spine-harvest` for the delivery, learning and decision entries, and `git mv`
 
 **Do not use** `superpowers:finishing-a-development-branch`. Spine owns closure via `/spine-harvest`.
 

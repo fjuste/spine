@@ -1,9 +1,9 @@
 # Progress
 
 ## Current state
-- In flight: none. 020-memory-budgets delivered (2026-11-14): `spine_validate.py memory` warns when the digest, Current state, a narrative body or a log file exceeds its budget; `/spine-harvest` step 4a.1 compacts Current state and reports the rest.
+- In flight: none. 021-per-entry-ledger delivered (2026-11-14): decisions, learnings and deliveries are one file per entry in `ledger/{decisions,learnings,deliveries}/` with a generated `INDEX.md` (`spine.py memory index`); new entries go there. `global/decision-log.md`, `ledger/learnings.md` and the delivery log below are legacy and frozen.
 - Blocked: nothing.
-- Next: plan two tasks for the per-entry ledger agreed 2026-11-14 — (1) `ledger/{decisions,learnings,deliveries}/` with one file per entry plus a script-generated, committed `INDEX.md`; `decision-log.md` moves from `global/` to `ledger/`; `progress.md` keeps only Current state; (2) `spine.py memory migrate`. Replaces the I6 archive approach; recalibrate the 3,000-char narrative budget there. Candidate task: `vendor` refuses the Spine repo as project.
+- Next: plan the migrate task (`spine.py memory migrate`: split legacy files into entries, mechanical `summary:`, dry run by default, report unparsed text) — roadmap I25 stays In Progress until it ships. Then `/spine-roadmap --review` (I5/I6 vs I25; recalibrate the 3,000-char narrative budget). Candidate task: `vendor` refuses the Spine repo as project.
 - Legacy sections below (`O que funciona` … `Issues Conhecidos`) predate Memory Bank v2.1 and are kept for history.
 
 ## O que funciona
