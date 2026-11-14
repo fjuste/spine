@@ -432,6 +432,147 @@ def _render_log(item: MemoryFile) -> list[str]:
 
 
 # =============================================================================
+# Ledger entries (ledger/<folder>/<entry>.md + generated INDEX.md)
+# =============================================================================
+
+LEDGER_DIR = "ledger"
+LEDGER_FOLDERS = ("decisions", "learnings", "deliveries")
+INDEX_NAME = "INDEX.md"
+TEMPLATE_PREFIX = "_"
+ENTRY_SUMMARY_MAX_CHARS = 160
+
+_RECURRENCES_RE = re.compile(r"^\*\*Recurrences:\*\*[ \t]*$", re.MULTILINE)
+_RECURRENCE_PLACEHOLDER_RE = re.compile(r"^-[ \t]+\(")
+
+
+def read_frontmatter_list(text: str, key: str) -> list[str]:
+    """Return a frontmatter list field (block ``- item`` list, ``[a, b]`` or a scalar).
+
+    Args:
+        text: Full file content (LF newlines).
+        key: Top-level frontmatter key, e.g. ``tags``.
+
+    Returns:
+        The items in order; empty when the key or the frontmatter is missing.
+    """
+    match = _FRONTMATTER_RE.match(text)
+    if not match:
+        return []
+    lines = match.group(1).split("\n")
+    for index, line in enumerate(lines):
+        key_match = _KEY_RE.match(line)
+        if not key_match or key_match.group(1) != key:
+            continue
+        value = key_match.group(2)
+        if value.startswith("[") and value.endswith("]"):
+            return [_unquote(item.strip()) for item in value[1:-1].split(",") if item.strip()]
+        if value:
+            return [_unquote(value)]
+        items: list[str] = []
+        for following in lines[index + 1:]:
+            stripped = following.strip()
+            if stripped.startswith("- "):
+                items.append(_unquote(stripped[2:].strip()))
+            elif stripped:
+                break
+        return items
+    return []
+
+
+def _count_recurrences(text: str) -> int:
+    match = _RECURRENCES_RE.search(text)
+    if not match:
+        return 0
+    count = 0
+    for line in text[match.end():].split("\n"):
+        stripped = line.strip()
+        if not stripped:
+            if count:
+                break
+            continue
+        if not stripped.startswith("- "):
+            break
+        if not _RECURRENCE_PLACEHOLDER_RE.match(stripped):
+            count += 1
+    return count
+
+
+@dataclass(frozen=True)
+class LedgerEntry:
+    """One entry file of a ledger folder (frontmatter view).
+
+    Args:
+        filename: File name inside the folder.
+        entry_id: ``id:`` (falls back to the file stem).
+        date: ``date:`` (ISO ``YYYY-MM-DD``; empty when missing).
+        title: ``title:`` (falls back to the file stem).
+        summary: ``summary:`` one-liner (empty when missing).
+        tags: ``tags:`` items.
+        task: ``task:`` (``NNN-slug``; empty when none).
+        superseded_by: ``superseded_by:`` id of the replacing decision.
+        recurrences: Items under ``**Recurrences:**`` (learnings).
+    """
+
+    filename: str
+    entry_id: str
+    date: str
+    title: str
+    summary: str
+    tags: tuple[str, ...]
+    task: str
+    superseded_by: str
+    recurrences: int
+
+
+def _is_entry_file(path: Path) -> bool:
+    return path.is_file() and path.suffix == ".md" and path.name != INDEX_NAME and not path.name.startswith(TEMPLATE_PREFIX)
+
+
+def read_entry(path: Path) -> LedgerEntry:
+    """Read one ledger entry file.
+
+    Args:
+        path: Entry Markdown file.
+
+    Returns:
+        The entry's frontmatter view.
+    """
+    text = read_text(path)
+    fields = read_frontmatter(text)
+    stem = path.stem
+    return LedgerEntry(
+        filename=path.name,
+        entry_id=fields.get("id", "").strip() or stem,
+        date=fields.get("date", "").strip(),
+        title=fields.get("title", "").strip() or stem,
+        summary=fields.get("summary", "").strip(),
+        tags=tuple(read_frontmatter_list(text, "tags")),
+        task=fields.get("task", "").strip(),
+        superseded_by=fields.get("superseded_by", "").strip(),
+        recurrences=_count_recurrences(strip_frontmatter(text)),
+    )
+
+
+def collect_entries(memory_dir: Path, folder: str) -> list[LedgerEntry]:
+    """Read every entry of ``ledger/<folder>/``, newest first.
+
+    ``INDEX.md``, ``_``-prefixed templates and non-Markdown files are skipped.
+
+    Args:
+        memory_dir: The ``docs/memory/`` directory.
+        folder: One of ``LEDGER_FOLDERS``.
+
+    Returns:
+        Entries sorted by date, then id, newest first; empty when the folder is missing.
+    """
+    directory = memory_dir / LEDGER_DIR / folder
+    if not directory.is_dir():
+        return []
+    entries = [read_entry(path) for path in directory.iterdir() if _is_entry_file(path)]
+    return sorted(entries, key=lambda entry: (entry.date, entry.entry_id), reverse=True)
+
+
+# =============================================================================
 # SETUP selection
 # =============================================================================
 
