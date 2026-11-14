@@ -23,7 +23,8 @@ EXTENDED = "extended"
 IGNORED = "ignored"
 
 MEMORY_DIR = Path("docs") / "memory"
-LOG_FILES = frozenset({"global/decision-log.md", "ledger/progress.md", "ledger/learnings.md"})
+# Legacy single log files: frozen, read-only (entries now live in ledger/<folder>/).
+LOG_FILES = frozenset({"global/decision-log.md", "ledger/progress.md", "ledger/learnings.md"})  # legacy
 EXTENDED_FILES = frozenset({"ledger/roadmap.md"})
 NARRATIVE_DIRS = ("global", "ledger")
 TASK_FILE_RE = re.compile(r"^\d{3}-.+\.md$")
@@ -411,8 +412,8 @@ def log_entries(relative: str, text: str) -> list[str]:
         Entry titles, placeholders removed, newest first.
     """
     if relative == "ledger/progress.md":
-        titles = _H3_RE.findall(_section(text, r"Delivery log") or "")
-    elif relative == "ledger/learnings.md":
+        titles = _H3_RE.findall(_section(text, r"Delivery log") or "")  # legacy section
+    elif relative == "ledger/learnings.md":  # legacy file
         titles = _LEARN_HEADING_RE.findall(text)
     else:
         titles = _H3_RE.findall(text) or _table_rows(text)
@@ -430,10 +431,10 @@ def _noun(count: int) -> str:
 def _render_log(item: MemoryFile) -> list[str]:
     """Render a legacy single log file; ``progress.md`` only when it still has a delivery log."""
     is_progress = item.relative == "ledger/progress.md"
-    if is_progress and _section(item.text, r"Delivery log") is None:
+    if is_progress and _section(item.text, r"Delivery log") is None:  # no legacy section
         return []
     entries = log_entries(item.relative, item.text)
-    label = f"{item.relative} delivery log" if is_progress else item.relative
+    label = f"{item.relative} delivery log" if is_progress else item.relative  # legacy
     if not entries:
         return [f"- {label}: 0 entries {LEGACY_LABEL}"]
     lines = [f"- {label}: {len(entries)} {_noun(len(entries))} {LEGACY_LABEL}; newest:"]
@@ -933,9 +934,9 @@ DIGEST_BUDGET_CHARS = 8_000
 CURRENT_STATE_BUDGET_CHARS = 1_500
 NARRATIVE_BODY_BUDGET_CHARS = 3_000
 LOG_BUDGET_CHARS = {
-    "global/decision-log.md": 5_000,
+    "global/decision-log.md": 5_000,  # legacy
     "ledger/progress.md": 6_000,
-    "ledger/learnings.md": 6_000,
+    "ledger/learnings.md": 6_000,  # legacy
 }
 DIGEST_SCOPE = "memory digest (Core SYNC)"
 CURRENT_STATE_SCOPE = f"{MEMORY_DIR.as_posix()}/ledger/progress.md § Current state"

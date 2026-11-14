@@ -23,7 +23,7 @@ related_learnings: []
 
 ## Discovery notes
 
-(When `@grill-me` ran: resolved decisions, MVP, out-of-scope, glossary/decision-log promotions.)
+(When `@grill-me` ran: resolved decisions, MVP, out-of-scope, glossary/decision entry promotions.)
 
 ## Objective
 
@@ -70,14 +70,14 @@ related_learnings: []
 
 ## Execution notes
 
-(Written by `/spine-execute` at the moment each fact happens — not in a batch at the end. Append-only: add new entries, never rewrite or delete earlier ones. `/spine-harvest` reads this section as its primary source, possibly in a new session, and appends the destination to each entry, e.g. `→ LEARN-023`, `→ decision-log 2026-11-11`, `→ no promotion`.)
+(Written by `/spine-execute` at the moment each fact happens — not in a batch at the end. Append-only: add new entries, never rewrite or delete earlier ones. `/spine-harvest` reads this section as its primary source, possibly in a new session, and appends the destination to each entry, e.g. `→ LEARN-023`, `→ DEC 2026-11-11-short-slug`, `→ no promotion`.)
 
 Entry format: `- YYYY-MM-DD — <type> — <what happened>`. Types:
 
 - `deviation` — what changed relative to the plan and why. If the change contradicts the plan, record it and stop for the human before continuing.
 - `incident` — symptom, root cause, fix.
 - `rework` — what was redone and why.
-- `decision` — choice made during execution and its reason (decision-log candidate).
+- `decision` — choice made during execution and its reason (candidate for a `ledger/decisions/` entry).
 - `out-of-scope` — improvement found and not done.
 - `environment` — fact discovered about infrastructure or an external service.
 - `resume` — resume point when execution stops midway (see below). Temporary state; harvest does not promote it.

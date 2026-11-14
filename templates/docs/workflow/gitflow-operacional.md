@@ -17,7 +17,7 @@ Padronizar um ciclo simples, seguro e repetível para desenvolvimento solo, sem 
 ## Fluxo Padrão de Feature
 1. Criar `feature/*` a partir de `develop`.
 2. Implementar com teste (ou plano de teste) antes do merge.
-3. Atualizar memory-bank v2.1 (`progress.md` delivery log, `learnings.md`, `decision-log.md`; task em `completed_tasks/` após harvest).
+3. Atualizar memory-bank (entrada em `ledger/deliveries/` + Current state em `progress.md`, entradas em `ledger/learnings/` e `ledger/decisions/` quando aplicável, `spine.py memory index`; task em `completed_tasks/` após harvest).
 4. Merge de `feature/*` em `develop`.
 5. Promover `develop` para `staging`.
 6. Validar checklist de release.

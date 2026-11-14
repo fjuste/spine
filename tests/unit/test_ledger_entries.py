@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import importlib.util
+import re
+import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -471,3 +473,79 @@ def test_entry_templates_have_frontmatter_fields(folder: str) -> None:
     assert ("superseded_by" in fields) == (folder == "decisions")
     if folder == "learnings":
         assert "**Recurrences:**" in text
+
+
+# =============================================================================
+# Task 7: rules, commands, skills and docs
+# =============================================================================
+
+OLD_LOG_RE = re.compile(r"decision-log|learnings\.md|delivery log", re.IGNORECASE)
+SWEEP_EXCLUDED_PREFIXES = ("tests/", "docs/")
+
+
+def _read_repo(relative: str) -> str:
+    return memory.read_text(REPO_ROOT / relative)
+
+
+def test_harvest_writes_ledger_entries() -> None:
+    text = _read_repo("commands/spine-harvest.md")
+    for needle in (
+        "ledger/deliveries/",
+        "ledger/learnings/INDEX.md",
+        "ledger/decisions/",
+        "superseded_by",
+        "python3 .spine/scripts/spine.py memory index",
+        "→ DEC ",
+        "→ LEARN-",
+    ):
+        assert needle in text, needle
+    assert re.search(r"legacy[^\n]*learnings\.md", text), "recurrence check must also search a legacy learnings.md"
+
+
+def test_bootstrap_writes_baseline_decision_entry() -> None:
+    text = _read_repo("commands/spine-bootstrap.md")
+    assert "ledger/decisions/" in text
+    assert "baseline" in text
+    assert "spine.py memory index" in text
+
+
+@pytest.mark.parametrize("relative", ["commands/spine-plan.md", "skills/grill-me/SKILL.md"])
+def test_plan_and_grill_read_decisions_index(relative: str) -> None:
+    assert "ledger/decisions/INDEX.md" in _read_repo(relative)
+
+
+def test_memory_bank_rule_documents_ledger_entries() -> None:
+    text = _read_repo("rules/02-memory-bank.md")
+    assert "## Ledger entries" in text
+    section = text.split("## Ledger entries", 1)[1].split("\n## ", 1)[0]
+    for needle in (
+        "INDEX.md",
+        "merge=union",
+        "superseded_by",
+        "summary:",
+        f"{memory.ENTRY_SUMMARY_MAX_CHARS}",
+        "python3 .spine/scripts/spine.py memory index",
+        "legacy",
+        "LEARN-NNN",
+    ):
+        assert needle in section, needle
+    for folder in memory.LEDGER_FOLDERS:
+        assert f"{folder}/" in section
+
+
+def test_old_log_paths_only_mentioned_as_legacy() -> None:
+    files = subprocess.run(
+        ["git", "-C", str(REPO_ROOT), "ls-files"], capture_output=True, text=True, check=True
+    ).stdout.split()
+    offenders: list[str] = []
+    for relative in files:
+        if relative.startswith(SWEEP_EXCLUDED_PREFIXES) or not (REPO_ROOT / relative).is_file():
+            continue
+        try:
+            text = (REPO_ROOT / relative).read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        for number, line in enumerate(text.splitlines(), start=1):
+            if OLD_LOG_RE.search(line) and "legacy" not in line.lower():
+                offenders.append(f"{relative}:{number}: {line.strip()[:120]}")
+    assert not offenders, "old log layout mentioned without 'legacy':\n" + "\n".join(offenders)

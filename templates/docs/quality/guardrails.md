@@ -27,7 +27,7 @@ Toda tarefa deve incluir:
 - Memory-bank atualizado com aprendizado.
 
 ## Registro de Aprendizado Obrigatório
-Para incidentes, bugs e retrabalhos, registrar em `docs/memory/ledger/learnings.md` (entrada `LEARN-NNN` com **Tags** per `docs/governance/memory-tags-policy.md`):
+Para incidentes, bugs e retrabalhos, registrar em `docs/memory/ledger/learnings/` (um arquivo por `LEARN-NNN`, com `tags:` no frontmatter per `docs/governance/memory-tags-policy.md`; depois `python3 .spine/scripts/spine.py memory index`):
 - Causa-raiz.
 - Como detectar cedo.
 - Teste que evita recorrência.

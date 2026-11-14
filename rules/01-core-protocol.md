@@ -16,17 +16,18 @@ alwaysApply: true
    c. Refactor if needed while keeping tests green.
    d. Repeat for each acceptance criterion.
 5. **Execute:** implement atomically and validate all tests pass.
-6. **Harvest:** append delivery log in `progress.md`; update `learnings.md` when applicable; update `decision-log.md` and `domain-glossary.md` when applicable; move task to `completed_tasks/` via `git mv`.
+6. **Harvest:** write the delivery entry in `ledger/deliveries/` and refresh `progress.md` Current state; add or update `ledger/learnings/` and `ledger/decisions/` entries and `domain-glossary.md` when applicable; run `spine.py memory index`; move task to `completed_tasks/` via `git mv`.
 
 ## 2. Definition of Done
 - [ ] Isolated branch created from `develop`
 - [ ] `docs/memory/active_tasks/<sequential-number>-<descriptive-name>.md` with frontmatter, scope, and acceptance criteria
 - [ ] Tests executed and passing
 - [ ] Task `## Execution notes` (or `No deviations from plan.`) and `## Execution evidence` filled before `REVIEW`
-- [ ] `docs/memory/ledger/progress.md` updated (Current state + delivery log entry)
-- [ ] `docs/memory/ledger/learnings.md` updated (if incident, root cause, or rework recorded)
+- [ ] `docs/memory/ledger/progress.md` Current state updated and a delivery entry in `docs/memory/ledger/deliveries/`
+- [ ] Entry in `docs/memory/ledger/learnings/` added or updated (if incident, root cause, or rework recorded)
 - [ ] Task file in `docs/memory/completed_tasks/` with `status: DONE`
-- [ ] `docs/memory/global/decision-log.md` updated (if there was an architectural decision)
+- [ ] Entry in `docs/memory/ledger/decisions/` added (if there was an architectural decision)
+- [ ] Ledger `INDEX.md` files regenerated (`python3 .spine/scripts/spine.py memory index`)
 - [ ] `docs/memory/global/domain-glossary.md` updated (if canonical domain terms were promoted during discovery)
 
 ## 3. Guard rails

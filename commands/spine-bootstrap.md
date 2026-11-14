@@ -66,7 +66,7 @@ Goal: **complete project understanding**. Do not write memory bank files until a
 | Architecture (layers, data flow, external APIs) | `system-patterns.md` |
 | Domain terms and bounded contexts | `domain-glossary.md` |
 | Dev workflow (install, run, test commands) | `tech-context.md` |
-| **Alterations** (custom payment, auth, webhooks vs platform default) | `system-patterns.md` § Project-Specific Alterations + `decision-log.md` |
+| **Alterations** (custom payment, auth, webhooks vs platform default) | `system-patterns.md` § Project-Specific Alterations + `ledger/decisions/` entry |
 | **Risks** (fragile integrations, missing tests, deprecated deps) | `tech-context.md` § Known Risks |
 | **Opportunities** (unplanned improvements, not scheduled work) | `product-context.md` § Known Opportunities (unplanned) |
 | Scope, goals, boundaries | `project-brief.md`, `product-context.md` |
@@ -91,7 +91,7 @@ Goal: **complete project understanding**. Do not write memory bank files until a
 | Specificity | Concrete paths, modules, config files, CLI commands |
 | Glossary | Term + definition + code location hint |
 | Architecture | Layer map, request/job flow, key files/classes |
-| Alterations | Table in `system-patterns.md`; non-obvious WHY → `decision-log.md` entry; link both ways |
+| Alterations | Table in `system-patterns.md`; non-obvious WHY → `ledger/decisions/` entry; link both ways |
 | Risks | Bullet list with impact and related paths |
 | Opportunities | Unplanned improvements only (not roadmap milestones) |
 | Cross-links | `See tech-context.md § Known Risks` |
@@ -107,8 +107,8 @@ Goal: **complete project understanding**. Do not write memory bank files until a
 | Valid project-specific content already present | Preserve; append only non-conflicting detail |
 | Conflict (repo vs `$ARGUMENTS` vs existing doc) | Do not overwrite; record in **Gaps** |
 | `domain-glossary.md` | Add terms; never delete existing entries |
-| `decision-log.md` | Append bootstrap baseline entry (date, baseline established, key facts + WHY) |
-| `summary:` frontmatter (every narrative file you write: all `global/*.md` except `decision-log.md`) | Replace the `[Fill in…]` placeholder (or add the field) with at most 5 lines: what the file holds and when to open it. On re-bootstrap, update it to match the new content. See `02-memory-bank.md` § Narrative summaries |
+| `ledger/decisions/` | Create the bootstrap baseline entry `YYYY-MM-DD-bootstrap-baseline.md` from `_template.md` (baseline established, key facts + WHY); one more entry per non-obvious alteration. Never append to a legacy `global/decision-log.md` |
+| `summary:` frontmatter (every narrative file you write: all `global/*.md`) | Replace the `[Fill in…]` placeholder (or add the field) with at most 5 lines: what the file holds and when to open it. On re-bootstrap, update it to match the new content. See `02-memory-bank.md` § Narrative summaries |
 
 **Files to fill:**
 
@@ -117,11 +117,11 @@ Goal: **complete project understanding**. Do not write memory bank files until a
 - `docs/memory/global/domain-glossary.md`
 - `docs/memory/global/system-patterns.md` (preserve Graphify section; incl. § Project-Specific Alterations)
 - `docs/memory/global/tech-context.md` (incl. § Known Risks)
-- `docs/memory/global/decision-log.md`
+- `docs/memory/ledger/decisions/` (baseline entry; see `02-memory-bank.md` § Ledger entries)
 
 If a new section is missing in an older consumer template, add the section during fill.
 
-After writing, run `python3 .spine/scripts/spine.py memory digest`: the files you filled must show their summary, and no `SETUP:` line may list them.
+After writing, run `python3 .spine/scripts/spine.py memory index` (regenerates the ledger `INDEX.md` files), then `python3 .spine/scripts/spine.py memory digest`: the files you filled must show their summary, and no `SETUP:` line may list them.
 
 ---
 
@@ -129,8 +129,8 @@ After writing, run `python3 .spine/scripts/spine.py memory digest`: the files yo
 
 **In scope:**
 
-- `docs/memory/ledger/progress.md` — update **Current state** only: bootstrap complete, memory bank baseline ready, no active delivery tasks; **never wipe Delivery log**
-- `docs/memory/ledger/learnings.md` — leave empty unless repo evidence supports an incident-style entry; flag in **Gaps** if file missing after install
+- `docs/memory/ledger/progress.md` — update **Current state** only: bootstrap complete, memory bank baseline ready, no active delivery tasks; never remove a legacy delivery log section
+- `docs/memory/ledger/learnings/` — no entries unless repo evidence supports an incident-style `LEARN-NNN`; flag in **Gaps** if the folder is missing after install
 
 **Out of scope:**
 
@@ -164,10 +164,10 @@ If user asks for a plan, task, or roadmap: "Bootstrap builds agent context only.
 | Concept | Primary home | When |
 |---------|--------------|------|
 | Project-specific alteration | `system-patterns.md` § Project-Specific Alterations | Bootstrap |
-| WHY of alteration | `decision-log.md` | Bootstrap |
+| WHY of alteration | `ledger/decisions/` entry | Bootstrap |
 | Known risk | `tech-context.md` § Known Risks | Bootstrap |
 | Opportunity (unplanned) | `product-context.md` § Known Opportunities | Bootstrap |
-| Incident / recurrence | `learnings.md` | `/spine-harvest` only |
+| Incident / recurrence | `ledger/learnings/` entry | `/spine-harvest` only |
 | Scheduled milestone | `roadmap.md` | `/spine-roadmap` |
 
 ---
@@ -176,7 +176,7 @@ If user asks for a plan, task, or roadmap: "Bootstrap builds agent context only.
 
 - [ ] Runs `spine_validate.py bootstrap` before assessment
 - [ ] Deep assessment of source code and Graphify (when present) before writing
-- [ ] Fills `global/*` and ledger (`progress.md`, `learnings.md` if applicable) with agent-optimized detail
+- [ ] Fills `global/*`, `progress.md` Current state and the baseline `ledger/decisions/` entry (plus `ledger/learnings/` if applicable) with agent-optimized detail
 - [ ] Documents alterations, risks, and opportunities when evidence exists
 - [ ] Does **not** modify `roadmap.md`
 - [ ] No installation side effects; no active task or plan creation

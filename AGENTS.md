@@ -277,11 +277,13 @@ Operational source of truth: `docs/memory/`. Canonical spec: `rules/02-memory-ba
 
 ```
 docs/memory/
-  global/           # Stable base
+  global/           # Stable narrative
   ledger/
     roadmap.md
-    progress.md     # Current state + delivery log (append-only)
-    learnings.md    # LEARN-NNN recurrence registry
+    progress.md     # Current state only
+    decisions/      # One file per decision + generated INDEX.md
+    learnings/      # One file per LEARN-NNN + generated INDEX.md
+    deliveries/     # One file per delivery + generated INDEX.md
   active_tasks/     # Open work only
   completed_tasks/  # DONE (git mv at harvest)
 ```
@@ -293,14 +295,16 @@ docs/memory/
 | Tier | When | Read |
 |------|------|------|
 | Core | Every session | `spine.py memory digest` (fallback: global 1–6, progress Current state, open `active_tasks/`) |
-| Extended | Plan, harvest, ambiguous scope | `roadmap.md`, full delivery log |
-| On demand | Debugging, recurrence | `learnings.md`, `completed_tasks/` |
+| Extended | Plan, harvest, ambiguous scope | `roadmap.md`, `ledger/deliveries/INDEX.md` |
+| On demand | Debugging, recurrence | `ledger/learnings/INDEX.md`, `ledger/decisions/INDEX.md`, `completed_tasks/` |
 
-**Memory digest** (Core SYNC): `python3 .spine/scripts/spine.py memory digest` prints a compact view of `docs/memory/` — Current state, one line per open task, each narrative file's `summary:` frontmatter (outline when missing), log entry counts with the newest 5 titles, Extended-tier pointers. Output goes to stdout only; nothing is written. When summaries are missing, a closing `SETUP:` block asks the agent to write them for a few files per session (largest first, `--budget` source chars, default 60,000), so existing projects set up over their next sessions without a migration step. `python3 .spine/scripts/spine.py memory stats` prints chars per memory file, the legacy Core SYNC total and the digest size. Both accept `--project-root=PATH`.
+**Ledger entries:** one file per decision, learning and delivery under `ledger/{decisions,learnings,deliveries}/` with frontmatter (one-line `summary:` ≤ 160 chars, `tags`, `task`, `superseded_by` for decisions). `python3 .spine/scripts/spine.py memory index` regenerates each committed `INDEX.md`; `.gitattributes` gets `docs/memory/ledger/*/INDEX.md merge=union`. Legacy single files (`global/decision-log.md`, `ledger/learnings.md`, the legacy delivery log in `progress.md`) stay frozen until `spine.py memory migrate`. Spec: `rules/02-memory-bank.md` § Ledger entries.
+
+**Memory digest** (Core SYNC): `python3 .spine/scripts/spine.py memory digest` prints a compact view of `docs/memory/` — Current state, one line per open task, each narrative file's `summary:` frontmatter (outline when missing), ledger entry counts with the newest 5 titles, Extended-tier pointers. Output goes to stdout only; nothing is written. When summaries are missing, a closing `SETUP:` block asks the agent to write them for a few files per session (largest first, `--budget` source chars, default 60,000), so existing projects set up over their next sessions without a migration step. `python3 .spine/scripts/spine.py memory stats` prints chars per memory file, the legacy Core SYNC total and the digest size. Both accept `--project-root=PATH`.
 
 **Memory budgets:** `python3 .spine/scripts/spine_validate.py memory` warns (exit 0) when the digest, Current state or an on-demand memory file exceeds its budget (`rules/02-memory-bank.md` § Memory budgets). `/spine-harvest` compacts Current state and reports the rest as follow-ups.
 
-**Harvest outcomes:** delivery log append, `learnings.md` when applicable, frontmatter `status: DONE`, `git mv` to `completed_tasks/`. When `roadmap_idea` is set, update Idea Bank Status (`Done` / still `In Progress`) and suggest `/spine-roadmap --review` for ICE re-score.
+**Harvest outcomes:** delivery entry in `ledger/deliveries/`, learning and decision entries when applicable, `spine.py memory index`, frontmatter `status: DONE`, `git mv` to `completed_tasks/`. When `roadmap_idea` is set, update Idea Bank Status (`Done` / still `In Progress`) and suggest `/spine-roadmap --review` for ICE re-score.
 
 ### OpenCode configuration (consumer)
 
