@@ -3,7 +3,7 @@ last_updated: 2026-11-14
 last_reviewed: 2026-11-14
 review_cadence: monthly
 goals_active: 6
-ideas_total: 33
+ideas_total: 36
 ice_method: "Impact × Confidence × Ease (1–10 each). See templates/docs/governance/ice-scoring-guide.md."
 sources:
   - docs/documentation/evolucao/feedback-261111.txt
@@ -118,6 +118,9 @@ sources:
 | I31 | Cross-project tasks and portable learnings (cloud vision §3; RFC open question 5) | G6 | 30 (5×3×2) | 3 | Candidate |
 | I32 | Parallelism: `touches`, worktree per task, orchestrator, independent verifier (RFC SPN-25-01..04) | G7 | 56 (7×4×2) | 4 | Candidate |
 | I33 | Spine Cloud as separate commercial product (fork) | G6 | 6 (3×2×1) | 2 | Candidate — parked |
+| I34 | Digest open-task list: full `NNN \| STATUS \| title — goal` lines for IN_PROGRESS/REVIEW only; PLANNING tasks as `NNN title` (no goal) | G1 | 384 (6×8×8) | 8 | Candidate |
+| I35 | `spine_validate.py memory` warns on stale open tasks: no frontmatter status (pre-v2.1 files) and REVIEW tasks whose `updated_at` is older than N days; names files + fix (harvest or move); human closes | G1 | 168 (4×6×7) | 6 | Candidate |
+| I36 | Narrative body budget 3,000 → 12,000 chars so the warning flags only outlier files worth splitting (`NARRATIVE_BODY_BUDGET_CHARS`, rule 02 table, README) | G1 | 168 (3×7×8) | 7 | Candidate |
 
 ## Release sequence (proposed)
 
@@ -152,3 +155,4 @@ sources:
 | 2026-11-14 | I2, I5, I6 | Impact lowered after I3/I25 shipped most of their scope: I2 343→105 (remaining: task `summary`), I5 245→147 (remaining: `completed_tasks/INDEX.md`), I6 216→90 (remaining: Review Log and pre-v2.1 progress sections). |
 | 2026-11-14 | v2.5 | Release note corrected: migration is an explicit command (`memory migrate`), not part of `update`; I25 shipped ahead of v2.5. |
 | 2026-11-14 | G1 | Stays Active: 3 of 7 banks over 8,000; growth between task 20 and task 50 not yet measurable. Gaps not covered by any idea (use `--add-ideas`): stale open-task lists in the digest, Current state compaction for banks that skip harvest, and the 3,000-char narrative budget (real narrative files run 4k–26k, so it warns on most files of every consumer bank). |
+| 2026-11-14 | I34–I36 | Added via --add-ideas (G1). I34: onboarding-hub's 18 PLANNING lines take 4.7k chars; `NNN title` takes about 1.3k, so the digest drops from 13.7k to about 10.3k, and to about 6.4k after the next harvest compacts Current state. I35: Spine has 7 open pre-v2.1 tasks with no status and ansible 3 unharvested REVIEW tasks; impact depends on a human closing them. I36: about 25 of 32 real narrative files are over 3,000 chars, 7 over 12,000. Current state overruns get no idea: agenthub (symlink) and onboarding-hub (after `spine.py update`) compact at their next harvest. |
