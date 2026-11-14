@@ -1,9 +1,9 @@
 # Progress
 
 ## Current state
-- In flight: none. 021-per-entry-ledger delivered (2026-11-14): decisions, learnings and deliveries are one file per entry in `ledger/{decisions,learnings,deliveries}/` with a generated `INDEX.md` (`spine.py memory index`); new entries go there. `global/decision-log.md`, `ledger/learnings.md` and the delivery log below are legacy and frozen.
+- In flight: none. 022-memory-migrate delivered (2026-11-14): `spine.py memory migrate` (dry run; `--apply` writes entries, removes legacy log files) completes roadmap I25. Spine's own bank is migrated: all decisions, learnings and deliveries live in `ledger/{decisions,learnings,deliveries}/`.
 - Blocked: nothing.
-- Next: plan the migrate task (`spine.py memory migrate`: split legacy files into entries, mechanical `summary:`, dry run by default, report unparsed text) — roadmap I25 stays In Progress until it ships. Then `/spine-roadmap --review` (I5/I6 vs I25; recalibrate the 3,000-char narrative budget). Candidate task: `vendor` refuses the Spine repo as project.
+- Next: `/spine-roadmap --review` (I25 Done; the v2.5 note still says migration runs in `update`; recalibrate the 3,000-char narrative budget). Candidate tasks: `vendor` refuses the Spine repo as project; fence-aware `memory._section`.
 - Legacy sections below (`O que funciona` … `Issues Conhecidos`) predate Memory Bank v2.1 and are kept for history.
 
 ## O que funciona

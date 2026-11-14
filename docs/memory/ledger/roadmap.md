@@ -109,7 +109,7 @@ sources:
 | I22 | Skill usage record + scorecard + contextual recommendation (AgentHub C.1–C.3) | G3 | 80 (4×4×5) | 4 | Candidate |
 | I23 | Unique task IDs (RFC SPN-22-01) | G4 | 280 (7×8×5) | 8 | Candidate |
 | I24 | Ownership + claim via push (RFC SPN-22-03) | G4 | 216 (6×6×6) | 6 | Candidate |
-| I25 | One-entry-per-file ledgers; `progress`/`learnings` become generated views reusing the I3 generator (RFC SPN-22-02) | G4 | 196 (7×7×4) | 7 | In Progress |
+| I25 | One-entry-per-file ledgers; `progress`/`learnings` become generated views reusing the I3 generator (RFC SPN-22-02) | G4 | 196 (7×7×4) | 7 | Done |
 | I26 | `risk: low\|medium\|high` + proportional human gate; absorbs lite/full templates (RFC SPN-23-03, AgentHub B.2) | G5 | 252 (7×6×6) | 6 | Candidate |
 | I27 | Epic model + `/spine-epic` (DAG, derived status); hierarchy Goal → Epic → Task → Subtask (RFC SPN-23-01/02 + feedback) | G5 | 168 (7×6×4) | 6 | Candidate |
 | I28 | Supabase schema + RLS + `spine` CLI + git → Supabase projection (RFC SPN-24-01..03) | G6 | 90 (6×5×3) | 5 | Candidate |
@@ -144,3 +144,5 @@ sources:
 | 2026-11-14 | I4 | Harvested task 020-memory-budgets → Done. `spine_validate.py memory` + harvest step 4a.1; log-file budgets warn on all three real projects (input for the per-entry ledger plan that replaces I6's archive) |
 | 2026-11-14 | I25 | Planned as task 021-per-entry-ledger (In Progress); ledger/{decisions,learnings,deliveries}/ + generated INDEX.md (merge=union); migrate is a follow-up task |
 | 2026-11-14 | I25 | Harvested task 021-per-entry-ledger — still In Progress: `spine.py memory migrate` (split legacy files) is the remaining I25 work, not yet planned |
+| 2026-11-14 | I25 | Planned as task 022-memory-migrate (In Progress); dry run by default, `--apply` writes entries and removes legacy files, title-capped summaries, `update` hints only |
+| 2026-11-14 | I25 | Harvested task 022-memory-migrate → Done. `spine.py memory migrate [--apply]` shipped; 395 entries migrated on 4 scratch banks, Spine's own bank migrated (24 entries) |
