@@ -155,6 +155,21 @@ summary: >-
 - A value starting with `[Fill in` (seeded template placeholder) counts as missing.
 - Write missing summaries only when a digest `SETUP:` block lists them; the block paces the one-time setup by a source budget per session.
 
+## Memory budgets
+
+`python3 .spine/scripts/spine_validate.py memory` measures the memory bank against fixed char budgets. Over-budget scopes print `WARNING:` lines (exit 0); only a missing `docs/memory/` is an error (exit 1).
+
+| Scope | Budget (chars) | Remedy |
+|---|---|---|
+| `memory digest` total (Core SYNC) | 8,000 | Warning lists digest sections largest first |
+| `progress.md` § Current state | 1,500 | `/spine-harvest` compacts it |
+| Each narrative file body (frontmatter excluded) | 3,000 | Split or trim with human approval |
+| `decision-log.md` | 5,000 | Archive old entries (roadmap I6) |
+| `progress.md` (whole file) | 6,000 | Archive old entries (roadmap I6) |
+| `learnings.md` | 6,000 | Archive old entries (roadmap I6) |
+
+Task files, `roadmap.md` and `completed_tasks/` have no budget. The digest never shows budgets. `/spine-harvest` runs the validator, rewrites an over-budget Current state (which it owns) and reports every other warning as a follow-up. Never edit `global/` to meet a budget without showing the diff to the human first.
+
 ## Template: active_tasks/_task-template.md
 
 Reference file (not a numbered task). Tasks use Obsidian-style YAML frontmatter. See `templates/docs/memory/active_tasks/_task-template.md`.

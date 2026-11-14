@@ -1,9 +1,9 @@
 # Progress
 
 ## Current state
-- In flight: none. 019-self-install-gitignore delivered (2026-11-12): this repo now runs on its own Spine install (`install --core`); rules, `/spine-*` commands and core skills load in Cursor, OpenCode, Claude Code and Antigravity, and IDE trees stay gitignored.
+- In flight: none. 020-memory-budgets delivered (2026-11-14): `spine_validate.py memory` warns when the digest, Current state, a narrative body or a log file exceeds its budget; `/spine-harvest` step 4a.1 compacts Current state and reports the rest.
 - Blocked: nothing.
-- Next: first digest-driven session writes `summary:` for Spine's 5 narrative files (digest `SETUP:` block). `/spine-roadmap --review` to re-score I1–I3; G1 target (≤ 8,000 chars) not yet met (worst case 13,039) — follow-ups I4, I5, I6, I11. Candidate task: `vendor` refuses the Spine repo as project.
+- Next: plan two tasks for the per-entry ledger agreed 2026-11-14 — (1) `ledger/{decisions,learnings,deliveries}/` with one file per entry plus a script-generated, committed `INDEX.md`; `decision-log.md` moves from `global/` to `ledger/`; `progress.md` keeps only Current state; (2) `spine.py memory migrate`. Replaces the I6 archive approach; recalibrate the 3,000-char narrative budget there. Candidate task: `vendor` refuses the Spine repo as project.
 - Legacy sections below (`O que funciona` … `Issues Conhecidos`) predate Memory Bank v2.1 and are kept for history.
 
 ## O que funciona
@@ -40,6 +40,11 @@
 - Risco de dispersão em frontend sem skill principal padronizada.
 
 ## Delivery log (newest first)
+### 2026-11-14 — Memory budgets — digest-first limits in the validator and Current state compaction at harvest
+**Task:** 020-memory-budgets | **Branch:** feature/memory-budgets
+**Tags:** type/feature, area/memory, stack/python
+**Description:** New `spine_validate.py memory` (`--project-root`, `--dry-run`) measures `docs/memory/` against named constants in `spine_cli/memory.py` (`check_budgets`, `BudgetCheck`): digest ≤ 8,000, Current state ≤ 1,500, narrative body ≤ 3,000, `decision-log.md` ≤ 5,000, `progress.md`/`learnings.md` ≤ 6,000. Over-budget scopes are `WARNING:` lines with a remedy hint (exit 0); the digest warning lists its sections largest first; a missing `docs/memory/` is the only error. The digest output is unchanged. `/spine-harvest` gains step 4a.1 (compact Current state, list other warnings as follow-ups, no `global/` edit without a human-approved diff); `02-memory-bank.md` § Memory budgets, README and AGENTS.md document it. Evidence: `pytest tests/` 248 passed (19 new in `test_memory_budgets.py`). Manual read-only runs by the agent on 2026-11-13 at `e4abadb`: onboarding-hub 10 warnings (digest 13,553, Current state 5,434), agenthub 9 (digest 10,522, Current state 6,563), intelligence-engine 10 (digest and Current state within budget), Spine 1 (`progress.md` 9,370); `git status docs/memory` unchanged in each; per-project table in the task's Execution evidence. Graphify and MkDocs not active.
+
 ### 2026-11-12 — Self-install keeps IDE trees ignored in the Spine repository
 **Task:** 019-self-install-gitignore | **Branch:** feature/self-install-gitignore
 **Tags:** type/bug, area/infra, stack/python

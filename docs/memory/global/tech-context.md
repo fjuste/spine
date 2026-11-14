@@ -1,3 +1,11 @@
+---
+summary: >-
+  Dev setup (feature/* from develop, promotion chain), main dependencies of
+  target projects, technical constraints (no overengineering, curated skills,
+  tests + memory update per delivery) and example env vars. Open before
+  changing workflow constraints or setup.
+---
+
 # Tech Context
 
 ## Setup de Desenvolvimento

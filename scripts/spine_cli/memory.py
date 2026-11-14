@@ -667,3 +667,104 @@ def run_memory(action: str, project_root: str | None, budget: int) -> int:
     else:
         sys.stdout.write(build_digest(root, budget))
     return 0
+
+
+# =============================================================================
+# Budgets (read by ``spine_validate.py memory``; never shown in the digest)
+# =============================================================================
+
+DIGEST_BUDGET_CHARS = 8_000
+CURRENT_STATE_BUDGET_CHARS = 1_500
+NARRATIVE_BODY_BUDGET_CHARS = 3_000
+LOG_BUDGET_CHARS = {
+    "global/decision-log.md": 5_000,
+    "ledger/progress.md": 6_000,
+    "ledger/learnings.md": 6_000,
+}
+DIGEST_SCOPE = "memory digest (Core SYNC)"
+CURRENT_STATE_SCOPE = f"{MEMORY_DIR.as_posix()}/ledger/progress.md § Current state"
+CURRENT_STATE_HINT = "compact Current state at /spine-harvest"
+LOG_HINT = "archive old entries (roadmap I6)"
+NARRATIVE_HINT = "split or trim with human approval"
+SETUP_LABEL = "SETUP"
+
+_DIGEST_SECTION_RE = re.compile(r"^(?:##[ \t]+(.+?)|(SETUP):.*)$", re.MULTILINE)
+
+
+@dataclass(frozen=True)
+class BudgetCheck:
+    """One memory scope measured against its budget.
+
+    Args:
+        scope: What was measured (a path under ``docs/memory/`` or the digest).
+        chars: Measured size in chars.
+        limit: Budget in chars.
+        detail: Remedy hint; for the digest, its section sizes largest first.
+    """
+
+    scope: str
+    chars: int
+    limit: int
+    detail: str
+
+    @property
+    def over(self) -> bool:
+        """True when ``chars`` exceeds ``limit``."""
+        return self.chars > self.limit
+
+
+def digest_section_sizes(digest: str) -> list[tuple[str, int]]:
+    """Measure each ``##`` section (and the ``SETUP:`` block) of a digest.
+
+    Args:
+        digest: Output of :func:`build_digest`.
+
+    Returns:
+        ``(label, chars)`` pairs, largest first. Labels drop trailing
+        parentheticals (``Extended tier (read when…)`` → ``Extended tier``).
+    """
+    matches = list(_DIGEST_SECTION_RE.finditer(digest))
+    sizes: list[tuple[str, int]] = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(digest)
+        label = (match.group(1) or match.group(2)).split(" (", 1)[0].strip()
+        sizes.append((label, len(digest[match.start():end].rstrip("\n"))))
+    return sorted(sizes, key=lambda item: -item[1])
+
+
+def _digest_detail(digest: str) -> str:
+    sizes = digest_section_sizes(digest)
+    return "largest sections: " + "; ".join(f"{label} {chars:,}" for label, chars in sizes)
+
+
+def check_budgets(root: Path) -> list[BudgetCheck]:
+    """Measure the memory bank against the digest-first budgets.
+
+    Budgeted scopes: the digest total, the ``progress.md`` Current state block,
+    each narrative file body (frontmatter excluded) and the three log files.
+    Task files, ``roadmap.md`` and ``completed_tasks/`` are not budgeted;
+    missing files are skipped.
+
+    Args:
+        root: Project root that contains ``docs/memory/``.
+
+    Returns:
+        One check per measured scope (digest first, then files by path), or an
+        empty list when ``docs/memory/`` does not exist.
+    """
+    memory_dir = root / MEMORY_DIR
+    if not memory_dir.is_dir():
+        return []
+    digest = build_digest(root)
+    checks = [BudgetCheck(DIGEST_SCOPE, len(digest), DIGEST_BUDGET_CHARS, _digest_detail(digest))]
+    for item in collect_files(memory_dir):
+        scope = f"{MEMORY_DIR.as_posix()}/{item.relative}"
+        if item.relative == "ledger/progress.md":
+            state = (_section(item.text, r"Current state") or "").strip()
+            checks.append(BudgetCheck(CURRENT_STATE_SCOPE, len(state), CURRENT_STATE_BUDGET_CHARS, CURRENT_STATE_HINT))
+        if item.relative in LOG_BUDGET_CHARS:
+            checks.append(BudgetCheck(scope, item.chars, LOG_BUDGET_CHARS[item.relative], LOG_HINT))
+        elif item.kind == NARRATIVE:
+            body = len(strip_frontmatter(item.text))
+            checks.append(BudgetCheck(scope, body, NARRATIVE_BODY_BUDGET_CHARS, NARRATIVE_HINT))
+    return checks

@@ -1,3 +1,11 @@
+---
+summary: >-
+  Why Spine exists: one reusable, consistent workflow across local projects;
+  problems it solves (process drift, lost learnings, uncurated skills, missing
+  test guard rails); high-level task cycle and UX goals. Open before changing
+  product direction or user-facing workflow.
+---
+
 # Product Context
 
 ## Por que este projeto existe?
