@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -527,3 +528,31 @@ def test_headings_inside_code_fences_stay_in_body() -> None:
 
     assert result is not None and result.unparsed == []
     assert result.entries[0].body.endswith("```bash\n# expect HTTP/2 200\ncurl -I https://example.test\n```\n\n~~~\n## not a heading either\n~~~\n")
+
+
+# Docs ------------------------------------------------------------------------
+
+MIGRATE_DOCS = (
+    "rules/02-memory-bank.md",
+    "commands/spine-harvest.md",
+    "commands/spine-update.md",
+    "README.md",
+    "AGENTS.md",
+)
+
+
+def test_docs_describe_memory_migrate() -> None:
+    for relative in MIGRATE_DOCS:
+        text = (REPO_ROOT / relative).read_text(encoding="utf-8")
+        assert "spine.py memory migrate" in text, relative
+        assert "--apply" in text, relative
+    rule = (REPO_ROOT / "rules/02-memory-bank.md").read_text(encoding="utf-8")
+    for phrase in ("dry run", "verbatim", "unparsed", "conflict", "memory index", "## Delivery log"):
+        assert phrase in rule, phrase
+
+
+def test_migrate_not_called_planned() -> None:
+    for relative in MIGRATE_DOCS:
+        for number, line in enumerate((REPO_ROOT / relative).read_text(encoding="utf-8").split("\n"), start=1):
+            if "migrate" in line:
+                assert not re.search(r"\bplanned\b", line, re.IGNORECASE), f"{relative}:{number}"
