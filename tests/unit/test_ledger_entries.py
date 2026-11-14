@@ -252,3 +252,56 @@ def test_cli_memory_index_writes_indexes(tmp_path: Path, capsys: pytest.CaptureF
 
     assert spine.main(["memory", "index", "--project-root", str(tmp_path)]) == 0
     assert "up to date" in capsys.readouterr().out
+
+
+# =============================================================================
+# Task 3: digest Logs section
+# =============================================================================
+
+
+def _logs_section(digest: str) -> str:
+    return digest.split("## Logs\n", 1)[1].split("\n## ", 1)[0]
+
+
+def test_digest_lists_ledger_folders(tmp_path: Path) -> None:
+    for day in range(1, 8):
+        name = f"2026-01-0{day}-d{day}"
+        superseded = "2026-01-07-d7" if day == 1 else ""
+        _write_entry(tmp_path, "decisions", f"{name}.md", _entry(name, f"2026-01-0{day}", f"Decision {day}", superseded_by=superseded))
+    _write_entry(tmp_path, "learnings", "LEARN-001-a.md", _entry("LEARN-001", "2026-02-01", "Flaky"))
+    (_memory_dir(tmp_path) / "ledger" / "deliveries").mkdir(parents=True)
+
+    logs = _logs_section(memory.build_digest(tmp_path))
+
+    assert "- ledger/decisions/: 7 entries (1 superseded), see INDEX.md; newest:" in logs
+    assert "  - 2026-01-07 — Decision 7" in logs
+    assert "Decision 2" not in logs  # only the newest 5
+    assert "- ledger/learnings/: 1 entry, see INDEX.md; newest:" in logs
+    assert "  - LEARN-001 — Flaky" in logs
+    assert "- ledger/deliveries/: 0 entries" in logs
+
+
+def test_digest_labels_legacy_files(tmp_path: Path) -> None:
+    memory_dir = _memory_dir(tmp_path)
+    (memory_dir / "global").mkdir(parents=True)
+    (memory_dir / "global" / "decision-log.md").write_text("# Decision Log\n\n### 2026-01-01 - Old\nx\n", encoding="utf-8")
+    (memory_dir / "ledger").mkdir(parents=True)
+    (memory_dir / "ledger" / "progress.md").write_text(
+        "## Current state\n- Next: x\n\n## Delivery log (newest first)\n### 2026-01-02 — Shipped\n", encoding="utf-8"
+    )
+
+    logs = _logs_section(memory.build_digest(tmp_path))
+
+    assert f"- global/decision-log.md: 1 entry {memory.LEGACY_LABEL}; newest:" in logs
+    assert f"- ledger/progress.md delivery log: 1 entry {memory.LEGACY_LABEL}; newest:" in logs
+
+
+def test_digest_omits_progress_without_delivery_log(tmp_path: Path) -> None:
+    memory_dir = _memory_dir(tmp_path)
+    (memory_dir / "ledger").mkdir(parents=True)
+    (memory_dir / "ledger" / "progress.md").write_text("## Current state\n- Next: x\n", encoding="utf-8")
+
+    logs = _logs_section(memory.build_digest(tmp_path))
+
+    assert "progress.md" not in logs
+    assert logs.strip() == "(none)"
