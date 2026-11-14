@@ -1,3 +1,10 @@
+---
+summary: >-
+  Scope, goals and boundaries of Spine (originally "Forja"): reusable
+  instructions for solo development shared via symlinks; memory bank and test
+  guard rails mandatory; no heavy team governance. Open before scope changes.
+---
+
 # Project Brief
 
 ## Nome do Projeto

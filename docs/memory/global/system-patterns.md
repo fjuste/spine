@@ -1,3 +1,10 @@
+---
+summary: >-
+  Target stacks Spine serves (Python/PHP backends, MySQL/Postgres, IaC) and
+  the pragmatic patterns it pushes (service layer, optional repository, TDD);
+  repo directory layout. Open before changing architecture or repo structure.
+---
+
 # System Patterns
 
 ## Stack
