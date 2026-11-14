@@ -9,6 +9,7 @@ Usage (from a consumer project, or pass ``--project-root``)::
     python3 .spine/scripts/spine.py uninstall
     python3 .spine/scripts/spine.py memory digest
     python3 .spine/scripts/spine.py memory stats
+    python3 .spine/scripts/spine.py memory index
 
 ``update`` pulls the Spine clone and then reconciles wiring.
 ``install --update`` only reconciles wiring; it does not run ``git pull``.
@@ -171,8 +172,12 @@ def build_parser() -> argparse.ArgumentParser:
     _add_project_flags(uninstall)
     uninstall.set_defaults(handler=_cmd_uninstall)
 
-    memory = sub.add_parser("memory", help="Memory bank digest and stats")
-    memory.add_argument("action", choices=("stats", "digest"), help="stats: char counts; digest: Core SYNC view")
+    memory = sub.add_parser("memory", help="Memory bank digest, stats and ledger indexes")
+    memory.add_argument(
+        "action",
+        choices=("stats", "digest", "index"),
+        help="stats: char counts; digest: Core SYNC view; index: regenerate ledger INDEX.md files",
+    )
     memory.add_argument("--project-root", default=None, help="Consumer project root")
     memory.add_argument(
         "--budget",

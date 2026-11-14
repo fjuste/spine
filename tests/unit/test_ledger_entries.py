@@ -134,3 +134,121 @@ def test_learning_recurrences_are_counted(tmp_path: Path) -> None:
     [entry] = memory.collect_entries(_memory_dir(tmp_path), "learnings")
 
     assert entry.recurrences == 2
+
+
+# =============================================================================
+# Task 2: INDEX.md generation
+# =============================================================================
+
+
+def _rows(index: str) -> list[str]:
+    lines = [line for line in index.split("\n") if line.startswith("| ")]
+    return lines[1:]  # drop the header row (the separator starts with "|-")
+
+
+def test_index_lists_entries_newest_first(tmp_path: Path) -> None:
+    _write_entry(tmp_path, "decisions", "2026-01-01-old.md", _entry("2026-01-01-old", "2026-01-01", "Old decision"))
+    _write_entry(tmp_path, "decisions", "2026-05-01-new.md", _entry("2026-05-01-new", "2026-05-01", "New decision"))
+
+    index = memory.render_index("decisions", memory.collect_entries(_memory_dir(tmp_path), "decisions"))
+
+    rows = _rows(index)
+    assert len(rows) == 2
+    assert rows[0].startswith("| 2026-05-01 | [New decision](2026-05-01-new.md) | active |")
+    assert rows[1].startswith("| 2026-01-01 | [Old decision](2026-01-01-old.md) | active |")
+    assert "area/memory, type/feature" in rows[0]
+    assert rows[0].endswith("| One-line summary. |")
+    assert "spine.py memory index" in index
+
+
+def test_index_marks_superseded_decisions(tmp_path: Path) -> None:
+    _write_entry(
+        tmp_path,
+        "decisions",
+        "2026-01-01-old.md",
+        _entry("2026-01-01-old", "2026-01-01", "Old", superseded_by="2026-05-01-new"),
+    )
+
+    index = memory.render_index("decisions", memory.collect_entries(_memory_dir(tmp_path), "decisions"))
+
+    assert "| superseded by [2026-05-01-new](2026-05-01-new.md) |" in _rows(index)[0]
+
+
+def test_index_counts_learning_recurrences(tmp_path: Path) -> None:
+    body = "**Recurrences:**\n- 2026-03-01 — task 012-foo\n- 2026-04-01 — task 015-bar\n"
+    _write_entry(tmp_path, "learnings", "LEARN-002-x.md", _entry("LEARN-002", "2026-02-01", "Flaky test", body=body))
+
+    [row] = _rows(memory.render_index("learnings", memory.collect_entries(_memory_dir(tmp_path), "learnings")))
+
+    assert row.startswith("| LEARN-002 | [Flaky test](LEARN-002-x.md) | area/memory, type/feature | 2 |")
+
+
+def test_index_shows_delivery_task(tmp_path: Path) -> None:
+    _write_entry(
+        tmp_path,
+        "deliveries",
+        "2026-11-12-019-self-install.md",
+        _entry("2026-11-12-019-self-install", "2026-11-12", "Self-install", task="019-self-install"),
+    )
+
+    [row] = _rows(memory.render_index("deliveries", memory.collect_entries(_memory_dir(tmp_path), "deliveries")))
+
+    assert row.startswith("| 2026-11-12 | [Self-install](2026-11-12-019-self-install.md) | 019-self-install |")
+
+
+def test_index_escapes_pipes(tmp_path: Path) -> None:
+    _write_entry(tmp_path, "decisions", "2026-01-01-a.md", _entry("2026-01-01-a", "2026-01-01", "A | B", summary="x | y"))
+
+    [row] = _rows(memory.render_index("decisions", memory.collect_entries(_memory_dir(tmp_path), "decisions")))
+
+    assert "[A \\| B]" in row and "x \\| y" in row
+
+
+def test_empty_index_has_header_only() -> None:
+    index = memory.render_index("learnings", [])
+    assert index.startswith("# Learnings\n")
+    assert _rows(index) == []
+    assert "| ID | Title | Tags | Recurrences | Summary |" in index
+
+
+def test_index_ignores_template_and_index(tmp_path: Path) -> None:
+    _write_entry(tmp_path, "learnings", "_template.md", _entry("LEARN-000", "2026-01-01", "Template entry"))
+    _write_entry(tmp_path, "learnings", "LEARN-001-a.md", _entry("LEARN-001", "2026-02-01", "Real entry"))
+
+    memory.write_indexes(tmp_path)
+
+    index = (_memory_dir(tmp_path) / "ledger" / "learnings" / "INDEX.md").read_text(encoding="utf-8")
+    assert "Real entry" in index
+    assert "Template entry" not in index
+
+
+def test_index_is_idempotent(tmp_path: Path) -> None:
+    _write_entry(tmp_path, "deliveries", "2026-02-01-a.md", _entry("2026-02-01-a", "2026-02-01", "A"))
+    _write_entry(tmp_path, "decisions", "2026-02-01-b.md", _entry("2026-02-01-b", "2026-02-01", "B"))
+
+    written = memory.write_indexes(tmp_path)
+    index_path = _memory_dir(tmp_path) / "ledger" / "deliveries" / "INDEX.md"
+    first = index_path.read_text(encoding="utf-8")
+
+    assert sorted(path.parent.name for path in written) == ["decisions", "deliveries"]
+    assert memory.write_indexes(tmp_path) == []
+    assert index_path.read_text(encoding="utf-8") == first
+
+
+def test_write_indexes_skips_missing_folders(tmp_path: Path) -> None:
+    (_memory_dir(tmp_path) / "ledger").mkdir(parents=True)
+
+    assert memory.write_indexes(tmp_path) == []
+    assert not (_memory_dir(tmp_path) / "ledger" / "decisions").exists()
+
+
+def test_cli_memory_index_writes_indexes(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    import spine
+
+    _write_entry(tmp_path, "decisions", "2026-02-01-b.md", _entry("2026-02-01-b", "2026-02-01", "B"))
+
+    assert spine.main(["memory", "index", "--project-root", str(tmp_path)]) == 0
+    assert "docs/memory/ledger/decisions/INDEX.md" in capsys.readouterr().out
+
+    assert spine.main(["memory", "index", "--project-root", str(tmp_path)]) == 0
+    assert "up to date" in capsys.readouterr().out
