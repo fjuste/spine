@@ -413,3 +413,61 @@ def test_validate_legacy_file_hint(
 
     assert "legacy" in memory.LOG_HINT and "migrate" in memory.LOG_HINT
     assert f"docs/memory/ledger/learnings.md: {limit + 1:,} chars > {limit:,} — {memory.LOG_HINT}" in err
+
+
+# =============================================================================
+# Task 5: templates and seeds
+# =============================================================================
+
+
+def _seed(project: Path) -> None:
+    from spine_cli.docs import seed_docs
+    from spine_cli.log import Log
+
+    project.mkdir(exist_ok=True)
+    seed_docs(project, REPO_ROOT, Log())
+
+
+def test_seed_creates_ledger_folders(tmp_path: Path) -> None:
+    _seed(tmp_path)
+
+    ledger = _memory_dir(tmp_path) / "ledger"
+    for folder in memory.LEDGER_FOLDERS:
+        assert (ledger / folder / "_template.md").is_file()
+        assert (ledger / folder / "INDEX.md").read_text(encoding="utf-8") == memory.render_index(folder, [])
+    progress = (ledger / "progress.md").read_text(encoding="utf-8")
+    assert "## Current state" in progress
+    assert "## Delivery log" not in progress
+
+
+def test_seed_skips_legacy_log_templates(tmp_path: Path) -> None:
+    from spine_cli.constants import DOCS_SEED_PATHS
+
+    _seed(tmp_path)
+
+    assert not (_memory_dir(tmp_path) / "global" / "decision-log.md").exists()
+    assert not (_memory_dir(tmp_path) / "ledger" / "learnings.md").exists()
+    assert "docs/memory/global/decision-log.md" not in DOCS_SEED_PATHS
+    assert "docs/memory/ledger/learnings.md" not in DOCS_SEED_PATHS
+
+
+def test_seeded_ledger_passes_checks(tmp_path: Path) -> None:
+    _seed(tmp_path)
+
+    checks = memory.check_ledger(tmp_path)
+
+    assert [check.entries for check in checks] == [0, 0, 0]
+    assert all(not check.problems for check in checks)
+    assert memory.write_indexes(tmp_path) == []
+
+
+@pytest.mark.parametrize("folder", memory.LEDGER_FOLDERS)
+def test_entry_templates_have_frontmatter_fields(folder: str) -> None:
+    text = memory.read_text(REPO_ROOT / "templates" / "docs" / "memory" / "ledger" / folder / "_template.md")
+    fields = memory.read_frontmatter(text)
+    for key in ("id", "date", "title", "summary", "task"):
+        assert key in fields, f"{folder} template missing {key}"
+    assert memory.read_frontmatter_list(text, "tags")
+    assert ("superseded_by" in fields) == (folder == "decisions")
+    if folder == "learnings":
+        assert "**Recurrences:**" in text

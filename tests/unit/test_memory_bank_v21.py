@@ -17,17 +17,17 @@ def test_memory_bank_rule_v21_structure() -> None:
     assert "task_id:" in text
 
 
-def test_progress_template_has_delivery_log() -> None:
+def test_progress_template_is_current_state_only() -> None:
     text = _read("templates/docs/memory/ledger/progress.md")
     assert "## Current state" in text
-    assert "## Delivery log" in text
-    assert "**Tags:**" in text
+    assert "## Delivery log" not in text
+    assert "ledger/deliveries/" in text
 
 
 def test_learnings_template_has_learn_entry() -> None:
-    text = _read("templates/docs/memory/ledger/learnings.md")
-    assert "LEARN-001" in text
-    assert "**Tags:**" in text
+    text = _read("templates/docs/memory/ledger/learnings/_template.md")
+    assert "id: LEARN-NNN" in text
+    assert "tags:" in text
     assert "**Recurrences:**" in text
 
 
@@ -94,7 +94,7 @@ def test_spine_plan_bridge_removed() -> None:
 def test_installer_seeds_v21() -> None:
     text = _read("scripts/spine_cli/constants.py") + _read("scripts/spine_cli/docs.py")
     assert "seed_docs" in text
-    assert "learnings.md" in text
+    assert "ledger/learnings/INDEX.md" in text
     assert "memory-tags-policy.md" in text
     assert "completed_tasks/.gitkeep" in text
 

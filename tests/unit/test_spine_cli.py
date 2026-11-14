@@ -441,7 +441,7 @@ def test_core_skills_match_constant() -> None:
         "systematic-debugging",
         "verification-before-completion",
     )
-    assert "docs/memory/ledger/learnings.md" in DOCS_SEED_PATHS
+    assert "docs/memory/ledger/learnings/INDEX.md" in DOCS_SEED_PATHS
 
 
 def test_operational_shell_scripts_are_gone() -> None:
@@ -628,3 +628,61 @@ def test_agents_md_documents_self_install() -> None:
     section = text.split("python3 scripts/spine.py install --core --project-root=.", 1)[1][:1500]
     assert "ignored" in section
     assert "branch" in section
+
+
+GITATTRIBUTES_UNION = "docs/memory/ledger/*/INDEX.md merge=union"
+
+
+def _gitattributes_lines(project: Path) -> list[str]:
+    return (project / ".gitattributes").read_text(encoding="utf-8").splitlines()
+
+
+@pytest.mark.parametrize("extra", [[], ["--copy"]], ids=["symlink", "copy"])
+def test_install_adds_gitattributes_union_once(tmp_path: Path, extra: list[str]) -> None:
+    source = tmp_path / "spine"
+    project = tmp_path / "proj"
+    _spine_fixture(source)
+    project.mkdir()
+    (project / ".gitattributes").write_text("*.png binary\n", encoding="utf-8")
+
+    assert _install(project, source, *extra) == 0
+    assert _install(project, source, *extra, "--update") == 0
+
+    lines = _gitattributes_lines(project)
+    assert lines.count(GITATTRIBUTES_UNION) == 1
+    assert "*.png binary" in lines
+
+
+def test_vendor_adds_gitattributes_union(tmp_path: Path) -> None:
+    source = tmp_path / "spine"
+    project = tmp_path / "proj"
+    _spine_fixture(source)
+    project.mkdir()
+
+    assert spine.main(
+        ["vendor", "--project-root", str(project), "--spine-dir", str(source), "--skills=writing-plans", "--targets=cursor"]
+    ) == 0
+
+    assert _gitattributes_lines(project) == [GITATTRIBUTES_UNION]
+
+
+def test_update_adds_gitattributes_union(tmp_path: Path) -> None:
+    source = tmp_path / "spine"
+    project = tmp_path / "proj"
+    _spine_fixture(source)
+    project.mkdir()
+    assert _install(project, source) == 0
+    (project / ".gitattributes").unlink()
+
+    assert spine.main(["update", "--project-root", str(project), "--no-pull", "--no-graphify-prompt", "--no-mkdocs-prompt"]) == 0
+
+    assert GITATTRIBUTES_UNION in _gitattributes_lines(project)
+
+
+def test_self_install_skips_gitattributes(tmp_path: Path) -> None:
+    source = tmp_path / "spine"
+    _spine_fixture(source)
+
+    assert _install(source, source) == 0
+
+    assert not (source / ".gitattributes").exists()

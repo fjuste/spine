@@ -435,11 +435,6 @@ def test_narrative_templates_have_summary_frontmatter(name: str) -> None:
     assert memory.narrative_summary(text) is None, "seeded placeholder must trigger SETUP"
 
 
-def test_decision_log_template_has_no_summary_frontmatter() -> None:
-    text = memory.read_text(REPO_ROOT / "templates" / "docs" / "memory" / "global" / "decision-log.md")
-    assert memory.read_frontmatter(text) == {}
-
-
 def _core_tier(text: str) -> str:
     return text.split("### Core (every session)", 1)[1].split("### Extended", 1)[0]
 

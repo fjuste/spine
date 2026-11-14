@@ -8,7 +8,8 @@ from pathlib import Path
 
 from spine_cli import docs as docs_seed
 from spine_cli import graphify_setup, mkdocs_setup
-from spine_cli.gitignore import adjust_install_gitignore
+from spine_cli.constants import LEDGER_GITATTRIBUTES_LINE
+from spine_cli.gitignore import adjust_install_gitignore, ensure_gitattributes_line
 from spine_cli.log import Log, SpineExit, die
 from spine_cli.opencode_merge import merge_project_opencode
 from spine_cli.options import Options
@@ -371,6 +372,8 @@ def run_install(options: Options) -> int:
         adjust_install_gitignore(
             project, options.copy_mode, log, self_install=same_path(project, spine)
         )
+        if not same_path(project, spine):
+            ensure_gitattributes_line(project, LEDGER_GITATTRIBUTES_LINE, log)
 
         _maybe_prompt_graphify(project, options)
         if options.with_graphify or options.graphify_init:
@@ -527,6 +530,7 @@ def run_vendor(options: Options) -> int:
         docs_seed.seed_docs(project, source, log)
         merge_project_opencode(source, project, log)
         adjust_vendor_gitignore(project, log)
+        ensure_gitattributes_line(project, LEDGER_GITATTRIBUTES_LINE, log)
         write_vendor_marker(project, source, log)
         print("\nVendor install complete. .spine-vendor written.")
     except SpineExit as exc:
