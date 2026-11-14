@@ -290,3 +290,19 @@ def test_memory_bank_rule_documents_budgets() -> None:
 @pytest.mark.parametrize("relative", ["README.md", "AGENTS.md"])
 def test_docs_list_memory_validator(relative: str) -> None:
     assert MEMORY_VALIDATE_CMD in _read(relative)
+
+
+def test_progress_hint_points_to_migrate_only_while_delivery_log_remains(tmp_path: Path) -> None:
+    limit = memory.LOG_BUDGET_CHARS["ledger/progress.md"]
+    scope = _log_scope("ledger/progress.md")
+    _write(tmp_path, "ledger/progress.md", _progress(10, limit + 1))
+
+    assert _check(memory.check_budgets(tmp_path), scope).detail == memory.LOG_HINT
+
+    pre_v21 = "## Current state\n- x\n\n## O que funciona\n" + FILLER * (limit + 1)
+    _write(tmp_path, "ledger/progress.md", pre_v21)
+
+    check = _check(memory.check_budgets(tmp_path), scope)
+    assert check.over
+    assert check.detail == memory.PROGRESS_LEGACY_SECTIONS_HINT
+    assert "migrate" not in check.detail

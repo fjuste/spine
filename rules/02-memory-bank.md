@@ -206,7 +206,7 @@ superseded_by:
 | Each narrative file body (frontmatter excluded) | 3,000 | Split or trim with human approval |
 | Each ledger entry `summary:` | 160 | Validator names the files; also warns on a stale `INDEX.md` |
 | Legacy `decision-log.md` | 5,000 | Frozen; split with `spine.py memory migrate` |
-| `progress.md` whole file (legacy delivery log included) | 6,000 | Frozen legacy part; split with `spine.py memory migrate` |
+| `progress.md` whole file (legacy delivery log included) | 6,000 | Legacy delivery log: split with `spine.py memory migrate`; other pre-v2.1 legacy sections: trim with human approval |
 | Legacy `learnings.md` | 6,000 | Frozen; split with `spine.py memory migrate` |
 
 Task files, `roadmap.md`, `completed_tasks/` and whole `INDEX.md` files have no budget (an index grows by one line per entry; agents search it). The digest never shows budgets. `/spine-harvest` runs the validator, rewrites an over-budget Current state (which it owns) and reports every other warning as a follow-up. Never edit `global/` to meet a budget without showing the diff to the human first.

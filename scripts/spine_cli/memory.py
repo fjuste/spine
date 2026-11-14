@@ -942,6 +942,7 @@ DIGEST_SCOPE = "memory digest (Core SYNC)"
 CURRENT_STATE_SCOPE = f"{MEMORY_DIR.as_posix()}/ledger/progress.md § Current state"
 CURRENT_STATE_HINT = "compact Current state at /spine-harvest"
 LOG_HINT = "legacy file, frozen — split it into ledger entries with spine.py memory migrate (roadmap I25)"
+PROGRESS_LEGACY_SECTIONS_HINT = "sections beyond Current state (pre-v2.1 legacy) — trim them with human approval"
 NARRATIVE_HINT = "split or trim with human approval"
 SETUP_LABEL = "SETUP"
 
@@ -1020,7 +1021,10 @@ def check_budgets(root: Path) -> list[BudgetCheck]:
             state = (_section(item.text, r"Current state") or "").strip()
             checks.append(BudgetCheck(CURRENT_STATE_SCOPE, len(state), CURRENT_STATE_BUDGET_CHARS, CURRENT_STATE_HINT))
         if item.relative in LOG_BUDGET_CHARS:
-            checks.append(BudgetCheck(scope, item.chars, LOG_BUDGET_CHARS[item.relative], LOG_HINT))
+            hint = LOG_HINT
+            if item.relative == "ledger/progress.md" and _section(item.text, r"Delivery log") is None:  # legacy section gone
+                hint = PROGRESS_LEGACY_SECTIONS_HINT
+            checks.append(BudgetCheck(scope, item.chars, LOG_BUDGET_CHARS[item.relative], hint))
         elif item.kind == NARRATIVE:
             body = len(strip_frontmatter(item.text))
             checks.append(BudgetCheck(scope, body, NARRATIVE_BODY_BUDGET_CHARS, NARRATIVE_HINT))
