@@ -119,7 +119,7 @@ Use esta regra para evitar ambiguidade entre descoberta e estruturação de plan
 - Múltiplos domínios na mesma entrega (ex.: backend + infra + UI).
 - Decisões arquiteturais ou de segurança ainda não resolvidas.
 - Opt-in explícito em `/spine-plan`: `grill me`, `grill:`, `grill -`, `grill with docs`, `grill:docs`, `stress-test`, `challenge this`.
-- Opt-in com documentação de domínio: `grill with docs` ou `grill:docs` — mesma skill, com expectativa de atualização inline de `domain-glossary.md` e `decision-log.md`.
+- Opt-in com documentação de domínio: `grill with docs` ou `grill:docs` — mesma skill, com expectativa de atualização inline de `domain-glossary.md` e de novas entradas em `ledger/decisions/`.
 - Opt-in conversacional: usuário pede para ser "grilled" antes do plano ser escrito.
 
 ### Quando pular `@grill-me`
@@ -130,7 +130,7 @@ Use esta regra para evitar ambiguidade entre descoberta e estruturação de plan
 - Se o escopo já define MVP, out-of-scope e domínio principal, não use `@grill-me`.
 - `@grill-me` faz uma pergunta por vez; não escreva o plano completo até a descoberta terminar.
 - Registre decisões em `## Discovery notes` no arquivo de tarefa ativa antes de `@writing-plans`.
-- **Promoção de conhecimento:** decisões de escopo da tarefa → `## Discovery notes`; termos canônicos de domínio → `domain-glossary.md`; decisões arquiteturais (critério triplo: difícil reverter, surpreendente sem contexto, trade-off real) → `decision-log.md`.
+- **Promoção de conhecimento:** decisões de escopo da tarefa → `## Discovery notes`; termos canônicos de domínio → `domain-glossary.md`; decisões arquiteturais (critério triplo: difícil reverter, surpreendente sem contexto, trade-off real) → entrada em `ledger/decisions/`.
 
 ### Relação com outras skills de workflow
 - **`writing-plans`:** sempre após descoberta (ou após skip). Preenche `_task-template.md` (frontmatter + seções); Task/Step só em `## Implementation Plan`.
@@ -161,7 +161,7 @@ Use esta regra curta para evitar ambiguidade e overengineering:
 ## Processo Mensal de Revisão
 1. Listar skills efetivamente usadas no mês (frequência e contexto).
    - Para Playwright, usar os registros do `/spine-harvest` (skill escolhida, motivo e evidência de ganho).
-   - Para planejamento (`grill-me`), contar sessões em que `## Discovery notes` foi preenchido em `docs/memory/active_tasks/` ou o usuário registrou opt-in/opt-out explícito em `/spine-plan`. Incluir atualizações a `domain-glossary.md` e `decision-log.md` originadas de sessões de grill.
+   - Para planejamento (`grill-me`), contar sessões em que `## Discovery notes` foi preenchido em `docs/memory/active_tasks/` ou o usuário registrou opt-in/opt-out explícito em `/spine-plan`. Incluir atualizações a `domain-glossary.md` e entradas em `ledger/decisions/` originadas de sessões de grill.
 2. Confirmar quais skills reduziram tempo/retrabalho.
 3. Remover as não recorrentes ou redundantes.
 4. Promover/demover Trial conforme critérios objetivos.

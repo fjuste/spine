@@ -21,7 +21,7 @@ Write comprehensive implementation plans assuming the engineer has zero context 
 ## Before writing
 
 1. Read `_task-template.md` in the consumer project (`docs/memory/active_tasks/_task-template.md`).
-2. Grep `docs/memory/ledger/learnings.md` and recent progress delivery log for related **tags** per `docs/governance/memory-tags-policy.md`.
+2. Search `docs/memory/ledger/learnings/INDEX.md` and `docs/memory/ledger/deliveries/INDEX.md` for related **tags** per `docs/governance/memory-tags-policy.md`.
 3. Assign the next sequential `NNN` by scanning `active_tasks/` and `completed_tasks/` (ignore `_task-template.md`).
 
 ## Document structure (mandatory)

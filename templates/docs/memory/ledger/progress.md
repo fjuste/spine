@@ -1,13 +1,8 @@
 # Progress
 
+> Current state only. Each delivery is one file in `ledger/deliveries/` (list: `ledger/deliveries/INDEX.md`).
+
 ## Current state
 - In flight: ...
 - Blocked: ...
 - Next: ...
-
-## Delivery log (newest first)
-
-### YYYY-MM-DD — Title
-**Task:** NNN-slug | **Branch:** feature/slug
-**Tags:** area/example, type/feature
-**Description:** What was delivered and any pending follow-ups.

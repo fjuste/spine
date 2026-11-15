@@ -1,5 +1,11 @@
 # Progress
 
+## Current state
+- In flight: none. 022-memory-migrate delivered (2026-11-14): `spine.py memory migrate` (dry run; `--apply` writes entries, removes legacy log files) completes roadmap I25. Spine's own bank is migrated: all decisions, learnings and deliveries live in `ledger/{decisions,learnings,deliveries}/`.
+- Blocked: nothing.
+- Next: roadmap reviewed 2026-11-14 (top Candidates: I8 pre-commit memory validation 320, I10 preflight 294, I9 validate-on-edit 294, I15 human summary 336). `/spine-roadmap --add-ideas` for G1 gaps: stale open tasks in the digest, narrative budget 3,000 too low for real banks. Candidate tasks: `vendor` refuses the Spine repo as project; fence-aware `memory._section`; validator counts `related_learnings` as tags.
+- Legacy sections below (`O que funciona` … `Issues Conhecidos`) predate Memory Bank v2.1 and are kept for history.
+
 ## O que funciona
 - Comando `/spine-bootstrap` documenta seed automático: resolve template via caminho real do arquivo do comando (symlink-aware), copia recursivamente `docs/` do repositório Spine para o projeto alvo quando ausente, depois assessment incremental.
 - Estratégia de workflow definida para solo dev sem overengineering.
@@ -32,19 +38,3 @@
 ## Issues Conhecidos
 - Catálogo de skills muito grande para uso irrestrito.
 - Risco de dispersão em frontend sem skill principal padronizada.
-
-## Delivery log (newest first)
-### 2026-07-28 — Rsync mode — canonical host Spine clone + relative IDE symlinks
-**Task:** 017-rsync-mode | **Branch:** feature/rsync-mode
-**Tags:** type/feature, area/infra, stack/bash
-**Description:** Added rsync mode as third install option (alongside symlink and vendor). New `scripts/spine-init.sh` populates `.spine/` as real directory via rsync from a canonical host Spine clone, resolving path via 4-strategy cascade (flag → env var `SPINE_CANONICAL_PATH` → convention `~/Workspace/ide/spine` → auto-detect). `install.sh` relaxed: `require_spine_symlink()` → `require_spine_path()` (accepts real dir), `validate_health()` detects both modes, `uninstall_project()` handles real dirs with `rm -rf`, `print_project_summary()` shows mode-aware label. `update.sh` adapted: detects symlink vs rsync mode; in rsync mode, pulls canonical clone + rsyncs `.spine/` before reconciling symlinks. 7 contract tests added (`tests/unit/test_rsync_mode.py`). Full suite: 101/102 pass (1 pre-existing MkDocs failure, unrelated). Graphify and MkDocs not active.
-
-### 2026-07-08 — Sync opencode template tests with current schema
-**Task:** 016-opencode-template-test-sync | **Branch:** feature/opencode-template-test-sync
-**Tags:** type/bug, area/testing, area/config
-**Description:** Fixed 5 stale assertions in `test_opencode_template.py` to match the current `templates/opencode.json` schema. Removed 2 tests for `agent.build`/`agent.plan` (no longer in template — IDE-level config). Updated model assertion to `qwen3.7-max`, compaction check to `auto`/`prune`/`tail_turns`. Full suite: 89 passed, 0 failed. Graphify and MkDocs not active.
-
-### 2026-07-08 — Add /spine-roadmap command with GIST-informed template
-**Task:** 015-spine-roadmap-command | **Branch:** feature/spine-roadmap-command
-**Tags:** type/feature, area/workflow, area/docs, area/governance
-**Description:** Wired up the long-reserved `/spine-roadmap` slot. Created the command with fill, `--review`, and `--add-ideas` modes using grill-me strategic discovery. Replaced roadmap stub with GIST-informed template (Goals + Idea Bank with ICE scoring). Added `templates/docs/governance/ice-scoring-guide.md` with objective 1-10 scoring criteria. Updated bootstrap, rules, install/validate scripts, task template (`roadmap_idea` field), harvest (passive review suggestion), plan (idea-ID linking), README, and AGENTS.md. 13 files changed/created. 86/91 tests pass (5 pre-existing failures in `test_opencode_template.py` unrelated). Graphify and MkDocs inactive — not applicable.

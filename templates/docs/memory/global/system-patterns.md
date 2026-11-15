@@ -1,3 +1,7 @@
+---
+summary: "[Fill in: up to 5 lines on what this file holds and when to open it; /spine-bootstrap writes it]"
+---
+
 # System Patterns
 
 ## Optional Complementary Tooling
@@ -31,4 +35,4 @@ Deviations from platform/framework/vendor defaults. Agents must not revert these
 
 | Area | Platform/default expectation | What this project does | Code paths | Decision ref |
 |------|------------------------------|------------------------|------------|--------------|
-| [area] | [default] | [custom behavior] | `path/to/code` | decision-log § YYYY-MM-DD |
+| [area] | [default] | [custom behavior] | `path/to/code` | DEC YYYY-MM-DD-short-slug |

@@ -33,10 +33,14 @@ DOCS_SEED_PATHS: tuple[str, ...] = (
     "docs/memory/global/domain-glossary.md",
     "docs/memory/global/system-patterns.md",
     "docs/memory/global/tech-context.md",
-    "docs/memory/global/decision-log.md",
     "docs/memory/ledger/roadmap.md",
     "docs/memory/ledger/progress.md",
-    "docs/memory/ledger/learnings.md",
+    "docs/memory/ledger/decisions/_template.md",
+    "docs/memory/ledger/decisions/INDEX.md",
+    "docs/memory/ledger/learnings/_template.md",
+    "docs/memory/ledger/learnings/INDEX.md",
+    "docs/memory/ledger/deliveries/_template.md",
+    "docs/memory/ledger/deliveries/INDEX.md",
     "docs/memory/active_tasks/_task-template.md",
     "docs/governance/skills-policy.md",
     "docs/governance/memory-tags-policy.md",
@@ -57,6 +61,9 @@ DOCS_GITKEEP_PATHS: tuple[str, ...] = (
     "docs/memory/completed_tasks/.gitkeep",
 )
 
+# Parallel harvests add rows to the same generated INDEX.md; union keeps both sides.
+LEDGER_GITATTRIBUTES_LINE = "docs/memory/ledger/*/INDEX.md merge=union"
+
 SYMLINK_GITIGNORE_ADD: tuple[str, ...] = (".spine", ".agents/")
 COPY_GITIGNORE_ADD: tuple[str, ...] = (".spine",)
 SYMLINK_GITIGNORE_REMOVE: tuple[str, ...] = (
@@ -68,6 +75,16 @@ SYMLINK_GITIGNORE_REMOVE: tuple[str, ...] = (
 COPY_GITIGNORE_REMOVE: tuple[str, ...] = SYMLINK_GITIGNORE_REMOVE + (
     ".agents/",
     ".agents",
+)
+
+# Spine repository installed into itself (dogfooding): every wired tree stays local,
+# so the framework repo never versions its own install.
+SELF_INSTALL_GITIGNORE_KEEP: tuple[str, ...] = (
+    ".spine",
+    ".agents/",
+    ".cursor/",
+    ".claude/",
+    ".opencode/",
 )
 
 VENDOR_GITIGNORE_STRIP: tuple[str, ...] = (
