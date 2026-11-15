@@ -26,7 +26,7 @@ spine/
 │       ├── governance/     # Skills policy (allowlist, trial criteria), ICE scoring guide
 │       ├── quality/        # Guardrails documentation
 │       └── workflow/       # GitFlow and delivery cycle guides
-├── docs/                   # Local memory bank for Spine development (NOT versioned)
+├── docs/                   # Spine's own memory bank (versioned, public)
 ├── commands/               # Slash-command templates (/spine-plan, /spine-bootstrap, etc.)
 ├── rules/                  # Source-of-truth rules in .md (Cursor, Claude Code, OpenCode)
 ├── skills/                 # Curated AI skill definitions (each has a SKILL.md)
@@ -37,8 +37,8 @@ spine/
 
 **Important:**
 - `templates/` contains setup files for new consumer projects (versioned)
-- `docs/` is the local memory bank for Spine development (NOT versioned — see `.gitignore`)
-- `.gitignore` excludes: `docs/`, `.cursor/`, `CLAUDE.md`, local `opencode.json`
+- `docs/` is Spine's own memory bank: versioned and public (except `docs/documentation/` and `docs/discovery/`, which stay local)
+- `.gitignore` excludes: `docs/documentation/`, `docs/discovery/`, `.cursor/`, `CLAUDE.md`, local `opencode.json`
 - `AGENTS.md` is versioned in this repository
 
 ---
@@ -134,11 +134,21 @@ _Applies to consumer application code._
 
 ### Development (this repository)
 
-- `docs/` is the local memory bank for Spine development (ignored by git)
+- `docs/` is Spine's own memory bank, versioned in this **public** repository. Never write confidential content into it: client or employer names, private project names, local paths outside this repo, metrics from private projects, secrets. Refer to consumer projects generically ("a consumer project", "onboarding-hub").
+- `docs/documentation/` (personal notes) and `docs/discovery/` (third-party research clones) stay local (ignored by git)
 - `.cursor/`, `CLAUDE.md`, and root `opencode.json` are local dev configs (ignored by git)
 - Version changes in `templates/`, `commands/`, `skills/`, `rules/`, `AGENTS.md`
 - Use `docs/memory/` to track Spine's own development progress
 - `templates/opencode.json` is the canonical template for consumer projects
+
+**Dogfooding: install Spine into this repo.** This repository is also a Spine consumer (its local `docs/memory/` tracks Spine's own work). Wire it so sessions load the three rules, the `/spine-*` commands and the core skills:
+
+```bash
+python3 scripts/spine.py install --core --project-root=.
+python3 scripts/spine.py install --add-skill=grill-me --project-root=.   # optional
+```
+
+The installer detects the self-install (project root is the Spine clone) and keeps `.spine`, `.agents/`, `.cursor/`, `.claude/` and `.opencode/` ignored, so the framework repo never versions its own wiring. The wired rules and commands are links into the working tree: agents follow whatever branch is checked out, including unfinished rule edits on a feature branch.
 
 ### Consumer installation (v1.3 — project-only)
 
@@ -167,7 +177,7 @@ python3 .spine/scripts/spine.py install --copy --update
 
 Readiness: `python3 .spine/scripts/spine_validate.py bootstrap`
 
-**Validators** live in `scripts/spine_validate.py` (cross-platform, stdlib-only Python 3.9+; subcommands `task`, `bootstrap`, `graphify`, `mkdocs`). Change installer and validator behavior only in `scripts/spine.py` (package `scripts/spine_cli/`) and `scripts/spine_validate.py`. On Windows use `py -3` or `python` when `python3` is unavailable.
+**Validators** live in `scripts/spine_validate.py` (cross-platform, stdlib-only Python 3.9+; subcommands `task`, `bootstrap`, `graphify`, `mkdocs`, `memory`). Change installer and validator behavior only in `scripts/spine.py` (package `scripts/spine_cli/`) and `scripts/spine_validate.py`. On Windows use `py -3` or `python` when `python3` is unavailable.
 
 After step 2, only `python3 .spine/scripts/spine.py install` works from the terminal — `/spine-*` commands are not available until step 3 creates IDE command/workflow trees.
 
@@ -268,11 +278,13 @@ Operational source of truth: `docs/memory/`. Canonical spec: `rules/02-memory-ba
 
 ```
 docs/memory/
-  global/           # Stable base
+  global/           # Stable narrative
   ledger/
     roadmap.md
-    progress.md     # Current state + delivery log (append-only)
-    learnings.md    # LEARN-NNN recurrence registry
+    progress.md     # Current state only
+    decisions/      # One file per decision + generated INDEX.md
+    learnings/      # One file per LEARN-NNN + generated INDEX.md
+    deliveries/     # One file per delivery + generated INDEX.md
   active_tasks/     # Open work only
   completed_tasks/  # DONE (git mv at harvest)
 ```
@@ -283,11 +295,17 @@ docs/memory/
 
 | Tier | When | Read |
 |------|------|------|
-| Core | Every session | global 1–6, progress Current state, open `active_tasks/` |
-| Extended | Plan, harvest, ambiguous scope | `roadmap.md`, full delivery log |
-| On demand | Debugging, recurrence | `learnings.md`, `completed_tasks/` |
+| Core | Every session | `spine.py memory digest` (fallback: global 1–6, progress Current state, open `active_tasks/`) |
+| Extended | Plan, harvest, ambiguous scope | `roadmap.md`, `ledger/deliveries/INDEX.md` |
+| On demand | Debugging, recurrence | `ledger/learnings/INDEX.md`, `ledger/decisions/INDEX.md`, `completed_tasks/` |
 
-**Harvest outcomes:** delivery log append, `learnings.md` when applicable, frontmatter `status: DONE`, `git mv` to `completed_tasks/`. When `roadmap_idea` is set, update Idea Bank Status (`Done` / still `In Progress`) and suggest `/spine-roadmap --review` for ICE re-score.
+**Ledger entries:** one file per decision, learning and delivery under `ledger/{decisions,learnings,deliveries}/` with frontmatter (one-line `summary:` ≤ 160 chars, `tags`, `task`, `superseded_by` for decisions). `python3 .spine/scripts/spine.py memory index` regenerates each committed `INDEX.md`; `.gitattributes` gets `docs/memory/ledger/*/INDEX.md merge=union`. Legacy single files (`global/decision-log.md`, `ledger/learnings.md`, the legacy delivery log in `progress.md`) stay frozen until `python3 .spine/scripts/spine.py memory migrate` splits them: a dry run by default (entries to create, placeholders, dropped preamble, unparsed lines, ID conflicts); `--apply` writes the entries, removes the legacy files and the Delivery log section, runs `memory index`, and refuses while unparsed lines or conflicts remain. Spec: `rules/02-memory-bank.md` § Ledger entries.
+
+**Memory digest** (Core SYNC): `python3 .spine/scripts/spine.py memory digest` prints a compact view of `docs/memory/` — Current state, one line per open task, each narrative file's `summary:` frontmatter (outline when missing), ledger entry counts with the newest 5 titles, Extended-tier pointers. Output goes to stdout only; nothing is written. When summaries are missing, a closing `SETUP:` block asks the agent to write them for a few files per session (largest first, `--budget` source chars, default 60,000), so existing projects set up over their next sessions without a migration step. `python3 .spine/scripts/spine.py memory stats` prints chars per memory file, the legacy Core SYNC total and the digest size. Both accept `--project-root=PATH`.
+
+**Memory budgets:** `python3 .spine/scripts/spine_validate.py memory` warns (exit 0) when the digest, Current state or an on-demand memory file exceeds its budget (`rules/02-memory-bank.md` § Memory budgets). `/spine-harvest` compacts Current state and reports the rest as follow-ups.
+
+**Harvest outcomes:** delivery entry in `ledger/deliveries/`, learning and decision entries when applicable, `spine.py memory index`, frontmatter `status: DONE`, `git mv` to `completed_tasks/`. When `roadmap_idea` is set, update Idea Bank Status (`Done` / still `In Progress`) and suggest `/spine-roadmap --review` for ICE re-score.
 
 ### OpenCode configuration (consumer)
 

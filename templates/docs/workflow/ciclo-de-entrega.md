@@ -14,10 +14,11 @@ Executar tarefas com previsibilidade e qualidade, mantendo documentação mínim
 4. **Validação**
    - Executar testes definidos.
    - Validar impacto em áreas relacionadas.
-5. **Registro (harvest v2.1)**
-   - Atualizar `docs/memory/ledger/progress.md` (Current state + entrada no delivery log com **Tags**).
-   - Registrar recorrências em `docs/memory/ledger/learnings.md` quando houver incidente ou retrabalho.
-   - Registrar decisões em `docs/memory/global/decision-log.md`.
+5. **Registro (harvest)**
+   - Criar a entrada da entrega em `docs/memory/ledger/deliveries/` (frontmatter com `tags:` e `summary:`) e atualizar o Current state em `docs/memory/ledger/progress.md`.
+   - Registrar recorrências em `docs/memory/ledger/learnings/` (um arquivo por `LEARN-NNN`) quando houver incidente ou retrabalho.
+   - Registrar decisões como entradas em `docs/memory/ledger/decisions/`.
+   - Regenerar os índices: `python3 .spine/scripts/spine.py memory index`.
    - Mover task concluída: `git mv active_tasks/ → completed_tasks/` (frontmatter `status: DONE`).
 6. **Promoção**
    - `feature/*` -> `develop` -> `staging` -> `production` -> `main`.

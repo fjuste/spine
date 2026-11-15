@@ -1,3 +1,11 @@
+---
+summary: >-
+  Dev setup (feature/* from develop, promotion chain), main dependencies of
+  target projects, technical constraints (no overengineering, curated skills,
+  tests + memory update per delivery), example env vars and Known Risks (public
+  memory bank: no confidential content). Open before changing workflow constraints or setup.
+---
+
 # Tech Context
 
 ## Setup de Desenvolvimento
@@ -22,3 +30,6 @@
 | APP_ENV | Ambiente atual | development |
 | DB_DRIVER | Banco principal do projeto alvo | postgresql |
 | WORKFLOW_MODE | Modo do ciclo | solo-gitflow |
+
+## Known Risks
+- Spine's memory bank (`docs/memory/`, `docs/governance/`) is versioned in a public repository. Never record client or employer names, private project names, local paths outside the repo or secrets; name consumer projects generically. `docs/documentation/` and `docs/discovery/` stay gitignored.

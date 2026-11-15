@@ -441,7 +441,7 @@ def test_core_skills_match_constant() -> None:
         "systematic-debugging",
         "verification-before-completion",
     )
-    assert "docs/memory/ledger/learnings.md" in DOCS_SEED_PATHS
+    assert "docs/memory/ledger/learnings/INDEX.md" in DOCS_SEED_PATHS
 
 
 def test_operational_shell_scripts_are_gone() -> None:
@@ -547,3 +547,176 @@ def test_update_keeps_workflow_skill_and_removes_legacy_workflow(tmp_path: Path)
     assert not (project / ".agents" / "skills" / "extra-skill").exists()
     assert not legacy.exists()
 
+
+
+# =============================================================================
+# Self-install (Spine repository installed into itself)
+# =============================================================================
+
+IDE_TREE_IGNORES = (".cursor/", ".claude/", ".opencode/")
+SELF_INSTALL_LOCAL_ONLY = (".spine", ".agents/", ".cursor/", ".claude/", ".opencode/")
+
+
+def _gitignore_lines(project: Path) -> list[str]:
+    return (project / ".gitignore").read_text(encoding="utf-8").splitlines()
+
+
+@pytest.mark.parametrize("extra", [[], ["--copy"]], ids=["symlink", "copy"])
+def test_self_install_keeps_ide_tree_ignores(tmp_path: Path, extra: list[str]) -> None:
+    source = tmp_path / "spine"
+    _spine_fixture(source)
+    original = ["/docs/", *IDE_TREE_IGNORES, ".agents/", "/opencode.json", ".spine", "__pycache__/"]
+    (source / ".gitignore").write_text("\n".join(original) + "\n", encoding="utf-8")
+
+    assert _install(source, source, *extra) == 0
+    lines = _gitignore_lines(source)
+    for entry in original:
+        assert entry in lines, f"self-install removed {entry!r}"
+
+
+def test_self_install_adds_missing_local_only_entries(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    source = tmp_path / "spine"
+    _spine_fixture(source)
+    (source / ".gitignore").write_text("__pycache__/\n", encoding="utf-8")
+
+    assert _install(source, source) == 0
+    lines = _gitignore_lines(source)
+    for entry in SELF_INSTALL_LOCAL_ONLY:
+        assert entry in lines
+    assert "self-install" in capsys.readouterr().out
+
+
+def test_self_install_without_gitignore_creates_local_only_entries(tmp_path: Path) -> None:
+    source = tmp_path / "spine"
+    _spine_fixture(source)
+
+    assert _install(source, source) == 0
+    lines = _gitignore_lines(source)
+    for entry in SELF_INSTALL_LOCAL_ONLY:
+        assert entry in lines
+
+
+def test_self_install_wires_ide_trees(tmp_path: Path) -> None:
+    source = tmp_path / "spine"
+    _spine_fixture(source)
+
+    assert _install(source, source, "--targets=cursor,opencode,claude") == 0
+    assert (source / ".claude" / "rules" / "01-core-protocol.md").is_file()
+    assert (source / ".cursor" / "commands" / "spine-plan.md").is_file()
+    assert (source / ".agents" / "skills" / "writing-plans" / "SKILL.md").is_file()
+    assert (source / ".spine").resolve() == source.resolve()
+
+
+def test_consumer_install_still_strips_ide_tree_ignores(tmp_path: Path) -> None:
+    source = tmp_path / "spine"
+    project = tmp_path / "proj"
+    _spine_fixture(source)
+    project.mkdir()
+    (project / ".gitignore").write_text("\n".join(IDE_TREE_IGNORES) + "\n", encoding="utf-8")
+
+    assert _install(project, source) == 0
+    lines = _gitignore_lines(project)
+    for entry in IDE_TREE_IGNORES:
+        assert entry not in lines
+
+
+def test_agents_md_documents_self_install() -> None:
+    text = (REPO_ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    assert "python3 scripts/spine.py install --core --project-root=." in text
+    section = text.split("python3 scripts/spine.py install --core --project-root=.", 1)[1][:1500]
+    assert "ignored" in section
+    assert "branch" in section
+
+
+GITATTRIBUTES_UNION = "docs/memory/ledger/*/INDEX.md merge=union"
+
+
+def _gitattributes_lines(project: Path) -> list[str]:
+    return (project / ".gitattributes").read_text(encoding="utf-8").splitlines()
+
+
+@pytest.mark.parametrize("extra", [[], ["--copy"]], ids=["symlink", "copy"])
+def test_install_adds_gitattributes_union_once(tmp_path: Path, extra: list[str]) -> None:
+    source = tmp_path / "spine"
+    project = tmp_path / "proj"
+    _spine_fixture(source)
+    project.mkdir()
+    (project / ".gitattributes").write_text("*.png binary\n", encoding="utf-8")
+
+    assert _install(project, source, *extra) == 0
+    assert _install(project, source, *extra, "--update") == 0
+
+    lines = _gitattributes_lines(project)
+    assert lines.count(GITATTRIBUTES_UNION) == 1
+    assert "*.png binary" in lines
+
+
+def test_vendor_adds_gitattributes_union(tmp_path: Path) -> None:
+    source = tmp_path / "spine"
+    project = tmp_path / "proj"
+    _spine_fixture(source)
+    project.mkdir()
+
+    assert spine.main(
+        ["vendor", "--project-root", str(project), "--spine-dir", str(source), "--skills=writing-plans", "--targets=cursor"]
+    ) == 0
+
+    assert _gitattributes_lines(project) == [GITATTRIBUTES_UNION]
+
+
+def test_update_adds_gitattributes_union(tmp_path: Path) -> None:
+    source = tmp_path / "spine"
+    project = tmp_path / "proj"
+    _spine_fixture(source)
+    project.mkdir()
+    assert _install(project, source) == 0
+    (project / ".gitattributes").unlink()
+
+    assert spine.main(["update", "--project-root", str(project), "--no-pull", "--no-graphify-prompt", "--no-mkdocs-prompt"]) == 0
+
+    assert GITATTRIBUTES_UNION in _gitattributes_lines(project)
+
+
+def test_self_install_skips_gitattributes(tmp_path: Path) -> None:
+    source = tmp_path / "spine"
+    _spine_fixture(source)
+
+    assert _install(source, source) == 0
+
+    assert not (source / ".gitattributes").exists()
+
+
+def _update_output(project: Path, capsys: pytest.CaptureFixture[str]) -> str:
+    capsys.readouterr()
+    assert spine.main(["update", "--project-root", str(project), "--no-pull", "--no-graphify-prompt", "--no-mkdocs-prompt"]) == 0
+    return capsys.readouterr().out
+
+
+def test_update_hints_migrate_when_legacy_files_exist(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    source = tmp_path / "spine"
+    project = tmp_path / "proj"
+    _spine_fixture(source)
+    project.mkdir()
+    assert _install(project, source) == 0
+    legacy = project / "docs" / "memory" / "global" / "decision-log.md"
+    legacy.parent.mkdir(parents=True, exist_ok=True)
+    legacy.write_text("# Decision Log\n\n### 2026-01-01 - Old decision\n\nBody.\n", encoding="utf-8")
+
+    assert "spine.py memory migrate" in _update_output(project, capsys)
+
+    legacy.unlink()
+    progress = project / "docs" / "memory" / "ledger" / "progress.md"
+    progress.write_text("# Progress\n\n## Current state\n- x\n\n## Delivery log (newest first)\n", encoding="utf-8")
+    assert "spine.py memory migrate" in _update_output(project, capsys)
+
+
+def test_update_no_hint_without_legacy_files(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    source = tmp_path / "spine"
+    project = tmp_path / "proj"
+    _spine_fixture(source)
+    project.mkdir()
+    assert _install(project, source) == 0
+
+    assert "memory migrate" not in _update_output(project, capsys)

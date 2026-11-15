@@ -16,7 +16,7 @@ date_added: "2026-04-29"
 ## Solo Mode (Default)
 The active task file (`<seq>-<name>.md`) is the execution contract.
 Same agent plans, executes, and harvests.
-Mandatory updates at harvest: `progress.md` (delivery log append), `learnings.md` (when applicable), `decision-log.md` (when applicable); task moved to `completed_tasks/`.
+Mandatory updates at harvest: delivery entry in `ledger/deliveries/` + `progress.md` Current state, `ledger/learnings/` and `ledger/decisions/` entries (when applicable), `spine.py memory index`; task moved to `completed_tasks/`.
 
 ## Multi-Agent Mode (Optional)
 - Separate Planner/Executor only when it provides real value
