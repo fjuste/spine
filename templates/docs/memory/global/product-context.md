@@ -1,3 +1,7 @@
+---
+summary: "[Fill in: up to 5 lines on what this file holds and when to open it; /spine-bootstrap writes it]"
+---
+
 # Product Context
 
 ## Why does this project exist?

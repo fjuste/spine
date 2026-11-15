@@ -17,7 +17,7 @@ def test_docs_module_seeds_without_overwrite() -> None:
 def test_install_seed_allowlist_covers_v21_paths() -> None:
     text = _read("scripts/spine_cli/constants.py")
     required = [
-        "docs/memory/ledger/learnings.md",
+        "docs/memory/ledger/learnings/INDEX.md",
         "docs/governance/memory-tags-policy.md",
         "docs/memory/active_tasks/_task-template.md",
         "docs/memory/completed_tasks/.gitkeep",

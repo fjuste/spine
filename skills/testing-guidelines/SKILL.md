@@ -42,7 +42,7 @@ tests/
 - Acceptance criteria met
 - Test plan executed
 - No critical failures open
-- Memory bank updated: `ledger/learnings.md` for incidents; `ledger/progress.md` delivery log
+- Memory bank updated: `ledger/learnings/` entry for incidents; `ledger/deliveries/` entry for the delivery
 
 ## Pragmatic Exception
 In critical hotfix: implement first, create regression test immediately after stabilizing.

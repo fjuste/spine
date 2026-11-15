@@ -27,7 +27,7 @@ On session start, follow **tiered SYNC** in `02-memory-bank.md` (loaded via proj
 
 **Core tier:** global 1–6, `ledger/progress.md` Current state only, open `active_tasks/` (non-DONE).
 
-**On demand:** `ledger/learnings.md`, `completed_tasks/`, full delivery log — when debugging, recurrence, or audits.
+**On demand:** `ledger/learnings/INDEX.md`, `ledger/decisions/INDEX.md`, `ledger/deliveries/INDEX.md` (then only the entries you need), `completed_tasks/` — when debugging, recurrence, or audits.
 
 Read only files **relevant to the question**. Skip files already in context.
 

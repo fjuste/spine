@@ -8,6 +8,7 @@ from spine_cli.constants import (
     COPY_GITIGNORE_ADD,
     COPY_GITIGNORE_REMOVE,
     MKDOCS_GITIGNORE_ENTRY,
+    SELF_INSTALL_GITIGNORE_KEEP,
     SYMLINK_GITIGNORE_ADD,
     SYMLINK_GITIGNORE_REMOVE,
     VENDOR_GITIGNORE_STRIP,
@@ -32,17 +33,26 @@ def _exact_present(lines: list[str], entry: str) -> bool:
     return any(line == entry for line in lines)
 
 
-def adjust_install_gitignore(project: Path, copy_mode: bool, log: Log) -> None:
+def adjust_install_gitignore(
+    project: Path, copy_mode: bool, log: Log, *, self_install: bool = False
+) -> None:
     """Add mode-specific ignores and drop obsolete ones.
 
     Args:
         project: Consumer project root.
         copy_mode: Hybrid ``--copy`` install versions ``.agents/``.
         log: Progress logger.
+        self_install: The project is the Spine repository itself. Nothing is
+            removed and every wired tree is kept ignored.
     """
     print("\nGitignore:")
-    to_add = COPY_GITIGNORE_ADD if copy_mode else SYMLINK_GITIGNORE_ADD
-    to_remove = COPY_GITIGNORE_REMOVE if copy_mode else SYMLINK_GITIGNORE_REMOVE
+    if self_install:
+        to_add: tuple[str, ...] = SELF_INSTALL_GITIGNORE_KEEP
+        to_remove: tuple[str, ...] = ()
+        log.info("Spine repository self-install: IDE trees stay ignored")
+    else:
+        to_add = COPY_GITIGNORE_ADD if copy_mode else SYMLINK_GITIGNORE_ADD
+        to_remove = COPY_GITIGNORE_REMOVE if copy_mode else SYMLINK_GITIGNORE_REMOVE
     gitignore = project / ".gitignore"
 
     if not gitignore.is_file():
@@ -141,6 +151,27 @@ def ensure_gitignore_line(project: Path, entry: str, log: Log) -> None:
     lines.append(entry)
     _write_lines(gitignore, lines)
     print(f"    added '{entry}' to .gitignore")
+
+
+def ensure_gitattributes_line(project: Path, entry: str, log: Log) -> None:
+    """Append ``entry`` to ``.gitattributes`` when the exact line is absent.
+
+    Args:
+        project: Consumer project root.
+        entry: Attribute line, e.g. ``docs/memory/ledger/*/INDEX.md merge=union``.
+        log: Progress logger.
+    """
+    gitattributes = project / ".gitattributes"
+    if log.dry_run:
+        log.dry(f"Would add '{entry}' to .gitattributes")
+        return
+    lines = _read_lines(gitattributes)
+    if _exact_present(lines, entry):
+        log.skip(f".gitattributes: {entry} (already present)")
+        return
+    lines.append(entry)
+    _write_lines(gitattributes, lines)
+    log.plus(f".gitattributes: +{entry}")
 
 
 def remove_gitignore_line(project: Path, entry: str, log: Log) -> None:

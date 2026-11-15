@@ -18,15 +18,15 @@ Act as a Senior Software Architect. Follow the instructions provided in $ARGUMEN
    **Trigger precedence (first match wins):**
 
    1. **Explicit opt-out:** if `$ARGUMENTS` contains (case-insensitive) `skip discovery`, `no grill`, or `direct plan`, skip `@grill-me` regardless of scope clarity.
-   2. **Explicit opt-in:** if `$ARGUMENTS` contains (case-insensitive) `grill me`, `grill:`, `grill -`, `grill with docs`, `grill:docs`, `stress-test`, or `challenge this`, run `@grill-me` even when scope appears clear. Strip the trigger phrase; use the remainder as the task briefing. When `grill with docs` or `grill:docs` is used, expect inline updates to `domain-glossary.md` and `decision-log.md` per the skill.
+   2. **Explicit opt-in:** if `$ARGUMENTS` contains (case-insensitive) `grill me`, `grill:`, `grill -`, `grill with docs`, `grill:docs`, `stress-test`, or `challenge this`, run `@grill-me` even when scope appears clear. Strip the trigger phrase; use the remainder as the task briefing. When `grill with docs` or `grill:docs` is used, expect inline updates to `domain-glossary.md` and new `ledger/decisions/` entries per the skill.
    3. **Implicit:** run `@grill-me` when scope is ambiguous, broad, multi-domain, or when major architectural/security/auth/schema/infrastructure decisions are unresolved.
 
    **When `@grill-me` is active:**
 
    - Use the `@grill-me` skill: one question at a time; provide a recommended answer; explore the codebase when the answer is discoverable there.
-   - Read memory bank global files (`domain-glossary.md`, `product-context.md`, `system-patterns.md`, `decision-log.md`); promote canonical terms and architectural decisions per the skill's knowledge-promotion rules.
+   - Read memory bank global files (`domain-glossary.md`, `product-context.md`, `system-patterns.md`) and `ledger/decisions/INDEX.md` (open only the decision entries that matter); promote canonical terms and architectural decisions per the skill's knowledge-promotion rules.
    - Do **not** write the full plan until discovery is complete.
-   - Record outcomes in `## Discovery notes` on the task file (create the file early with frontmatter `status: PLANNING` if needed to capture notes incrementally). Note any updates made to `domain-glossary.md` or `decision-log.md`.
+   - Record outcomes in `## Discovery notes` on the task file (create the file early with frontmatter `status: PLANNING` if needed to capture notes incrementally). Note any updates made to `domain-glossary.md` or `ledger/decisions/`.
 
    **Retroactive opt-in:** if the user asks to be grilled mid-session before the plan is written, switch to `@grill-me` and resume planning after discovery completes.
 
@@ -68,7 +68,7 @@ Act as a Senior Software Architect. Follow the instructions provided in $ARGUMEN
    - Example: `docs/memory/active_tasks/007-social-login-adjustment.md`
    - Create the task file with **Obsidian-style YAML frontmatter** per `02-memory-bank.md` and `docs/governance/memory-tags-policy.md`:
      - `task_id`, `title`, `goal`, `status: PLANNING`
-     - `tags:` YAML list (1–5 tags; grep `learnings.md` and recent progress for related tags before inventing new ones)
+     - `tags:` YAML list (1–5 tags; search `ledger/learnings/INDEX.md` and `ledger/deliveries/INDEX.md` for related tags before inventing new ones)
      - `branch`, `base: develop`, `execution_skill`
      - `roadmap_idea:` — set when planning from the Idea Bank (see Roadmap linkage below); otherwise leave empty
      - `created_at`, `updated_at` (today, `YYYY-MM-DD`)
