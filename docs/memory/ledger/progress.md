@@ -1,9 +1,9 @@
 # Progress
 
 ## Current state
-- In flight: none. 022-memory-migrate delivered (2026-11-14): `spine.py memory migrate` (dry run; `--apply` writes entries, removes legacy log files) completes roadmap I25. Spine's own bank is migrated: all decisions, learnings and deliveries live in `ledger/{decisions,learnings,deliveries}/`.
+- In flight: none. 023-digest-compact-planning-tasks delivered (2026-11-16): the digest prints `title — goal` only for IN_PROGRESS/REVIEW tasks; PLANNING tasks are `NNN title` under a label (roadmap I34 Done).
 - Blocked: nothing.
-- Next: roadmap reviewed 2026-11-14 (top Candidates: I8 pre-commit memory validation 320, I10 preflight 294, I9 validate-on-edit 294, I15 human summary 336). `/spine-roadmap --add-ideas` for G1 gaps: stale open tasks in the digest, narrative budget 3,000 too low for real banks. Candidate tasks: `vendor` refuses the Spine repo as project; fence-aware `memory._section`; validator counts `related_learnings` as tags.
+- Next: G1 ideas I35 (warn on stale open tasks: no status, old REVIEW) and I36 (narrative budget 3,000 → 12,000). Top Candidates from the 2026-11-14 review: I15 human summary 336, I8 pre-commit memory validation 320, I10 preflight 294, I9 validate-on-edit 294. Candidate tasks: `vendor` refuses the Spine repo as project; fence-aware `memory._section`; validator counts `related_learnings` as tags.
 - Legacy sections below (`O que funciona` … `Issues Conhecidos`) predate Memory Bank v2.1 and are kept for history.
 
 ## O que funciona

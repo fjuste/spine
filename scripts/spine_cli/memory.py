@@ -49,6 +49,10 @@ SUMMARY_MAX_LINES = 5
 ELLIPSIS = "…"
 OPEN_STATUS_RANK = {"IN_PROGRESS": 0, "REVIEW": 1}
 OTHER_STATUS_RANK = 2
+PLANNING_STATUS_RANK = 3
+FULL_LINE_STATUSES = frozenset({"IN_PROGRESS", "REVIEW"})
+PLANNING_STATUS = "PLANNING"
+PLANNING_LABEL = "Planning (goal in the task file):"
 CLOSED_STATUS = "DONE"
 UNKNOWN_STATUS = "UNKNOWN"
 
@@ -239,14 +243,25 @@ class TaskLine:
     goal: str
 
     def render(self) -> str:
-        """Return ``NNN | STATUS | title — goal`` capped to one line."""
-        head = f"{self.task_id} | {self.status} | {self.title}"
-        line = f"{head} — {self.goal}" if self.goal else head
+        """Return the task's digest line, capped to one line.
+
+        IN_PROGRESS and REVIEW tasks print ``NNN | STATUS | title — goal``,
+        PLANNING tasks ``NNN title``, any other status ``NNN | STATUS | title``.
+        """
+        if self.status == PLANNING_STATUS:
+            line = f"{self.task_id} {self.title}"
+        else:
+            line = f"{self.task_id} | {self.status} | {self.title}"
+            if self.goal and self.status in FULL_LINE_STATUSES:
+                line = f"{line} — {self.goal}"
         return _cap(" ".join(line.split()), TASK_LINE_MAX_CHARS)
 
     def sort_key(self) -> tuple[int, int, str]:
-        """IN_PROGRESS, then REVIEW, then the rest; each group by task id."""
-        rank = OPEN_STATUS_RANK.get(self.status, OTHER_STATUS_RANK)
+        """IN_PROGRESS, REVIEW, other statuses, then PLANNING; each by task id."""
+        if self.status == PLANNING_STATUS:
+            rank = PLANNING_STATUS_RANK
+        else:
+            rank = OPEN_STATUS_RANK.get(self.status, OTHER_STATUS_RANK)
         number = int(self.task_id) if self.task_id.isdigit() else 0
         return (rank, number, self.task_id)
 
@@ -258,7 +273,7 @@ def open_tasks(files: list[MemoryFile]) -> list[TaskLine]:
         files: Scanned memory files.
 
     Returns:
-        Task lines without ``DONE`` tasks, IN_PROGRESS/REVIEW first, then by id.
+        Task lines without ``DONE`` tasks, ordered by :meth:`TaskLine.sort_key`.
     """
     tasks: list[TaskLine] = []
     for item in files:
@@ -770,8 +785,12 @@ def build_digest(root: Path, budget: int = DEFAULT_SETUP_BUDGET_CHARS) -> str:
     lines.append(state.strip() if state and state.strip() else "(progress.md has no `## Current state` section)")
 
     lines += ["", "## Open tasks"]
-    tasks = open_tasks(files)
-    lines += [task.render() for task in tasks] or ["(none)"]
+    task_lines: list[str] = []
+    for task in open_tasks(files):
+        if task.status == PLANNING_STATUS and PLANNING_LABEL not in task_lines:
+            task_lines.append(PLANNING_LABEL)
+        task_lines.append(task.render())
+    lines += task_lines or ["(none)"]
 
     lines += ["", "## Narrative files"]
     narratives = sorted((item for item in files if item.kind == NARRATIVE), key=_narrative_order)
