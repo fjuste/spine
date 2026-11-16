@@ -2,7 +2,7 @@
 task_id: 023
 title: Digest open tasks — full lines for active work, compact lines for PLANNING
 goal: The digest keeps `NNN | STATUS | title — goal` only for IN_PROGRESS and REVIEW tasks and lists PLANNING tasks as `NNN title`, so a bank with many planned tasks no longer spends most of its Open tasks section on goals nobody is working on
-status: REVIEW
+status: DONE
 tags:
   - type/feature
   - area/memory
@@ -12,8 +12,8 @@ base: develop
 execution_skill: executing-plans
 roadmap_idea: I34
 created_at: 2026-11-15
-updated_at: 2026-11-15
-completed_at:
+updated_at: 2026-11-16
+completed_at: 2026-11-16
 related_learnings: []
 ---
 
@@ -103,8 +103,8 @@ Out of scope: stale-task warnings (I35), narrative budget (I36), changing `DIGES
 - [x] Step 2: `pytest tests/`; `python3 scripts/spine.py memory digest` smoke check.
 
 ## Execution notes
-- 2026-11-15 — deviation — Added `test_digest_other_statuses_sit_between_review_and_planning` (a `BLOCKED` task between REVIEW and the Planning label), not listed in the plan; AC4's fixture has no non-standard status, so the "other statuses before PLANNING" order was otherwise untested. Additive only, no change to scope or approach.
-- 2026-11-15 — environment — Spine's own bank has no goals on its 7 `UNKNOWN` tasks, so its digest Open tasks section is byte-identical before and after this change (smoke check).
+- 2026-11-15 — deviation — Added `test_digest_other_statuses_sit_between_review_and_planning` (a `BLOCKED` task between REVIEW and the Planning label), not listed in the plan; AC4's fixture has no non-standard status, so the "other statuses before PLANNING" order was otherwise untested. Additive only, no change to scope or approach. → no promotion
+- 2026-11-15 — environment — Spine's own bank has no goals on its 7 `UNKNOWN` tasks, so its digest Open tasks section is byte-identical before and after this change (smoke check). → no promotion
 
 ## Execution evidence
 **Tests executed:**
@@ -120,3 +120,6 @@ Out of scope: stale-task warnings (I35), narrative budget (I36), changing `DIGES
 - Smoke check: Open tasks section unchanged for the 7 `UNKNOWN` tasks; task 023 shows as a full IN_PROGRESS line
 
 **Manual / external evidence:** 2026-11-15, branch `feature/digest-compact-planning-tasks` (uncommitted working tree). An ad-hoc script built 18 PLANNING tasks with 250-char goals and measured the Open tasks section with `memory.digest_section_sizes`: 5,278 chars before, 524 after. The script was a throwaway in the session scratchpad and was not kept.
+
+## Delivery summary
+Delivered 2026-11-16 → `ledger/deliveries/2026-11-16-023-digest-compact-planning-tasks.md`. Digest open-task lines depend on status: full for IN_PROGRESS/REVIEW, `NNN title` under a Planning label for PLANNING, status without goal otherwise. Evidence: `pytest tests/` 327 passed (execution and harvest). The agent's 2026-11-15 measurement with 18 PLANNING tasks: Open tasks section 5,278 → 524 chars (throwaway scratchpad script, not kept). Notes: deviation (extra ordering test) → no promotion; environment (Spine's UNKNOWN tasks have no goals) → no promotion, since I35 already covers stale tasks. No incidents or rework, so no learning entry. Roadmap I34 → Done.
