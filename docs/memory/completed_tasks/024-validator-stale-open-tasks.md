@@ -2,7 +2,7 @@
 task_id: 024
 title: Memory validator warns on stale open tasks
 goal: "`spine_validate.py memory` names the files in `active_tasks/` that need a human to close them: tasks without a valid status, REVIEW tasks not updated in over 14 days, and DONE tasks never moved to `completed_tasks/`"
-status: REVIEW
+status: DONE
 tags:
   - type/feature
   - area/memory
@@ -13,7 +13,7 @@ execution_skill: executing-plans
 roadmap_idea: I35
 created_at: 2026-11-16
 updated_at: 2026-11-16
-completed_at:
+completed_at: 2026-11-16
 related_learnings:
   - LEARN-002
 ---
@@ -123,10 +123,10 @@ Out of scope: closing Spine's own 7 legacy tasks (human decision after this ship
 **Step 3:** `pytest tests/`; smoke-run the validator on Spine and two consumer banks.
 
 ## Execution notes
-- 2026-11-16 — decision — Generalized the ledger file-list helper as `_name_list(names)`; `_file_list(entries)` now delegates to it in one line, so ledger and open-task warnings share the 5-file cap and `(+N more)` format.
-- 2026-11-16 — decision — Harvest 4c.1 tells the agent not to report a stale-REVIEW warning naming the task being harvested (it clears at step 5). A DONE warning cannot fire for that task: step 5 sets `status: DONE` and moves the file together.
-- 2026-11-16 — out-of-scope — `commands/spine-harvest.md` step 7 asks for each remaining warning as "(scope, chars, limit, suggested owner)"; open-task and ledger warnings have no chars/limit. Harmless; reword if summaries get confusing.
-- 2026-11-16 — environment — Only 9 of the 11 surveyed consumer banks are reachable through a `.spine` symlink under the workspace; smoke covered those 9.
+- 2026-11-16 — decision — Generalized the ledger file-list helper as `_name_list(names)`; `_file_list(entries)` now delegates to it in one line, so ledger and open-task warnings share the 5-file cap and `(+N more)` format. → no promotion
+- 2026-11-16 — decision — Harvest 4c.1 tells the agent not to report a stale-REVIEW warning naming the task being harvested (it clears at step 5). A DONE warning cannot fire for that task: step 5 sets `status: DONE` and moves the file together. → no promotion
+- 2026-11-16 — out-of-scope — `commands/spine-harvest.md` step 7 asks for each remaining warning as "(scope, chars, limit, suggested owner)"; open-task and ledger warnings have no chars/limit. Harmless; reword if summaries get confusing. → suggested task
+- 2026-11-16 — environment — Only 9 of the 11 surveyed consumer banks are reachable through a `.spine` symlink under the workspace; smoke covered those 9. → no promotion
 
 ## Execution evidence
 **Tests executed:**
@@ -138,3 +138,11 @@ Out of scope: closing Spine's own 7 legacy tasks (human decision after this ship
 **Manual / external evidence:** Claude (agent), 2026-11-16, branch `feature/validator-stale-open-tasks` (uncommitted working tree), `python3 scripts/spine_validate.py memory`:
 - Spine's own bank: one warning, `7 tasks without a valid status:`, 5 names shown + `(+2 more)`; exit 0.
 - 9 local consumer banks via `--project-root` (read-only): all three warning kinds observed (no-status 2 banks, stale REVIEW 5 banks, DONE left behind 3 banks); one healthy bank printed `OK (1 open task(s), no stale tasks)`. Raw output not stored (re-run the command to reproduce).
+
+## Delivery summary
+
+- **Delivered:** `spine_validate.py memory` warns on open tasks without a valid status, REVIEW tasks idle over 14 days and DONE tasks left in `active_tasks/`; harvest 4c.1, rule 02, README and AGENTS.md document it. Delivery entry: `ledger/deliveries/2026-11-16-024-validator-stale-open-tasks.md`.
+- **Evidence:** `pytest tests/` 342 passed (15 new tests) at execution and at harvest; smoke runs on Spine's bank and 9 local consumer banks (see Execution evidence).
+- **Execution notes routing:** both `decision` notes → no promotion (easy to reverse, no real trade-off); `out-of-scope` → suggested task in `progress.md` Current state candidates; `environment` → no promotion (not a risk).
+- **Learning:** no incident or rework. LEARN-002 was applied at planning (harvest step reads the validator after this check exists): no recurrence. Regression test: `test_harvest_explains_own_task_review_warning`.
+- **Roadmap:** I35 Done.
