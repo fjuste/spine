@@ -1,6 +1,6 @@
 ---
 last_updated: 2026-11-16
-last_reviewed: 2026-11-14
+last_reviewed: 2026-11-16
 review_cadence: monthly
 goals_active: 6
 ideas_total: 36
@@ -118,7 +118,7 @@ sources:
 | I31 | Cross-project tasks and portable learnings (cloud vision §3; RFC open question 5) | G6 | 30 (5×3×2) | 3 | Candidate |
 | I32 | Parallelism: `touches`, worktree per task, orchestrator, independent verifier (RFC SPN-25-01..04) | G7 | 56 (7×4×2) | 4 | Candidate |
 | I33 | Spine Cloud as separate commercial product (fork) | G6 | 6 (3×2×1) | 2 | Candidate — parked |
-| I34 | Digest open-task list: full `NNN \| STATUS \| title — goal` lines for IN_PROGRESS/REVIEW only; PLANNING tasks as `NNN title` (no goal) | G1 | 384 (6×8×8) | 8 | Done |
+| I34 | Digest open-task list: full `NNN \| STATUS \| title — goal` lines for IN_PROGRESS/REVIEW only; PLANNING tasks as `NNN title` (no goal) | G1 | 432 (6×9×8) | 9 | Done |
 | I35 | `spine_validate.py memory` warns on stale open tasks: no frontmatter status (pre-v2.1 files) and REVIEW tasks whose `updated_at` is older than N days; names files + fix (harvest or move); human closes | G1 | 168 (4×6×7) | 6 | Candidate |
 | I36 | Narrative body budget 3,000 → 12,000 chars so the warning flags only outlier files worth splitting (`NARRATIVE_BODY_BUDGET_CHARS`, rule 02 table, README) | G1 | 168 (3×7×8) | 7 | Candidate |
 
@@ -158,3 +158,6 @@ sources:
 | 2026-11-14 | I34–I36 | Added via --add-ideas (G1). I34: onboarding-hub's 18 PLANNING lines take 4.7k chars; `NNN title` takes about 1.3k, so the digest drops from 13.7k to about 10.3k, and to about 6.4k after the next harvest compacts Current state. I35: Spine has 7 open pre-v2.1 tasks with no status and ansible 3 unharvested REVIEW tasks; impact depends on a human closing them. I36: about 25 of 32 real narrative files are over 3,000 chars, 7 over 12,000. Current state overruns get no idea: agenthub (symlink) and onboarding-hub (after `spine.py update`) compact at their next harvest. |
 | 2026-11-15 | I34 | Planned as task 023-digest-compact-planning-tasks (In Progress) |
 | 2026-11-16 | I34 | Harvested task 023-digest-compact-planning-tasks → Done |
+| 2026-11-16 | — | Review (--review). Only I34 delivered since 2026-11-14. Measured old vs new digest code on 11 local consumer banks (onboarding-hub and agenthub are not on this machine). |
+| 2026-11-16 | I34 | Confidence 8→9 (ICE 384→432): ansible (5 PLANNING tasks) Open tasks 1,916→1,006 chars, digest 8,042→7,132, now under the 8,000 budget; synthetic 18 PLANNING tasks 5,278→524 (−90%, better than the −72% estimate). Impact stays 6: the other 10 banks have no PLANNING tasks and are unchanged. |
+| 2026-11-16 | G1 | Stays Active: ansible now under 8,000; onboarding-hub (13.7k, about 9.5k after I34 by the same ratio) and agenthub (10.6k) not re-measured. After I34, open-task bulk on local banks is pre-v2.1 tasks with no status (a personal billing bank: 20 UNKNOWN lines, about 1.0k chars; Spine: 7) and unharvested REVIEW tasks (ansible: 3): evidence for I35, not re-scored here. |
