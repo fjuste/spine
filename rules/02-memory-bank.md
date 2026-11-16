@@ -209,6 +209,8 @@ superseded_by:
 | `progress.md` whole file (legacy delivery log included) | 6,000 | Legacy delivery log: split with `spine.py memory migrate`; other pre-v2.1 legacy sections: trim with human approval |
 | Legacy `learnings.md` | 6,000 | Frozen; split with `spine.py memory migrate` |
 
+**Open tasks:** the same command checks the frontmatter of `active_tasks/NNN-*.md` (template ignored) and prints one `WARNING:` per problem kind, naming up to 5 files: tasks without a valid `status:` (missing or not `PLANNING`, `IN_PROGRESS`, `REVIEW`, `DONE`) → add it, or harvest / move the file; `REVIEW` tasks whose `updated_at` is more than 14 days old (or missing) → run `/spine-harvest`, or set `status: IN_PROGRESS` if work resumed; `DONE` tasks still in `active_tasks/` → `git mv` them to `completed_tasks/`. `PLANNING` and `IN_PROGRESS` tasks are never flagged. The check never edits files: a human closes the tasks.
+
 Task files, `roadmap.md`, `completed_tasks/` and whole `INDEX.md` files have no budget (an index grows by one line per entry; agents search it). The digest never shows budgets. `/spine-harvest` runs the validator, rewrites an over-budget Current state (which it owns) and reports every other warning as a follow-up. Never edit `global/` to meet a budget without showing the diff to the human first.
 
 ## Template: active_tasks/_task-template.md
