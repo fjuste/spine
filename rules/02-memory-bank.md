@@ -103,7 +103,7 @@ If a file does not exist, create it only if it is part of the current task flow.
 python3 .spine/scripts/spine.py memory digest
 ```
 
-It prints `progress.md` **Current state**, one line per open task (`NNN | STATUS | title — goal`), the `summary:` of each narrative file (or a capped outline marked `summary missing`), entry counts and newest titles of the ledger folders (plus any legacy log file), and Extended-tier pointers. The digest **is** the Core SYNC:
+It prints `progress.md` **Current state**, one line per open task (`NNN | STATUS | title — goal` for IN_PROGRESS/REVIEW, `NNN title` under a Planning label for PLANNING), the `summary:` of each narrative file (or a capped outline marked `summary missing`), entry counts and newest titles of the ledger folders (plus any legacy log file), and Extended-tier pointers. The digest **is** the Core SYNC:
 
 1. Read the digest. Do not open full memory files by default.
 2. Open a full file only when the task needs it: the task file you execute or plan against, a narrative file whose area you change, a ledger entry whose title the digest or a `ledger/<folder>/INDEX.md` row lists.

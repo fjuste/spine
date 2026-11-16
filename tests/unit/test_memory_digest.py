@@ -165,6 +165,17 @@ def _write(root: Path, relative: str, text: str) -> Path:
     return path
 
 
+MANY_PLANNING_TASKS = 18
+PLANNING_GOAL_CHARS = 250
+OPEN_TASKS_SECTION_MAX_CHARS = 1_500
+
+
+def _open_tasks_block(digest: str) -> list[str]:
+    """Lines of the digest's Open tasks section, without heading and blank tail."""
+    section = digest.split("## Open tasks\n", 1)[1].split("\n\n", 1)[0]
+    return section.splitlines()
+
+
 @pytest.fixture()
 def bank(tmp_path: Path) -> Path:
     """A memory bank with narrative, log, task and extended files."""
@@ -198,12 +209,12 @@ def test_digest_sections_order_and_one_line_per_task(bank: Path) -> None:
     assert positions == sorted(positions)
     assert "- In flight: task 018" in digest
 
-    task_lines = [line for line in digest.splitlines() if " | " in line and line[:3].isdigit()]
-    assert task_lines == [
+    assert _open_tasks_block(digest) == [
         "009 | IN_PROGRESS | Ninth — Do nine",
         "007 | REVIEW | Seventh — Do seven",
-        "001 | PLANNING | First — Do one",
-        "003 | PLANNING | Third — Do three",
+        memory.PLANNING_LABEL,
+        "001 First",
+        "003 Third",
     ]
 
 
@@ -221,9 +232,57 @@ def test_done_task_left_in_active_tasks_is_not_listed(bank: Path) -> None:
     assert "Stale" not in memory.build_digest(bank)
 
 
-def test_task_without_goal_shows_title_only(bank: Path) -> None:
-    _write(bank, "active_tasks/004-nogoal.md", _task("004", "PLANNING", "No goal", None))
-    assert "004 | PLANNING | No goal\n" in memory.build_digest(bank)
+def test_digest_active_task_without_goal_has_no_dash(bank: Path) -> None:
+    _write(bank, "active_tasks/004-nogoal.md", _task("004", "REVIEW", "No goal", None))
+    assert "004 | REVIEW | No goal\n" in memory.build_digest(bank)
+
+
+def test_digest_planning_tasks_render_id_and_title_only(bank: Path) -> None:
+    digest = memory.build_digest(bank)
+    assert "001 First\n" in digest and "003 Third\n" in digest
+    for absent in ("Do one", "Do three", "| PLANNING |"):
+        assert absent not in digest
+
+
+def test_digest_nonstandard_status_keeps_status_drops_goal(bank: Path) -> None:
+    _write(bank, "active_tasks/005-blocked.md", _task("005", "BLOCKED", "Blocked", "Do five"))
+    digest = memory.build_digest(bank)
+    assert "005 | BLOCKED | Blocked\n" in digest
+    assert "Do five" not in digest
+
+
+def test_digest_other_statuses_sit_between_review_and_planning(bank: Path) -> None:
+    _write(bank, "active_tasks/002-blocked.md", _task("002", "BLOCKED", "Blocked", "Do two"))
+    assert _open_tasks_block(memory.build_digest(bank)) == [
+        "009 | IN_PROGRESS | Ninth — Do nine",
+        "007 | REVIEW | Seventh — Do seven",
+        "002 | BLOCKED | Blocked",
+        memory.PLANNING_LABEL,
+        "001 First",
+        "003 Third",
+    ]
+
+
+def test_digest_planning_label_absent_without_planning_tasks(bank: Path) -> None:
+    for name in ("001-first.md", "003-third.md"):
+        (bank / "docs" / "memory" / "active_tasks" / name).unlink()
+    digest = memory.build_digest(bank)
+    assert memory.PLANNING_LABEL not in digest
+    assert _open_tasks_block(digest) == [
+        "009 | IN_PROGRESS | Ninth — Do nine",
+        "007 | REVIEW | Seventh — Do seven",
+    ]
+
+
+def test_digest_many_planning_tasks_stay_compact(tmp_path: Path) -> None:
+    for index in range(1, MANY_PLANNING_TASKS + 1):
+        _write(
+            tmp_path,
+            f"active_tasks/{index:03d}-task.md",
+            _task(f"{index:03d}", "PLANNING", f"Planned task number {index}", "g" * PLANNING_GOAL_CHARS),
+        )
+    sizes = dict(memory.digest_section_sizes(memory.build_digest(tmp_path)))
+    assert sizes["Open tasks"] < OPEN_TASKS_SECTION_MAX_CHARS
 
 
 def test_log_files_show_count_and_newest_five_titles(bank: Path) -> None:
