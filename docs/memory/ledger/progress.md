@@ -1,9 +1,9 @@
 # Progress
 
 ## Current state
-- In flight: none. 023-digest-compact-planning-tasks delivered (2026-11-16): the digest prints `title — goal` only for IN_PROGRESS/REVIEW tasks; PLANNING tasks are `NNN title` under a label (roadmap I34 Done).
+- In flight: none. 024-validator-stale-open-tasks delivered (2026-11-16): `spine_validate.py memory` warns on open tasks without status, REVIEW idle over 14 days and DONE left in `active_tasks/` (roadmap I35 Done).
 - Blocked: nothing.
-- Next: G1 ideas I35 (warn on stale open tasks: no status, old REVIEW) and I36 (narrative budget 3,000 → 12,000). Top Candidates from the 2026-11-14 review: I15 human summary 336, I8 pre-commit memory validation 320, I10 preflight 294, I9 validate-on-edit 294. Candidate tasks: `vendor` refuses the Spine repo as project; fence-aware `memory._section`; validator counts `related_learnings` as tags.
+- Next: close Spine's 7 legacy tasks without status (008–014; human decision); G1 idea I36 (narrative budget 3,000 → 12,000). Top Candidates from the 2026-11-14 review: I15 human summary 336, I8 pre-commit memory validation 320, I10 preflight 294, I9 validate-on-edit 294. Candidate tasks: `vendor` refuses the Spine repo as project; fence-aware `memory._section`; validator counts `related_learnings` as tags; harvest step 7 summary format (scope, chars, limit) does not fit open-task and ledger warnings.
 - Legacy sections below (`O que funciona` … `Issues Conhecidos`) predate Memory Bank v2.1 and are kept for history.
 
 ## O que funciona

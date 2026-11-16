@@ -20,6 +20,7 @@ import re
 import shutil
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 from typing import NoReturn
 
@@ -28,7 +29,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from spine_cli.constants import DOCS_SEED_PATHS
-from spine_cli.memory import INDEX_NAME, MEMORY_DIR, check_budgets, check_ledger
+from spine_cli.memory import INDEX_NAME, MEMORY_DIR, check_budgets, check_ledger, check_open_tasks
 
 VALIDATE_CMD = "python3 .spine/scripts/spine_validate.py"
 
@@ -570,10 +571,12 @@ def run_mkdocs(args: argparse.Namespace) -> int:
 
 
 def validate_memory(root: Path, report: Report | None = None) -> Report:
-    """Measure ``docs/memory/`` against its budgets and check the ledger folders.
+    """Measure ``docs/memory/`` against its budgets and check ledger folders and open tasks.
 
-    Over-budget scopes, entries without a valid ``summary:`` and stale
-    ``INDEX.md`` files are warnings; only a missing memory bank is an error.
+    Over-budget scopes, entries without a valid ``summary:``, stale
+    ``INDEX.md`` files and open tasks that need a human to close them (no valid
+    status, stale REVIEW, DONE left in ``active_tasks/``) are warnings; only a
+    missing memory bank is an error.
 
     Args:
         root: Consumer project root.
@@ -598,6 +601,12 @@ def validate_memory(root: Path, report: Report | None = None) -> Report:
         if not ledger.problems:
             noun = "entry" if ledger.entries == 1 else "entries"
             report.ok(ledger.scope, f"{ledger.entries} {noun}, {INDEX_NAME} up to date")
+    tasks = check_open_tasks(root, date.today())
+    if tasks is not None:
+        for problem in tasks.problems:
+            report.warn(f"{tasks.scope}: {problem}")
+        if not tasks.problems:
+            report.ok(tasks.scope, f"{tasks.tasks} open task(s), no stale tasks")
     return report
 
 

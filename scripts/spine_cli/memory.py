@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 import sys
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 from spine_cli.log import SpineExit
@@ -1073,10 +1074,14 @@ class LedgerCheck:
     problems: tuple[str, ...]
 
 
+def _name_list(names: list[str]) -> str:
+    shown = names[:PROBLEM_FILES_SHOWN]
+    more = len(names) - len(shown)
+    return ", ".join(shown) + (f" (+{more} more)" if more else "")
+
+
 def _file_list(entries: list[LedgerEntry]) -> str:
-    names = [entry.filename for entry in entries[:PROBLEM_FILES_SHOWN]]
-    more = len(entries) - len(names)
-    return ", ".join(names) + (f" (+{more} more)" if more else "")
+    return _name_list([entry.filename for entry in entries])
 
 
 def check_ledger(root: Path) -> list[LedgerCheck]:
@@ -1109,3 +1114,90 @@ def check_ledger(root: Path) -> list[LedgerCheck]:
         scope = f"{MEMORY_DIR.as_posix()}/{LEDGER_DIR}/{folder}/"
         checks.append(LedgerCheck(scope, len(entries), tuple(problems)))
     return checks
+
+
+# =============================================================================
+# Open-task health (spine_validate.py memory)
+# =============================================================================
+
+STALE_REVIEW_DAYS = 14
+REVIEW_STATUS = "REVIEW"
+TASK_STATUSES = frozenset({PLANNING_STATUS, "IN_PROGRESS", REVIEW_STATUS, CLOSED_STATUS})
+OPEN_TASKS_SCOPE = f"{MEMORY_DIR.as_posix()}/active_tasks/"
+
+
+@dataclass(frozen=True)
+class OpenTasksCheck:
+    """Health of the open tasks in ``active_tasks/``.
+
+    Args:
+        scope: Folder path ``docs/memory/active_tasks/``.
+        tasks: Number of task files whose status is not ``DONE``.
+        problems: One message per problem kind (empty when healthy).
+    """
+
+    scope: str
+    tasks: int
+    problems: tuple[str, ...]
+
+
+def _task_noun(count: int) -> str:
+    return "task" if count == 1 else "tasks"
+
+
+def _is_stale_review(updated_at: str, today: date) -> bool:
+    try:
+        updated = date.fromisoformat(updated_at.strip())
+    except ValueError:
+        return True
+    return (today - updated).days > STALE_REVIEW_DAYS
+
+
+def check_open_tasks(root: Path, today: date) -> OpenTasksCheck | None:
+    """Flag task files that need a human to close them; never edits files.
+
+    Reports tasks without a valid ``status:``, REVIEW tasks whose ``updated_at``
+    is more than ``STALE_REVIEW_DAYS`` days before ``today`` (or unparseable)
+    and DONE tasks never moved to ``completed_tasks/``.
+
+    Args:
+        root: Project root that contains ``docs/memory/``.
+        today: Reference date for the REVIEW age.
+
+    Returns:
+        The check, or ``None`` when ``active_tasks/`` does not exist.
+    """
+    memory_dir = root / MEMORY_DIR
+    if not (memory_dir / "active_tasks").is_dir():
+        return None
+    no_status: list[str] = []
+    stale_review: list[str] = []
+    done: list[str] = []
+    tasks = [item for item in collect_files(memory_dir) if item.kind == TASK]
+    for item in tasks:
+        name = item.relative.rsplit("/", 1)[1]
+        fields = read_frontmatter(item.text)
+        status = fields.get("status", "").strip().upper()
+        if status not in TASK_STATUSES:
+            no_status.append(name)
+        elif status == CLOSED_STATUS:
+            done.append(name)
+        elif status == REVIEW_STATUS and _is_stale_review(fields.get("updated_at", ""), today):
+            stale_review.append(name)
+    problems: list[str] = []
+    if no_status:
+        problems.append(
+            f"{len(no_status)} {_task_noun(len(no_status))} without a valid `status:` — {_name_list(no_status)}"
+            f" — add frontmatter `status:`, or harvest / move to completed_tasks/"
+        )
+    if stale_review:
+        problems.append(
+            f"{len(stale_review)} REVIEW {_task_noun(len(stale_review))} not updated in over {STALE_REVIEW_DAYS} days"
+            f" — {_name_list(stale_review)} — run /spine-harvest, or set `status: IN_PROGRESS` if work resumed"
+        )
+    if done:
+        problems.append(
+            f"{len(done)} DONE {_task_noun(len(done))} still in active_tasks/ — {_name_list(done)}"
+            f" — git mv to completed_tasks/"
+        )
+    return OpenTasksCheck(OPEN_TASKS_SCOPE, len(tasks) - len(done), tuple(problems))

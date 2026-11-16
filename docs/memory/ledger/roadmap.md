@@ -119,7 +119,7 @@ sources:
 | I32 | Parallelism: `touches`, worktree per task, orchestrator, independent verifier (RFC SPN-25-01..04) | G7 | 56 (7×4×2) | 4 | Candidate |
 | I33 | Spine Cloud as separate commercial product (fork) | G6 | 6 (3×2×1) | 2 | Candidate — parked |
 | I34 | Digest open-task list: full `NNN \| STATUS \| title — goal` lines for IN_PROGRESS/REVIEW only; PLANNING tasks as `NNN title` (no goal) | G1 | 432 (6×9×8) | 9 | Done |
-| I35 | `spine_validate.py memory` warns on stale open tasks: no frontmatter status (pre-v2.1 files) and REVIEW tasks whose `updated_at` is older than N days; names files + fix (harvest or move); human closes | G1 | 168 (4×6×7) | 6 | Candidate |
+| I35 | `spine_validate.py memory` warns on stale open tasks: no frontmatter status (pre-v2.1 files) and REVIEW tasks whose `updated_at` is older than N days; names files + fix (harvest or move); human closes | G1 | 168 (4×6×7) | 6 | Done |
 | I36 | Narrative body budget 3,000 → 12,000 chars so the warning flags only outlier files worth splitting (`NARRATIVE_BODY_BUDGET_CHARS`, rule 02 table, README) | G1 | 168 (3×7×8) | 7 | Candidate |
 
 ## Release sequence (proposed)
@@ -161,3 +161,5 @@ sources:
 | 2026-11-16 | — | Review (--review). Only I34 delivered since 2026-11-14. Measured old vs new digest code on 11 local consumer banks (onboarding-hub and agenthub are not on this machine). |
 | 2026-11-16 | I34 | Confidence 8→9 (ICE 384→432): ansible (5 PLANNING tasks) Open tasks 1,916→1,006 chars, digest 8,042→7,132, now under the 8,000 budget; synthetic 18 PLANNING tasks 5,278→524 (−90%, better than the −72% estimate). Impact stays 6: the other 10 banks have no PLANNING tasks and are unchanged. |
 | 2026-11-16 | G1 | Stays Active: ansible now under 8,000; onboarding-hub (13.7k, about 9.5k after I34 by the same ratio) and agenthub (10.6k) not re-measured. After I34, open-task bulk on local banks is pre-v2.1 tasks with no status (a personal billing bank: 20 UNKNOWN lines, about 1.0k chars; Spine: 7) and unharvested REVIEW tasks (ansible: 3): evidence for I35, not re-scored here. |
+| 2026-11-16 | I35 | Planned as task 024-validator-stale-open-tasks (In Progress); 14-day REVIEW threshold; also flags DONE tasks left in `active_tasks/` |
+| 2026-11-16 | I35 | Harvested task 024-validator-stale-open-tasks → Done |
