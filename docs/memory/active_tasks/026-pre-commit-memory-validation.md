@@ -211,5 +211,21 @@ Reuse `validate_task`, `collect_entries`, `render_index`, `index_path`, `check_b
 - 2026-11-17 — decision — `--pre-commit-uninstall` is an `install` flag only (like `--mkdocs-uninstall`); `update` accepts `--with-pre-commit` and passes it through to the install pass. The plan listed both flags on `update`; on `update` the side command would also pull Spine and sync `opencode.json`. Uninstall stays available via `install --pre-commit-uninstall` and `spine.py uninstall`.
 - 2026-11-17 — rework — Dropped an unplanned refresh of an installed block on every `update`: it called `git rev-parse` during `update --no-pull`, which `test_update_no_pull_does_not_call_git` forbids. The block is refreshed by re-running `install --with-pre-commit`.
 - 2026-11-17 — out-of-scope — No `--no-pre-commit-prompt` flag (MkDocs and Graphify have one): a pilot who declines the prompt is asked again on each interactive `install`/`update`. Add the flag if that proves annoying.
+- 2026-11-17 — decision — LEARN-002 check: `/spine-harvest` runs `memory index` (step 4c.1) before its final commit (step 6) and `/spine-plan` runs `spine_validate.py task` before committing, so both already leave a valid staged snapshot; no reordering. A harvest that edits a legacy task without frontmatter (status DONE) would now be blocked, by design; legacy tasks are closed with a pure `git mv`.
+- 2026-11-17 — environment — Dogfood install of the hook into this repository (`python3 scripts/spine.py install --core --with-pre-commit --project-root=.`) was denied by the agent's permission classifier (writing `.git/hooks/pre-commit`). The pilot runs it. The dry run showed only `Would create .git/hooks/pre-commit with the spine pre-commit block`, with 0 conflicts and 0 warnings.
+- 2026-11-17 — resume — Done: Tasks 1–6 code, tests and docs committed on `feature/pre-commit-memory-validation`. Next: the pilot runs the dogfood install above, then makes one memory commit through the hook (e.g. moving this task to REVIEW) and records it under Manual / external evidence. Then set `status: REVIEW`.
 
 ## Execution evidence
+
+**Tests executed:**
+- `pytest -v tests/unit/test_precommit_staged.py tests/unit/test_precommit_hook.py`
+- `pytest tests/ > <scratchpad>/pytest.log 2>&1; echo $?` (exit code read directly, LEARN-005)
+- Mutation check: `_check_staged_ledger` disabled → 4 AC2 tests failed; restored.
+
+**Test results:**
+- New tests: 14 in `test_precommit_staged.py` and 22 in `test_precommit_hook.py`, all passing (AC1–AC7 named tests included, plus extras: modified legacy task, over-long summary, deleted entry, monorepo subdirectory, outdated block refresh, husky/python/no-shebang hooks, outside git, missing python).
+- Full suite: 414 passed, exit 0 (2026-11-17, branch `feature/pre-commit-memory-validation`).
+
+**Manual / external evidence:**
+- 2026-11-17, agent: `python3 scripts/spine_validate.py staged` on this repo's staged plan, task and docs commits → exit 0, one `WARNING:` (7 legacy tasks without `status:`), no errors.
+- Pending (pilot): hook install in this repo and one real memory commit through it (see the `resume` note).

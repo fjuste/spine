@@ -371,3 +371,22 @@ def test_missing_python_skips_with_note(wired_repo: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     assert "spine pre-commit: python not found; memory validation skipped" in result.stderr
+
+
+# --- AC7: docs ---------------------------------------------------------------
+
+
+def test_docs_describe_pre_commit_check() -> None:
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    agents = (REPO_ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    rule = (REPO_ROOT / "rules" / "01-core-protocol.md").read_text(encoding="utf-8")
+    commit = (REPO_ROOT / "commands" / "spine-commit.md").read_text(encoding="utf-8")
+
+    assert "## Optional: pre-commit memory check" in readme
+    for text in (readme, agents):
+        assert "spine_validate.py staged" in text
+        assert "--with-pre-commit" in text
+        assert "--pre-commit-uninstall" in text
+    assert "--no-verify" in rule
+    assert "spine_validate.py staged" in commit
+    assert "--no-verify" in commit

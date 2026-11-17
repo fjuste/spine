@@ -260,6 +260,8 @@ python3 .spine/scripts/spine.py install --targets=cursor,opencode,claude,antigra
 python3 .spine/scripts/spine.py install --copy --targets=cursor,opencode,claude,antigravity
 python3 .spine/scripts/spine.py install --with-graphify   # non-interactive Graphify (prompt: answer yes during install)
 python3 .spine/scripts/spine.py install --with-mkdocs     # non-interactive MkDocs (prompt: answer yes during install)
+python3 .spine/scripts/spine.py install --with-pre-commit # non-interactive git pre-commit memory check (prompt: answer yes during install)
+python3 .spine/scripts/spine.py install --pre-commit-uninstall
 ```
 
 **Core skills** (the `--core` profile):
@@ -306,6 +308,8 @@ docs/memory/
 **Pilot brief:** `python3 .spine/scripts/spine.py brief` shows the human pilot where the project is and what to do next, at zero tokens: a header (project, branch, clean tree or uncommitted change count, date), WHERE WE ARE (active roadmap goal from the newest task's `roadmap_idea`, IN_PROGRESS tasks), RECENT STORY (newest 5 deliveries, each with its optional one-line `why:` from the delivery entry), WAITING ON YOU (REVIEW tasks to harvest, open-task warnings) and NEXT STEP (the `next_step`, `next_command` and `next_alternatives` fields that `/spine-harvest` and `/spine-plan` write in `progress.md` frontmatter; the digest shows the step first in Current state). Items link to their files: OSC 8 hyperlinks in a terminal, plain relative paths otherwise. Nothing is written; `--project-root=PATH` is accepted. Rule 01 tells agents to run it and show the output verbatim when the pilot asks where the project stands or what is next.
 
 **Memory budgets:** `python3 .spine/scripts/spine_validate.py memory` warns (exit 0) when the digest, Current state or an on-demand memory file exceeds its budget (`rules/02-memory-bank.md` § Memory budgets). It also names open tasks a human should close: no valid `status:`, REVIEW not updated in over 14 days, DONE never moved to `completed_tasks/`. `/spine-harvest` compacts Current state and reports the rest as follow-ups.
+
+**Pre-commit memory check (opt-in):** a git `pre-commit` hook runs `python3 .spine/scripts/spine_validate.py staged` on the staged snapshot of `docs/memory/`. It blocks staged task files that break the task contract, changed ledger entries with a missing or over-160-char `summary:` and a stale or missing `INDEX.md` in a ledger folder the commit touches; budget and open-task problems only warn. Pure renames and untouched files are not checked. Enable with the install prompt, `install --with-pre-commit` or `update --with-pre-commit`; remove with `install --pre-commit-uninstall` or `spine.py uninstall`. Not installed by `vendor`. Agents never bypass it with `--no-verify`: fix, `git add`, commit again. Full guide: README § **Optional: pre-commit memory check**.
 
 **Harvest outcomes:** delivery entry in `ledger/deliveries/`, learning and decision entries when applicable, `spine.py memory index`, frontmatter `status: DONE`, `git mv` to `completed_tasks/`. When `roadmap_idea` is set, update Idea Bank Status (`Done` / still `In Progress`) and suggest `/spine-roadmap --review` for ICE re-score.
 
