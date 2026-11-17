@@ -29,6 +29,7 @@ from spine_cli.memory import (
     collect_entries,
     collect_files,
     read_frontmatter,
+    read_next_step,
     read_text,
 )
 from spine_cli.paths import resolve_project_root
@@ -246,10 +247,20 @@ def _waiting(root: Path, today: date, tasks: list[TaskRef], is_tty: bool) -> lis
 
 
 def _next_step(memory_dir: Path) -> list[str]:
+    """Recorded next step from ``progress.md`` frontmatter, else the ``Next:`` bullet and a hint."""
     progress = memory_dir / PROGRESS
+    text = read_text(progress) if progress.is_file() else ""
+    recorded = read_next_step(text)
     lines: list[str] = []
-    if progress.is_file():
-        state = _section(read_text(progress), r"Current state") or ""
+    if recorded.step:
+        lines.append(f"{INDENT}{recorded.step}")
+        if recorded.command:
+            lines.append(f"{INDENT}→ type:  {recorded.command}")
+        if recorded.alternatives:
+            lines.append(f"{INDENT}Alternatives: " + " · ".join(recorded.alternatives))
+        return lines
+    if text:
+        state = _section(text, r"Current state") or ""
         bullet = _NEXT_BULLET_RE.search(state)
         if bullet:
             lines.append(f"{INDENT}Next: {bullet.group(1)}")

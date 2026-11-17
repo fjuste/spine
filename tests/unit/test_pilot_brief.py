@@ -341,3 +341,90 @@ def test_brief_command_through_a_pipe_has_no_escapes(tmp_path: Path) -> None:
     assert result.returncode == 0
     assert "\x1b" not in result.stdout
     assert "→ docs/memory/" in result.stdout
+
+
+# =============================================================================
+# Task 3: structured next step (AC5)
+# =============================================================================
+
+NEXT_FIELDS = ("next_step", "next_command", "next_alternatives")
+
+
+def test_next_step_prints_recorded_fields(tmp_path: Path) -> None:
+    _write(tmp_path, "docs/memory/ledger/progress.md", PROGRESS_WITH_NEXT)
+
+    next_step = _section_lines(_render(tmp_path), "NEXT STEP")
+
+    assert next_step == [
+        "  Harvest task 011 so its delivery is recorded",
+        "  → type:  /spine-harvest @docs/memory/active_tasks/011-review-task.md",
+        "  Alternatives: /spine-plan for I4 · /spine-roadmap --review",
+    ]
+
+
+def test_next_step_without_fields_prints_next_bullet_and_hint(tmp_path: Path) -> None:
+    _write(tmp_path, "docs/memory/ledger/progress.md", PROGRESS_PLAIN)
+
+    next_step = _section_lines(_render(tmp_path), "NEXT STEP")
+
+    assert next_step[0] == "  Next: harvest 011, then plan I4."
+    assert "ask the agent to run /spine-harvest to record a next step" in next_step[1]
+
+
+def test_next_step_with_empty_seeded_fields_falls_back(tmp_path: Path) -> None:
+    template = (REPO_ROOT / "templates/docs/memory/ledger/progress.md").read_text(encoding="utf-8")
+    _write(tmp_path, "docs/memory/ledger/progress.md", template)
+
+    next_step = _section_lines(_render(tmp_path), "NEXT STEP")
+
+    assert any("record a next step" in line for line in next_step)
+
+
+def _digest_current_state(root: Path) -> list[str]:
+    lines = memory.build_digest(root).split("\n")
+    start = lines.index("## Current state") + 1
+    return lines[start : lines.index("", start)]
+
+
+def test_digest_shows_next_step_first_in_current_state(tmp_path: Path) -> None:
+    _write(tmp_path, "docs/memory/ledger/progress.md", PROGRESS_WITH_NEXT)
+
+    state = _digest_current_state(tmp_path)
+
+    assert state[0] == (
+        "Next step: Harvest task 011 so its delivery is recorded"
+        " — /spine-harvest @docs/memory/active_tasks/011-review-task.md"
+    )
+    assert state[1] == "- In flight: none."
+
+
+def test_digest_current_state_unchanged_without_next_step(tmp_path: Path) -> None:
+    _write(tmp_path, "docs/memory/ledger/progress.md", PROGRESS_PLAIN)
+
+    assert _digest_current_state(tmp_path)[0] == "- In flight: none."
+
+
+def test_progress_frontmatter_keeps_current_state_budget_scoped_to_the_section(tmp_path: Path) -> None:
+    _write(tmp_path, "docs/memory/ledger/progress.md", PROGRESS_WITH_NEXT)
+
+    checks = {check.scope: check for check in memory.check_budgets(tmp_path)}
+
+    current_state = checks[memory.CURRENT_STATE_SCOPE]
+    assert current_state.chars == len(memory._section(PROGRESS_PLAIN, r"Current state").strip())
+
+
+def test_progress_template_seeds_next_step_fields() -> None:
+    template = (REPO_ROOT / "templates/docs/memory/ledger/progress.md").read_text(encoding="utf-8")
+
+    fields = memory.read_frontmatter(template)
+    for field in NEXT_FIELDS:
+        assert field in fields
+    assert memory._section(template, r"Current state") is not None
+
+
+@pytest.mark.parametrize("relative", ["commands/spine-harvest.md", "commands/spine-plan.md", "rules/02-memory-bank.md"])
+def test_harvest_plan_and_rule_name_the_next_step_fields(relative: str) -> None:
+    text = (REPO_ROOT / relative).read_text(encoding="utf-8")
+
+    for field in NEXT_FIELDS:
+        assert f"`{field}`" in text, f"{relative} does not name {field}"
