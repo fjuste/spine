@@ -538,6 +538,7 @@ class LedgerEntry:
         task: ``task:`` (``NNN-slug``; empty when none).
         superseded_by: ``superseded_by:`` id of the replacing decision.
         recurrences: Items under ``**Recurrences:**`` (learnings).
+        why: ``why:`` one-liner (deliveries; empty when missing).
     """
 
     filename: str
@@ -549,6 +550,7 @@ class LedgerEntry:
     task: str
     superseded_by: str
     recurrences: int
+    why: str = ""
 
 
 def _is_entry_file(path: Path) -> bool:
@@ -577,6 +579,7 @@ def read_entry(path: Path) -> LedgerEntry:
         task=fields.get("task", "").strip(),
         superseded_by=fields.get("superseded_by", "").strip(),
         recurrences=_count_recurrences(strip_frontmatter(text)),
+        why=fields.get("why", "").strip(),
     )
 
 
