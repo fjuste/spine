@@ -74,6 +74,13 @@ def _entry(day: int, summary: str | None = "Delivered something.") -> str:
     return "\n".join(lines)
 
 
+@pytest.fixture(autouse=True)
+def _isolated_git_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Ignore the user's global/system git config (e.g. a global core.hooksPath)."""
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(tmp_path / "gitconfig"))
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+
+
 @pytest.fixture
 def git_repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Real git repository with the seeded memory bank committed; cwd is its root."""

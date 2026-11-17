@@ -24,6 +24,13 @@ def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True)
 
 
+@pytest.fixture(autouse=True)
+def _isolated_git_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Ignore the user's global/system git config (e.g. a global core.hooksPath)."""
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(tmp_path / "gitconfig"))
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+
+
 @pytest.fixture
 def repo(tmp_path: Path) -> Path:
     """Empty git repository."""
@@ -267,3 +274,100 @@ def test_install_dry_run_flag_writes_nothing(repo: Path) -> None:
     assert _install(repo, "--with-pre-commit", "--dry-run") == 0
     assert not _hook(repo).exists()
 
+
+
+# --- AC6: end to end through git commit ---------------------------------------
+
+BROKEN_TASK = """---
+task_id: 001
+title: Sample task
+goal: Prove the hook
+status: PLANNING
+tags: []
+branch: feature/sample-task
+base: develop
+created_at: 2026-11-17
+updated_at: 2026-11-17
+---
+
+# 001-sample-task
+
+## Objective
+
+Text.
+
+## Acceptance Criteria
+
+- [ ] AC1
+"""
+FIXED_TASK = BROKEN_TASK.replace("tags: []\n", "tags:\n  - type/feature\n")
+E2E_TASK = "docs/memory/active_tasks/001-sample-task.md"
+
+
+@pytest.fixture
+def wired_repo(repo: Path) -> Path:
+    """Repository with ``.spine`` → this clone, the seeded memory bank and the hook block."""
+    from spine_cli import memory
+
+    _git(repo, "config", "user.name", "Test")
+    _git(repo, "config", "user.email", "test@example.com")
+    _git(repo, "config", "commit.gpgsign", "false")
+    (repo / ".spine").symlink_to(REPO_ROOT)
+    (repo / ".gitignore").write_text(".spine\n", encoding="utf-8")
+    shutil.copytree(REPO_ROOT / "templates" / "docs" / "memory", repo / "docs" / "memory")
+    memory.write_indexes(repo)
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "--no-verify", "-m", "seed")
+    precommit.install_hook(repo, Log())
+    return repo
+
+
+def _commit(root: Path, message: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(["git", "commit", "-q", "-m", message], cwd=root, capture_output=True, text=True, check=False)
+
+
+def test_git_commit_blocked_then_allowed(wired_repo: Path) -> None:
+    task = wired_repo / E2E_TASK
+    task.write_text(BROKEN_TASK, encoding="utf-8")
+    _git(wired_repo, "add", E2E_TASK)
+
+    blocked = _commit(wired_repo, "broken task")
+    assert blocked.returncode != 0
+    assert f"ERROR: {E2E_TASK}: tags list empty" in blocked.stderr
+    assert "Commit blocked: 1 memory error(s)." in blocked.stderr
+
+    task.write_text(FIXED_TASK, encoding="utf-8")
+    _git(wired_repo, "add", E2E_TASK)
+    allowed = _commit(wired_repo, "fixed task")
+    assert allowed.returncode == 0, allowed.stderr
+    assert _git(wired_repo, "log", "--format=%s", "-1").stdout.strip() == "fixed task"
+
+
+def test_missing_spine_skips_with_note(wired_repo: Path) -> None:
+    (wired_repo / ".spine").unlink()
+    (wired_repo / E2E_TASK).write_text(BROKEN_TASK, encoding="utf-8")
+    _git(wired_repo, "add", E2E_TASK)
+
+    result = _commit(wired_repo, "no spine")
+
+    assert result.returncode == 0, result.stderr
+    assert "spine pre-commit: .spine not found; memory validation skipped" in result.stderr
+
+
+def test_missing_python_skips_with_note(wired_repo: Path) -> None:
+    (wired_repo / E2E_TASK).write_text(BROKEN_TASK, encoding="utf-8")
+    _git(wired_repo, "add", E2E_TASK)
+    bin_dir = wired_repo.parent / "bin-no-python"
+    bin_dir.mkdir()
+    for tool in ("git", "sh", "echo", "cat"):
+        found = shutil.which(tool)
+        if found:
+            (bin_dir / tool).symlink_to(found)
+    env = {**os.environ, "PATH": str(bin_dir)}
+
+    result = subprocess.run(
+        ["git", "commit", "-q", "-m", "no python"], cwd=wired_repo, capture_output=True, text=True, env=env, check=False
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "spine pre-commit: python not found; memory validation skipped" in result.stderr
