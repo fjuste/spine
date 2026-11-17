@@ -443,3 +443,24 @@ def test_core_protocol_tells_agents_to_show_the_brief_verbatim() -> None:
     assert "where the project stands" in rule
     assert "Current state" in rule
     assert "spine.py update" in rule
+
+
+# =============================================================================
+# Task 5: docs and dogfooding (AC7)
+# =============================================================================
+
+
+@pytest.mark.parametrize("relative", ["README.md", "AGENTS.md", "rules/02-memory-bank.md"])
+def test_docs_describe_the_pilot_brief(relative: str) -> None:
+    text = (REPO_ROOT / relative).read_text(encoding="utf-8")
+
+    for marker in ("spine.py brief", "`why:`", "`next_step`", "`next_command`", "`next_alternatives`", "verbatim"):
+        assert marker in text, f"{relative} does not mention {marker}"
+
+
+def test_spine_progress_records_a_next_step() -> None:
+    progress = (REPO_ROOT / "docs/memory/ledger/progress.md").read_text(encoding="utf-8")
+
+    recorded = memory.read_next_step(progress)
+    assert recorded.step
+    assert recorded.command

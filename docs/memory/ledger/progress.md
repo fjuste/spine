@@ -1,3 +1,11 @@
+---
+# Recommended next step, written by /spine-harvest and /spine-plan; shown by spine.py brief and the digest.
+next_step: Review and harvest task 025 (pilot brief)
+next_command: /spine-harvest @docs/memory/active_tasks/025-pilot-brief.md
+next_alternatives:
+  - Close legacy tasks 008–014 (add status or move to completed_tasks/)
+  - /spine-plan I36 (narrative budget 3,000 → 12,000)
+---
 # Progress
 
 ## Current state

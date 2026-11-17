@@ -327,6 +327,8 @@ next_alternatives:
 
 **Next step** (frontmatter, one recommendation per cycle): `next_step` (one line), `next_command` (what the pilot types) and `next_alternatives` (YAML list, at most 3). `/spine-harvest` step 4a and `/spine-plan` (once the approval gate is answered) replace them; `spine.py brief` prints them under NEXT STEP and the digest prints `Next step: … — …` first in Current state. Empty fields fall back to the `Next:` bullet.
 
+**Pilot brief:** `python3 .spine/scripts/spine.py brief` is the human's view (stdout only): branch and tree state, active roadmap goal, IN_PROGRESS tasks, the newest 5 deliveries with their `why:`, REVIEW tasks and open-task warnings, and the next step. Agents show its output verbatim when the pilot asks where the project stands (rule 01); they do not rebuild that answer from memory files.
+
 Deliveries, learnings and decisions are entry files: see § Ledger entries and each folder's `_template.md`.
 
 ## Template: completed_tasks/
