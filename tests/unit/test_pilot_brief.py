@@ -288,3 +288,56 @@ def test_delivery_template_documents_why() -> None:
 
     assert "why" in memory.read_frontmatter(template)
     assert "120" in template
+
+
+# =============================================================================
+# Task 2: links (AC4)
+# =============================================================================
+
+
+def _linked_bank(root: Path) -> Path:
+    _bank(root)
+    _write(root, "docs/memory/ledger/roadmap.md", ROADMAP)
+    _task(root, "active_tasks", "013-arc.md", "task_id: 013\ntitle: Arc task\nstatus: IN_PROGRESS\nroadmap_idea: I3")
+    return root
+
+
+def test_terminal_output_uses_osc8_links_to_absolute_paths(tmp_path: Path) -> None:
+    root = _linked_bank(tmp_path)
+
+    output = _render(root, is_tty=True)
+
+    delivery = (root / DELIVERIES_DIR / "2026-11-07-delivery-7.md").resolve().as_uri()
+    task = (root / "docs/memory/active_tasks/013-arc.md").resolve().as_uri()
+    roadmap = (root / "docs/memory/ledger/roadmap.md").resolve().as_uri()
+    for uri in (delivery, task, roadmap):
+        assert f"\x1b]8;;{uri}\x1b\\" in output
+    assert "→ docs/memory" not in output
+
+
+def test_non_terminal_output_has_relative_paths_and_no_escapes(tmp_path: Path) -> None:
+    root = _linked_bank(tmp_path)
+
+    output = _render(root, is_tty=False)
+
+    assert "\x1b" not in output
+    assert "→ docs/memory/ledger/deliveries/2026-11-07-delivery-7.md" in output
+    assert "→ docs/memory/active_tasks/013-arc.md" in output
+    assert "→ docs/memory/active_tasks/011-review-task.md" in output
+    assert "→ docs/memory/ledger/roadmap.md" in output
+    assert str(root) not in output
+
+
+def test_brief_command_through_a_pipe_has_no_escapes(tmp_path: Path) -> None:
+    _linked_bank(tmp_path)
+
+    result = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "scripts" / "spine.py"), "brief", f"--project-root={tmp_path}"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "\x1b" not in result.stdout
+    assert "→ docs/memory/" in result.stdout
