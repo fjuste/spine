@@ -22,10 +22,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import NoReturn
+from typing import NamedTuple, NoReturn
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
@@ -660,8 +659,7 @@ class GitError(Exception):
     """A git command failed or git is unavailable."""
 
 
-@dataclass(frozen=True)
-class StagedChange:
+class StagedChange(NamedTuple):
     """One staged change under ``docs/memory/`` (``git diff --cached --name-status``).
 
     Args:

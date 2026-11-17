@@ -175,3 +175,95 @@ def test_dry_run_writes_nothing(repo: Path) -> None:
     installed = hook.read_text(encoding="utf-8")
     precommit.uninstall_hook(repo, Log(dry_run=True))
     assert hook.read_text(encoding="utf-8") == installed
+
+
+# --- AC5: installer flags, prompt, spine.py uninstall ------------------------
+
+
+def _spine(*args: str) -> int:
+    import spine
+
+    return spine.main(list(args))
+
+
+def _install(project: Path, *extra: str) -> int:
+    return _spine(
+        "install",
+        "--project-root",
+        str(project),
+        "--spine-dir",
+        str(REPO_ROOT),
+        "--skills=writing-plans",
+        "--targets=cursor",
+        "--no-graphify-prompt",
+        "--no-mkdocs-prompt",
+        *extra,
+    )
+
+
+def test_install_flag_installs_and_side_command_uninstalls(repo: Path) -> None:
+    assert _install(repo, "--with-pre-commit") == 0
+    assert precommit.hook_installed(repo)
+
+    assert _spine("install", "--project-root", str(repo), "--pre-commit-uninstall") == 0
+    assert not _hook(repo).exists()
+    assert (repo / ".spine").is_symlink(), "side command leaves the rest of the install in place"
+
+
+def test_install_without_flag_does_not_touch_hook(repo: Path) -> None:
+    assert _install(repo) == 0
+    assert not _hook(repo).exists()
+
+
+def test_spine_uninstall_removes_the_block(repo: Path) -> None:
+    hook = _hook(repo)
+    hook.write_text(EXISTING_SH_HOOK, encoding="utf-8")
+    assert _install(repo, "--with-pre-commit") == 0
+    assert precommit.hook_installed(repo)
+
+    assert _spine("uninstall", "--project-root", str(repo)) == 0
+
+    assert hook.read_text(encoding="utf-8") == EXISTING_SH_HOOK
+
+
+class _Stdin:
+    def __init__(self, tty: bool) -> None:
+        self.tty = tty
+
+    def isatty(self) -> bool:
+        return self.tty
+
+
+def test_prompt_skipped_when_installed_or_not_tty(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from spine_cli import install
+    from spine_cli.options import Options
+
+    asked: list[str] = []
+    monkeypatch.setattr("builtins.input", lambda question: asked.append(question) or "y")
+
+    monkeypatch.setattr(sys, "stdin", _Stdin(tty=False))
+    options = Options(project_root=repo)
+    install._maybe_prompt_pre_commit(repo, options)
+    assert asked == [] and not options.with_pre_commit
+
+    monkeypatch.setattr(sys, "stdin", _Stdin(tty=True))
+    options = Options(project_root=repo, with_pre_commit=True)
+    install._maybe_prompt_pre_commit(repo, options)
+    assert asked == []
+
+    options = Options(project_root=repo)
+    install._maybe_prompt_pre_commit(repo, options)
+    assert len(asked) == 1
+    assert "Enable the git pre-commit memory check for this project? [Y/n]" in asked[0]
+    assert options.with_pre_commit
+
+    precommit.install_hook(repo, Log())
+    options = Options(project_root=repo)
+    install._maybe_prompt_pre_commit(repo, options)
+    assert len(asked) == 1, "no prompt once the block is installed"
+
+
+def test_install_dry_run_flag_writes_nothing(repo: Path) -> None:
+    assert _install(repo, "--with-pre-commit", "--dry-run") == 0
+    assert not _hook(repo).exists()
+
