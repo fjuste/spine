@@ -61,8 +61,10 @@ Act as a Tech Lead and Knowledge Manager.
      - `id:` the file stem; `date:` today; `title:` from task frontmatter `title`; `task:` `NNN-slug`
      - `tags:` copied from task frontmatter (per `docs/governance/memory-tags-policy.md`)
      - `summary:` one line: what was delivered
+     - `why:` optional, one line of at most 120 chars: why this delivery mattered to the pilot (`spine.py brief` shows it under the delivery)
      - Body: `**Branch:**` from frontmatter; `**Description:**` — concise delivery summary that cites the execution evidence: tests executed and results, plus manual/external runs (who, when, where the raw output lives) from `## Execution evidence`
    - Refresh **Current state** in `docs/memory/ledger/progress.md` (short bullet list).
+   - Record the recommended next step in the `progress.md` frontmatter, replacing the previous values: `next_step` (one line, the single action you recommend), `next_command` (exactly what the pilot types, e.g. `/spine-plan I8`) and `next_alternatives` (YAML list, at most 3, may be `[]`). `spine.py brief` and the digest show them.
 
    **4b. Learning entries** (when `## Execution notes` holds `incident` / `rework` entries routed in step 3.7, or the task recorded root cause, incident, or rework elsewhere)
    - Before a new `LEARN-NNN`, search `docs/memory/ledger/learnings/INDEX.md` by **tags** + symptoms per `memory-tags-policy.md`; in a project that still has a legacy `ledger/learnings.md`, search it too.

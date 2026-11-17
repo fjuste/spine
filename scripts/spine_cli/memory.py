@@ -229,6 +229,38 @@ def _section(text: str, heading_re: str) -> str | None:
     return rest[: end.start()] if end else rest
 
 
+@dataclass(frozen=True)
+class NextStep:
+    """Recommended next step recorded in ``progress.md`` frontmatter.
+
+    Args:
+        step: ``next_step:`` one-line action (empty when not recorded).
+        command: ``next_command:`` what the pilot types.
+        alternatives: ``next_alternatives:`` items.
+    """
+
+    step: str
+    command: str
+    alternatives: tuple[str, ...]
+
+
+def read_next_step(text: str) -> NextStep:
+    """Read the next-step fields of a ``progress.md`` file.
+
+    Args:
+        text: ``progress.md`` content (LF newlines).
+
+    Returns:
+        The fields; ``step`` is empty when the next step was never recorded.
+    """
+    fields = read_frontmatter(text)
+    return NextStep(
+        step=fields.get("next_step", "").strip(),
+        command=fields.get("next_command", "").strip(),
+        alternatives=tuple(read_frontmatter_list(text, "next_alternatives")),
+    )
+
+
 # =============================================================================
 # Open tasks
 # =============================================================================
@@ -538,6 +570,7 @@ class LedgerEntry:
         task: ``task:`` (``NNN-slug``; empty when none).
         superseded_by: ``superseded_by:`` id of the replacing decision.
         recurrences: Items under ``**Recurrences:**`` (learnings).
+        why: ``why:`` one-liner (deliveries; empty when missing).
     """
 
     filename: str
@@ -549,6 +582,7 @@ class LedgerEntry:
     task: str
     superseded_by: str
     recurrences: int
+    why: str = ""
 
 
 def _is_entry_file(path: Path) -> bool:
@@ -577,6 +611,7 @@ def read_entry(path: Path) -> LedgerEntry:
         task=fields.get("task", "").strip(),
         superseded_by=fields.get("superseded_by", "").strip(),
         recurrences=_count_recurrences(strip_frontmatter(text)),
+        why=fields.get("why", "").strip(),
     )
 
 
@@ -782,6 +817,9 @@ def build_digest(root: Path, budget: int = DEFAULT_SETUP_BUDGET_CHARS) -> str:
         "## Current state",
     ]
     progress = by_relative.get("ledger/progress.md")
+    next_step = read_next_step(progress.text) if progress else None
+    if next_step and next_step.step:
+        lines.append(" — ".join(part for part in (f"Next step: {next_step.step}", next_step.command) if part))
     state = _section(progress.text, r"Current state") if progress else None
     lines.append(state.strip() if state and state.strip() else "(progress.md has no `## Current state` section)")
 

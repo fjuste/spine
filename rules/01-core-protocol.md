@@ -32,6 +32,7 @@ alwaysApply: true
 
 ## 3. Guard rails
 - When the user types `/graphify`, invoke the graphify skill before other work (rebuild, query, or explain per skill).
+- **Pilot brief:** when the pilot asks where the project stands or what is next, or resumes after a break, run `python3 .spine/scripts/spine.py brief` and show its output verbatim in a code block, then add at most two lines of your own. Do not rebuild that answer from memory files. If the command fails, use the digest's Current state and suggest `python3 .spine/scripts/spine.py update`.
 - Never use `git push --force`.
 - Never assume an ambiguous requirement without confirmation. Surface assumptions and tradeoffs first.
 - No silent decisions: architectural decisions require a recorded "why".
