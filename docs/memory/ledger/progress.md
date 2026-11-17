@@ -1,11 +1,11 @@
 ---
 # Recommended next step, written by /spine-harvest and /spine-plan; shown by spine.py brief and the digest.
-next_step: Re-score the roadmap now that I15 is delivered, then pick the next idea to plan
-next_command: /spine-roadmap --review
+next_step: Plan the highest-ICE candidate, I8 (git pre-commit memory validation, 320)
+next_command: /spine-plan I8
 next_alternatives:
   - Ask a fresh agent session "where are we?" to confirm it shows spine.py brief verbatim
   - Close legacy tasks 008–014 (add status or move to completed_tasks/)
-  - /spine-plan I8 (pre-commit memory validation)
+  - /spine-plan I36 (narrative budget 3,000 → 12,000; G1, cheap)
 ---
 # Progress
 

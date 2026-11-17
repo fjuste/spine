@@ -1,6 +1,6 @@
 ---
-last_updated: 2026-11-16
-last_reviewed: 2026-11-16
+last_updated: 2026-11-17
+last_reviewed: 2026-11-17
 review_cadence: monthly
 goals_active: 6
 ideas_total: 36
@@ -119,7 +119,7 @@ sources:
 | I32 | Parallelism: `touches`, worktree per task, orchestrator, independent verifier (RFC SPN-25-01..04) | G7 | 56 (7×4×2) | 4 | Candidate |
 | I33 | Spine Cloud as separate commercial product (fork) | G6 | 6 (3×2×1) | 2 | Candidate — parked |
 | I34 | Digest open-task list: full `NNN \| STATUS \| title — goal` lines for IN_PROGRESS/REVIEW only; PLANNING tasks as `NNN title` (no goal) | G1 | 432 (6×9×8) | 9 | Done |
-| I35 | `spine_validate.py memory` warns on stale open tasks: no frontmatter status (pre-v2.1 files) and REVIEW tasks whose `updated_at` is older than N days; names files + fix (harvest or move); human closes | G1 | 168 (4×6×7) | 6 | Done |
+| I35 | `spine_validate.py memory` warns on stale open tasks: no frontmatter status (pre-v2.1 files) and REVIEW tasks whose `updated_at` is older than N days; names files + fix (harvest or move); human closes | G1 | 196 (4×7×7) | 7 | Done |
 | I36 | Narrative body budget 3,000 → 12,000 chars so the warning flags only outlier files worth splitting (`NARRATIVE_BODY_BUDGET_CHARS`, rule 02 table, README) | G1 | 168 (3×7×8) | 7 | Candidate |
 
 ## Release sequence (proposed)
@@ -167,3 +167,7 @@ sources:
 | 2026-11-16 | G1 | Stays Active: ansible now under 8,000; onboarding-hub (13.7k, about 9.5k after I34 by the same ratio) and agenthub (10.6k) not re-measured. After I34, open-task bulk on local banks is pre-v2.1 tasks with no status (a personal billing bank: 20 UNKNOWN lines, about 1.0k chars; Spine: 7) and unharvested REVIEW tasks (ansible: 3): evidence for I35, not re-scored here. |
 | 2026-11-16 | I35 | Planned as task 024-validator-stale-open-tasks (In Progress); 14-day REVIEW threshold; also flags DONE tasks left in `active_tasks/` |
 | 2026-11-16 | I35 | Harvested task 024-validator-stale-open-tasks → Done |
+| 2026-11-17 | — | Review (--review). Delivered since 2026-11-16: I35 (024) and I15 (025). No new goals or ideas. Counts unchanged: 36 ideas, 6 active goals (G7 Paused). |
+| 2026-11-17 | I35 | Confidence 6→7 (ICE 168→196): the check fired on 8 of 9 local consumer banks (no status: 2, REVIEW idle over 14 days: 5, DONE left in `active_tasks/`: 3) and on Spine (7 legacy tasks), so stale open tasks are common. Impact stays 4: the digest shrinks only after a human closes them, and none is closed yet (Spine's 008–014 still open). `spine.py brief` now repeats the warnings under WAITING ON YOU. |
+| 2026-11-17 | I15 | Score unchanged at 216 (6×6×6). Delivery confirmed the data was already in memory (brief runs on Spine and a consumer bank) but there is no usage evidence yet: the fresh-session check of rule 01 is pending, and a bank whose deliveries are still in the legacy log shows an empty story until `memory migrate` (Known Opportunity). Re-score after a few sessions of real use. |
+| 2026-11-17 | G1, G5 | Both stay Active. G1: Spine digest 4.6k chars (under 8,000); onboarding-hub and agenthub not re-measured. G5: I15 helps the pilot get oriented but does not move G5's outcome metric (low-risk tasks closed without a plan gate, epics); I26 and I27 still carry that metric. Top Candidates: I8 320, I9 294, I10 294, I23 280. |
