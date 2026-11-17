@@ -2,7 +2,7 @@
 task_id: 026
 title: Git pre-commit hook validates staged memory files
 goal: "An opt-in git `pre-commit` hook runs `spine_validate.py staged`, which blocks commits whose staged `docs/memory/` changes break the task contract, a ledger entry `summary:` or a ledger `INDEX.md`, for every agent and for humans"
-status: IN_PROGRESS
+status: REVIEW
 tags:
   - type/feature
   - area/memory
@@ -214,6 +214,7 @@ Reuse `validate_task`, `collect_entries`, `render_index`, `index_path`, `check_b
 - 2026-11-17 — decision — LEARN-002 check: `/spine-harvest` runs `memory index` (step 4c.1) before its final commit (step 6) and `/spine-plan` runs `spine_validate.py task` before committing, so both already leave a valid staged snapshot; no reordering. A harvest that edits a legacy task without frontmatter (status DONE) would now be blocked, by design; legacy tasks are closed with a pure `git mv`.
 - 2026-11-17 — environment — Dogfood install of the hook into this repository (`python3 scripts/spine.py install --core --with-pre-commit --project-root=.`) was denied by the agent's permission classifier (writing `.git/hooks/pre-commit`). The pilot runs it. The dry run showed only `Would create .git/hooks/pre-commit with the spine pre-commit block`, with 0 conflicts and 0 warnings.
 - 2026-11-17 — resume — Done: Tasks 1–6 code, tests and docs committed on `feature/pre-commit-memory-validation`. Next: the pilot runs the dogfood install above, then makes one memory commit through the hook (e.g. moving this task to REVIEW) and records it under Manual / external evidence. Then set `status: REVIEW`.
+- 2026-11-17 — environment — Pilot ran the dogfood install; `.git/hooks/pre-commit` now holds the spine block (new `#!/bin/sh` hook, executable). The REVIEW commit went through it. Resume point above is closed.
 
 ## Execution evidence
 
@@ -228,4 +229,5 @@ Reuse `validate_task`, `collect_entries`, `render_index`, `index_path`, `check_b
 
 **Manual / external evidence:**
 - 2026-11-17, agent: `python3 scripts/spine_validate.py staged` on this repo's staged plan, task and docs commits → exit 0, one `WARNING:` (7 legacy tasks without `status:`), no errors.
-- Pending (pilot): hook install in this repo and one real memory commit through it (see the `resume` note).
+- 2026-11-17, pilot: `python3 scripts/spine.py install --core --with-pre-commit --project-root=.` → `+ pre-commit memory check: .git/hooks/pre-commit`, 0 conflicts, 0 warnings (output in the session terminal).
+- 2026-11-17, agent: the commit that sets this task to `status: REVIEW` on `feature/pre-commit-memory-validation` ran through the installed hook (plain `git commit`, no `--no-verify`): exit 0, one `WARNING:` for the 7 legacy tasks, no errors.
