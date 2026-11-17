@@ -2,7 +2,7 @@
 task_id: 026
 title: Git pre-commit hook validates staged memory files
 goal: "An opt-in git `pre-commit` hook runs `spine_validate.py staged`, which blocks commits whose staged `docs/memory/` changes break the task contract, a ledger entry `summary:` or a ledger `INDEX.md`, for every agent and for humans"
-status: REVIEW
+status: DONE
 tags:
   - type/feature
   - area/memory
@@ -13,10 +13,8 @@ execution_skill: executing-plans
 roadmap_idea: I8
 created_at: 2026-11-17
 updated_at: 2026-11-17
-completed_at:
-related_learnings:
-  - LEARN-002
-  - LEARN-005
+completed_at: 2026-11-17
+related_learnings: [LEARN-002, LEARN-005, LEARN-006, LEARN-007]
 ---
 
 # 026-pre-commit-memory-validation
@@ -203,18 +201,18 @@ Reuse `validate_task`, `collect_entries`, `render_index`, `index_path`, `check_b
 
 ## Execution notes
 
-- 2026-11-17 — deviation — Tasks 1 and 2 implemented in one pass: the ledger check was written with the task check, so the AC2 tests passed on first run. Their value was confirmed by disabling `_check_staged_ledger` (4 AC2 tests failed), then restoring it. No scope change.
-- 2026-11-17 — decision — Paths use `git diff --relative` and `rev-parse --show-prefix`, so a project in a subdirectory of a larger repository is checked at its own `docs/memory/` (extra test `test_project_in_subdirectory_of_repository`). Git subprocesses inherit `GIT_INDEX_FILE`, so `git commit <paths>` (temporary index) is checked on what is actually committed.
-- 2026-11-17 — decision — Extra tests beyond the plan: a modified (not renamed) legacy task is checked, an over-160-char summary blocks, a deleted entry needs a fresh `INDEX.md`.
-- 2026-11-17 — deviation — Task 3: `precommit.py` was written before its tests (TDD order inverted); the 13 tests were then written against the plan's AC4/AC5 wording, not the code. No scope change.
-- 2026-11-17 — incident — `StagedChange` as a `@dataclass` broke collection of `test_spine_validate.py`: it loads the script with `importlib` without registering it in `sys.modules`, and `dataclass` with postponed annotations looks the module up there. Fix: `typing.NamedTuple`, no test change.
-- 2026-11-17 — decision — `--pre-commit-uninstall` is an `install` flag only (like `--mkdocs-uninstall`); `update` accepts `--with-pre-commit` and passes it through to the install pass. The plan listed both flags on `update`; on `update` the side command would also pull Spine and sync `opencode.json`. Uninstall stays available via `install --pre-commit-uninstall` and `spine.py uninstall`.
-- 2026-11-17 — rework — Dropped an unplanned refresh of an installed block on every `update`: it called `git rev-parse` during `update --no-pull`, which `test_update_no_pull_does_not_call_git` forbids. The block is refreshed by re-running `install --with-pre-commit`.
-- 2026-11-17 — out-of-scope — No `--no-pre-commit-prompt` flag (MkDocs and Graphify have one): a pilot who declines the prompt is asked again on each interactive `install`/`update`. Add the flag if that proves annoying.
-- 2026-11-17 — decision — LEARN-002 check: `/spine-harvest` runs `memory index` (step 4c.1) before its final commit (step 6) and `/spine-plan` runs `spine_validate.py task` before committing, so both already leave a valid staged snapshot; no reordering. A harvest that edits a legacy task without frontmatter (status DONE) would now be blocked, by design; legacy tasks are closed with a pure `git mv`.
-- 2026-11-17 — environment — Dogfood install of the hook into this repository (`python3 scripts/spine.py install --core --with-pre-commit --project-root=.`) was denied by the agent's permission classifier (writing `.git/hooks/pre-commit`). The pilot runs it. The dry run showed only `Would create .git/hooks/pre-commit with the spine pre-commit block`, with 0 conflicts and 0 warnings.
-- 2026-11-17 — resume — Done: Tasks 1–6 code, tests and docs committed on `feature/pre-commit-memory-validation`. Next: the pilot runs the dogfood install above, then makes one memory commit through the hook (e.g. moving this task to REVIEW) and records it under Manual / external evidence. Then set `status: REVIEW`.
-- 2026-11-17 — environment — Pilot ran the dogfood install; `.git/hooks/pre-commit` now holds the spine block (new `#!/bin/sh` hook, executable). The REVIEW commit went through it. Resume point above is closed.
+- 2026-11-17 — deviation — Tasks 1 and 2 implemented in one pass: the ledger check was written with the task check, so the AC2 tests passed on first run. Their value was confirmed by disabling `_check_staged_ledger` (4 AC2 tests failed), then restoring it. No scope change. → no promotion
+- 2026-11-17 — decision — Paths use `git diff --relative` and `rev-parse --show-prefix`, so a project in a subdirectory of a larger repository is checked at its own `docs/memory/` (extra test `test_project_in_subdirectory_of_repository`). Git subprocesses inherit `GIT_INDEX_FILE`, so `git commit <paths>` (temporary index) is checked on what is actually committed. → no promotion
+- 2026-11-17 — decision — Extra tests beyond the plan: a modified (not renamed) legacy task is checked, an over-160-char summary blocks, a deleted entry needs a fresh `INDEX.md`. → no promotion
+- 2026-11-17 — deviation — Task 3: `precommit.py` was written before its tests (TDD order inverted); the 13 tests were then written against the plan's AC4/AC5 wording, not the code. No scope change. → no promotion
+- 2026-11-17 — incident — `StagedChange` as a `@dataclass` broke collection of `test_spine_validate.py`: it loads the script with `importlib` without registering it in `sys.modules`, and `dataclass` with postponed annotations looks the module up there. Fix: `typing.NamedTuple`, no test change. → LEARN-006
+- 2026-11-17 — decision — `--pre-commit-uninstall` is an `install` flag only (like `--mkdocs-uninstall`); `update` accepts `--with-pre-commit` and passes it through to the install pass. The plan listed both flags on `update`; on `update` the side command would also pull Spine and sync `opencode.json`. Uninstall stays available via `install --pre-commit-uninstall` and `spine.py uninstall`. → no promotion
+- 2026-11-17 — rework — Dropped an unplanned refresh of an installed block on every `update`: it called `git rev-parse` during `update --no-pull`, which `test_update_no_pull_does_not_call_git` forbids. The block is refreshed by re-running `install --with-pre-commit`. → LEARN-007
+- 2026-11-17 — out-of-scope — No `--no-pre-commit-prompt` flag (MkDocs and Graphify have one): a pilot who declines the prompt is asked again on each interactive `install`/`update`. Add the flag if that proves annoying. → Known Opportunities
+- 2026-11-17 — decision — LEARN-002 check: `/spine-harvest` runs `memory index` (step 4c.1) before its final commit (step 6) and `/spine-plan` runs `spine_validate.py task` before committing, so both already leave a valid staged snapshot; no reordering. A harvest that edits a legacy task without frontmatter (status DONE) would now be blocked, by design; legacy tasks are closed with a pure `git mv`. → DEC 2026-11-17-pre-commit-staged-memory-check
+- 2026-11-17 — environment — Dogfood install of the hook into this repository (`python3 scripts/spine.py install --core --with-pre-commit --project-root=.`) was denied by the agent's permission classifier (writing `.git/hooks/pre-commit`). The pilot runs it. The dry run showed only `Would create .git/hooks/pre-commit with the spine pre-commit block`, with 0 conflicts and 0 warnings. → no promotion
+- 2026-11-17 — resume — Done: Tasks 1–6 code, tests and docs committed on `feature/pre-commit-memory-validation`. Next: the pilot runs the dogfood install above, then makes one memory commit through the hook (e.g. moving this task to REVIEW) and records it under Manual / external evidence. Then set `status: REVIEW`. → no promotion
+- 2026-11-17 — environment — Pilot ran the dogfood install; `.git/hooks/pre-commit` now holds the spine block (new `#!/bin/sh` hook, executable). The REVIEW commit went through it. Resume point above is closed. → no promotion
 
 ## Execution evidence
 
@@ -231,3 +229,9 @@ Reuse `validate_task`, `collect_entries`, `render_index`, `index_path`, `check_b
 - 2026-11-17, agent: `python3 scripts/spine_validate.py staged` on this repo's staged plan, task and docs commits → exit 0, one `WARNING:` (7 legacy tasks without `status:`), no errors.
 - 2026-11-17, pilot: `python3 scripts/spine.py install --core --with-pre-commit --project-root=.` → `+ pre-commit memory check: .git/hooks/pre-commit`, 0 conflicts, 0 warnings (output in the session terminal).
 - 2026-11-17, agent: the commit that sets this task to `status: REVIEW` on `feature/pre-commit-memory-validation` ran through the installed hook (plain `git commit`, no `--no-verify`): exit 0, one `WARNING:` for the 7 legacy tasks, no errors.
+
+## Delivery summary
+
+Delivered 2026-11-17 on `feature/pre-commit-memory-validation`: `spine_validate.py staged` (staged-snapshot memory check), `spine_cli/precommit.py` (marked hook block), installer flags, prompt and uninstall, docs (README, AGENTS.md, rule 01, `/spine-commit`). Evidence: 36 new tests; `pytest tests/` 414 passed, exit 0, at execution and harvest; hook installed by the pilot in this repo; the REVIEW and harvest commits ran through it. All AC1–AC7 met.
+
+Execution notes promoted: incident → LEARN-006 (dataclass in an importlib-loaded script); rework → LEARN-007 (install pass runs on every update); LEARN-002 check → decision entry `2026-11-17-pre-commit-staged-memory-check`; out-of-scope → Known Opportunities (`--no-pre-commit-prompt`). Deviations (TDD order in Tasks 1–3) stay here. Delivery entry: `ledger/deliveries/2026-11-17-026-pre-commit-memory-validation.md`. Roadmap I8 → Done.

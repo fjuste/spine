@@ -1,18 +1,18 @@
 ---
 # Recommended next step, written by /spine-harvest and /spine-plan; shown by spine.py brief and the digest.
-next_step: Plan the highest-ICE candidate, I8 (git pre-commit memory validation, 320)
-next_command: /spine-plan I8
+next_step: Plan the next G2 candidate, I10 (preflight script + prompt hook, 294)
+next_command: /spine-plan I10
 next_alternatives:
-  - Ask a fresh agent session "where are we?" to confirm it shows spine.py brief verbatim
-  - Close legacy tasks 008–014 (add status or move to completed_tasks/)
-  - /spine-plan I36 (narrative budget 3,000 → 12,000; G1, cheap)
+  - Fix the validator counting related_learnings items as tags (the pre-commit hook now blocks on it)
+  - /spine-plan I9 (validate-on-edit agent hook, 294; re-score after I8)
+  - Close legacy tasks 008–014 with a pure git mv to completed_tasks/
 ---
 # Progress
 
 ## Current state
-- In flight: none. 025-pilot-brief delivered (2026-11-16): `spine.py brief` prints where the project is, recent deliveries with `why:`, what waits on the pilot and the next command; agents show it verbatim on request (roadmap I15 Done).
+- In flight: none. 026-pre-commit-memory-validation delivered (2026-11-17): opt-in git pre-commit hook runs `spine_validate.py staged` and blocks memory-format errors at commit; installed in this repo (roadmap I8 Done).
 - Blocked: nothing.
-- Next: see the recorded next step (`spine.py brief`). Open: close Spine's 7 legacy tasks without status (008–014; human decision); G1 idea I36 (narrative budget 3,000 → 12,000). Candidate tasks: `vendor` refuses the Spine repo as project; fence-aware `memory._section`; validator counts `related_learnings` as tags; harvest step 7 summary format does not fit open-task and ledger warnings; brief hint for legacy delivery logs.
+- Next: see the recorded next step (`spine.py brief`). Open: close Spine's 7 legacy tasks (008–014; pure `git mv` passes the hook); G1 idea I36. Candidate tasks: validator counts `related_learnings` as tags (now blocks commits); `--no-pre-commit-prompt`; `vendor` refuses the Spine repo; fence-aware `memory._section`; brief hint for legacy delivery logs.
 - Legacy sections below (`O que funciona` … `Issues Conhecidos`) predate Memory Bank v2.1 and are kept for history.
 
 ## O que funciona
