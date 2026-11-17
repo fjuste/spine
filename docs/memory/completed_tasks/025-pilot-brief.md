@@ -2,7 +2,7 @@
 task_id: 025
 title: Pilot brief — where the project is and what to do next, without asking the agent
 goal: "`spine.py brief` prints project state, recent story with why, what waits on the human and the next command; any agent shows it verbatim when the pilot asks"
-status: REVIEW
+status: DONE
 tags:
   - type/feature
   - area/memory
@@ -14,7 +14,7 @@ execution_skill: executing-plans
 roadmap_idea: I15
 created_at: 2026-11-16
 updated_at: 2026-11-16
-completed_at:
+completed_at: 2026-11-16
 related_learnings: []
 ---
 
@@ -123,10 +123,10 @@ The recommendation is written by the agent once per cycle as structured fields i
 **Step 1:** Doc tests. **Step 2:** Write docs; add the fields to Spine's `progress.md`; run `spine.py brief` here and on one consumer bank; record evidence. **Step 3:** `pytest tests/`; commit.
 
 ## Execution notes
-- 2026-11-16 — deviation — AC4 link rendering (`is_tty` switch, OSC 8 vs trailing relative path) landed in the Task 1 commit because `build_brief` needs the render mode in its signature; Task 2 tests were written afterwards and passed on first run (not red first). Scope unchanged.
-- 2026-11-16 — decision — `/spine-harvest` step 4a also asks for the delivery `why:` (not only the template): without it no new delivery would ever carry the field the brief prints. `read_next_step` lives in `memory.py` because both the digest and the brief read it.
-- 2026-11-16 — out-of-scope — RECENT STORY reads only `ledger/deliveries/` entries: a consumer bank that still keeps its delivery history in the legacy `progress.md` delivery log shows `nothing` there until `spine.py memory migrate --apply`. A one-line hint in the story (legacy log present → run migrate) would help those banks; not done.
-- 2026-11-16 — out-of-scope — the 7 legacy tasks 008–014 without `status:` fill WAITING ON YOU on this repo (from `check_open_tasks`); closing them is the pilot's decision, already in Current state Next.
+- 2026-11-16 — deviation — AC4 link rendering (`is_tty` switch, OSC 8 vs trailing relative path) landed in the Task 1 commit because `build_brief` needs the render mode in its signature; Task 2 tests were written afterwards and passed on first run (not red first). Scope unchanged. → no promotion
+- 2026-11-16 — decision — `/spine-harvest` step 4a also asks for the delivery `why:` (not only the template): without it no new delivery would ever carry the field the brief prints. `read_next_step` lives in `memory.py` because both the digest and the brief read it. → no promotion
+- 2026-11-16 — out-of-scope — RECENT STORY reads only `ledger/deliveries/` entries: a consumer bank that still keeps its delivery history in the legacy `progress.md` delivery log shows `nothing` there until `spine.py memory migrate --apply`. A one-line hint in the story (legacy log present → run migrate) would help those banks; not done. → Known Opportunities
+- 2026-11-16 — out-of-scope — the 7 legacy tasks 008–014 without `status:` fill WAITING ON YOU on this repo (from `check_open_tasks`); closing them is the pilot's decision, already in Current state Next. → no promotion
 
 ## Execution evidence
 **Tests executed:**
@@ -141,3 +141,11 @@ The recommendation is written by the agent once per cycle as structured fields i
 - Same command under a pseudo-terminal (`script -qc`): delivery, task and roadmap items are OSC 8 `file://` links; through a pipe, plain `→ docs/memory/…` paths and no escape bytes.
 - `spine.py brief --project-root=<a local consumer project>` (read-only): exit 0; no per-entry deliveries yet (legacy delivery log), so the story prints `nothing`, WAITING ON YOU lists 2 DONE tasks left in `active_tasks/`, NEXT STEP falls back to the `Next:` bullet plus the hint. Raw output was not kept (it names a private project).
 - Pending for the pilot: one fresh agent session asking "where are we?" to confirm rule 01 is followed (the rule is wired from this working tree).
+
+## Delivery summary
+
+- **Delivered:** `spine.py brief` (header, WHERE WE ARE with arc, RECENT STORY with `why:`, WAITING ON YOU, NEXT STEP; OSC 8 links on a terminal, relative paths otherwise); `next_step` / `next_command` / `next_alternatives` in `progress.md` frontmatter, written by harvest and plan and shown first in the digest's Current state; delivery `why:` field; rule 01 instruction to show the brief verbatim; README, AGENTS.md and rule 02 docs. Delivery entry: `ledger/deliveries/2026-11-16-025-pilot-brief.md`.
+- **Evidence:** `pytest tests/` 379 passed (37 new tests) at execution and at harvest; manual runs on this repo, a pseudo-terminal and a local consumer bank (see Execution evidence). Pending: a fresh agent session asking "where are we?" to confirm rule 01.
+- **Execution notes routing:** `deviation` (links landed with Task 1) → no promotion (one-off ordering, no planning gap); `decision` (harvest asks for `why:`; `read_next_step` in `memory.py`) → no promotion (easy to reverse); `out-of-scope` legacy delivery log hint → Known Opportunities; `out-of-scope` legacy tasks 008–014 → no promotion (already in Current state). Discovery decision (on-demand script + rule, not a committed file or hook) → `DEC 2026-11-16-pilot-brief-on-demand-script`.
+- **Learning:** no incident or rework; no learning entry.
+- **Roadmap:** I15 Done.

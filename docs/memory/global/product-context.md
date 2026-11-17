@@ -26,5 +26,6 @@ Cada tarefa segue um ciclo simples: branch de feature -> plano de execução e t
 - Documentação curta, útil e acionável.
 
 ## Known Opportunities (unplanned)
+- `spine.py brief` RECENT STORY reads only `ledger/deliveries/` entries: a bank that still keeps its history in the legacy `progress.md` delivery log shows `nothing` until `spine.py memory migrate --apply`. A one-line hint there (legacy log found → run migrate) would help those banks. Task 025.
 - Fence-aware `memory._section`: the digest and budget checks end a section at a `## ` line inside a fenced code block. Never seen in a real Current state yet; `spine_cli/migrate.py` already has a fence-aware section finder (`_outside_fences`). Task 022.
 - `spine_validate.py task` counts every indented `- ` item in the frontmatter as a tag, so a block-list `related_learnings` with 3+ items trips "too many tags". Workaround: inline `[LEARN-…]`. Fix: count only items under `tags:`. Task 022.
