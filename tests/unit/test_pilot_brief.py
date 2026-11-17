@@ -428,3 +428,18 @@ def test_harvest_plan_and_rule_name_the_next_step_fields(relative: str) -> None:
 
     for field in NEXT_FIELDS:
         assert f"`{field}`" in text, f"{relative} does not name {field}"
+
+
+# =============================================================================
+# Task 4: agents show the brief on request (AC6)
+# =============================================================================
+
+
+def test_core_protocol_tells_agents_to_show_the_brief_verbatim() -> None:
+    rule = (REPO_ROOT / "rules/01-core-protocol.md").read_text(encoding="utf-8")
+
+    assert "python3 .spine/scripts/spine.py brief" in rule
+    assert "verbatim" in rule
+    assert "where the project stands" in rule
+    assert "Current state" in rule
+    assert "spine.py update" in rule
