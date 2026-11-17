@@ -92,7 +92,7 @@ sources:
 | I5  | Generated indexes: `completed_tasks/INDEX.md`, `ledger/learnings-index.md` — learnings index shipped in I25; remaining: `completed_tasks/INDEX.md` (on-demand tier) | G1 | 147 (3×7×7) | 7 | Candidate |
 | I6  | Rolling window + archive (`progress`, `decision-log`, roadmap Review Log) via `spine.py memory compact`; agent writes period summary — log archive replaced by I25 entries; remaining: roadmap Review Log, pre-v2.1 `progress.md` sections | G1 | 90 (3×5×6) | 5 | Candidate |
 | I7  | Generated short `AGENTS.md` entry file (summary + pointers, ≤ 4k chars, never rule copies) + `CLAUDE.md` `@AGENTS.md`; optional per-directory | G1 | 210 (6×5×7) | 5 | Candidate |
-| I8  | git `pre-commit` memory validation (agent-neutral) | G2 | 320 (5×8×8) | 8 | Candidate |
+| I8  | git `pre-commit` memory validation (agent-neutral) | G2 | 320 (5×8×8) | 8 | Done |
 | I9  | Hook: validate-on-edit for `docs/memory/**` (H2) | G2 | 294 (6×7×7) | 7 | Candidate |
 | I10 | Preflight script (fetch, ahead/behind, branch vs task) + prompt hook on `/spine-*` (H3, RFC SPN-22-04) | G2 | 294 (6×7×7) | 7 | Candidate |
 | I11 | Hook: inject digest at session start and before compaction (H1) — needs I3, I12 | G2 | 252 (7×6×6) | 6 | Candidate |
@@ -171,3 +171,5 @@ sources:
 | 2026-11-17 | I35 | Confidence 6→7 (ICE 168→196): the check fired on 8 of 9 local consumer banks (no status: 2, REVIEW idle over 14 days: 5, DONE left in `active_tasks/`: 3) and on Spine (7 legacy tasks), so stale open tasks are common. Impact stays 4: the digest shrinks only after a human closes them, and none is closed yet (Spine's 008–014 still open). `spine.py brief` now repeats the warnings under WAITING ON YOU. |
 | 2026-11-17 | I15 | Score unchanged at 216 (6×6×6). Delivery confirmed the data was already in memory (brief runs on Spine and a consumer bank) but there is no usage evidence yet: the fresh-session check of rule 01 is pending, and a bank whose deliveries are still in the legacy log shows an empty story until `memory migrate` (Known Opportunity). Re-score after a few sessions of real use. |
 | 2026-11-17 | G1, G5 | Both stay Active. G1: Spine digest 4.6k chars (under 8,000); onboarding-hub and agenthub not re-measured. G5: I15 helps the pilot get oriented but does not move G5's outcome metric (low-risk tasks closed without a plan gate, epics); I26 and I27 still carry that metric. Top Candidates: I8 320, I9 294, I10 294, I23 280. |
+| 2026-11-17 | I8 | Planned as task 026-pre-commit-memory-validation (In Progress); opt-in hook, staged snapshot, blocks format errors only (task contract, changed entry summaries, stale INDEX.md in touched folders) |
+| 2026-11-17 | I8 | Harvested task 026-pre-commit-memory-validation → Done |

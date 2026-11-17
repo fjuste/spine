@@ -5,6 +5,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
+from spine_cli import precommit
 from spine_cli.constants import VENDOR_MARKER
 from spine_cli.log import Log, SpineExit, die
 from spine_cli.options import Options
@@ -93,6 +94,9 @@ def uninstall_applied(project: Path, log: Log, *, remove_spine: bool) -> None:
         marker = project / VENDOR_MARKER
         if marker.is_file():
             _remove(marker, log)
+
+    if precommit.hook_installed(project):
+        precommit.uninstall_hook(project, log)
 
     print("\n  Note: docs/ and opencode.json were NOT removed.")
 

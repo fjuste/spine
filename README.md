@@ -458,6 +458,52 @@ Remove templates and config only: `python3 .spine/scripts/spine.py install --mkd
 | `site/` appears in git status | Add `docs/mkdocs/site/` to `.gitignore` and re-run install |
 | Documentation not updating at harvest | Ensure `docs/mkdocs/mkdocs.yml` exists; run harvest step 4e manually |
 
+## Optional: pre-commit memory check
+
+An opt-in git `pre-commit` hook runs `python3 .spine/scripts/spine_validate.py staged` before every commit. It is agent-neutral: it stops memory-format errors whether Claude Code, Cursor, OpenCode, another agent or a human made them, at `git commit` instead of at harvest.
+
+### What it checks
+
+It reads the **staged snapshot** of `docs/memory/` (the index, not the working tree), so a fix that was never `git add`ed still blocks. A commit that stages nothing under `docs/memory/` is not checked and prints nothing.
+
+| Blocks the commit (`ERROR:`, exit 1) | Prints only (`WARNING:`) |
+|---|---|
+| A staged task file in `active_tasks/` or `completed_tasks/` that breaks the task contract (same rules as `spine_validate.py task`) | Memory budgets (digest, Current state, narrative files) |
+| A changed ledger entry with a missing or over-160-char `summary:` | Open tasks a human should close (no valid `status:`, stale REVIEW, DONE left in `active_tasks/`) |
+| A missing or stale `INDEX.md` in a ledger folder the commit touches | |
+
+Only files whose content changed are checked. A pure rename (`git mv` with no edit) is skipped, so a legacy task without frontmatter can be moved to `completed_tasks/` to close it; untouched older entries never block.
+
+When it blocks: fix the files it names (`python3 .spine/scripts/spine.py memory index` for a stale `INDEX.md`), `git add` them, and commit again. Do not bypass it with `git commit --no-verify`.
+
+### Enable
+
+During `python3 .spine/scripts/spine.py install` (or `update`) in a terminal, answer **yes** at the pre-commit prompt; it is asked only while the hook is not installed. Non-interactive:
+
+```bash
+python3 .spine/scripts/spine.py install --with-pre-commit
+python3 .spine/scripts/spine.py update --with-pre-commit
+```
+
+The installer writes a marked block (`# >>> spine pre-commit >>>` … `# <<< spine pre-commit <<<`) into the hook file git uses (`git rev-parse --git-path hooks`, so `core.hooksPath` and worktrees are honoured):
+
+- no hook yet → a new `#!/bin/sh` hook, executable;
+- an existing `sh`/`bash`/`zsh` hook → the block goes right after its shebang, the rest is kept;
+- block already present → replaced in place (re-running install changes nothing);
+- any other hook (no shebang, another interpreter, hook managers such as husky, lefthook or the `pre-commit` framework) → left untouched; the installer prints the line to add yourself: `python3 .spine/scripts/spine_validate.py staged || exit 1`.
+
+The hook is machine-local (`.git/hooks` is not versioned): each clone enables it. When `.spine` or Python is missing, the hook prints a skip note and lets the commit through.
+
+`vendor` and the Windows `install` (vendor mode) do not install the hook; add the manual line to your hook if you want it there.
+
+### Remove
+
+```bash
+python3 .spine/scripts/spine.py install --pre-commit-uninstall
+```
+
+Removes only the block; the hook file is deleted when nothing else remains. `python3 .spine/scripts/spine.py uninstall` removes it too.
+
 ## Migration from v1.2 and earlier
 
 | Old setup | Action |

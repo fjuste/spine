@@ -84,6 +84,8 @@ def _options_from(args: argparse.Namespace) -> Options:
         mkdocs_uninstall=bool(getattr(args, "mkdocs_uninstall", False)),
         purge_mkdocs=bool(getattr(args, "purge_mkdocs", False)),
         no_mkdocs_prompt=bool(getattr(args, "no_mkdocs_prompt", False)),
+        with_pre_commit=bool(getattr(args, "with_pre_commit", False)),
+        pre_commit_uninstall=bool(getattr(args, "pre_commit_uninstall", False)),
         no_pull=bool(getattr(args, "no_pull", False)),
         replace_opencode=bool(getattr(args, "replace_opencode", False)),
         global_mode=bool(getattr(args, "global_mode", False)),
@@ -154,6 +156,8 @@ def build_parser() -> argparse.ArgumentParser:
     install.add_argument("--mkdocs-uninstall", action="store_true")
     install.add_argument("--purge-mkdocs", action="store_true")
     install.add_argument("--no-mkdocs-prompt", action="store_true")
+    install.add_argument("--with-pre-commit", action="store_true", help="Install the git pre-commit memory check")
+    install.add_argument("--pre-commit-uninstall", action="store_true", help="Remove the git pre-commit memory check")
     install.add_argument("--global", dest="global_mode", action="store_true", help=argparse.SUPPRESS)
     install.add_argument("--project", dest="project_mode", action="store_true", help=argparse.SUPPRESS)
     install.set_defaults(handler=_cmd_install)
@@ -176,6 +180,7 @@ def build_parser() -> argparse.ArgumentParser:
     update.add_argument("--with-mkdocs", action="store_true")
     update.add_argument("--no-graphify-prompt", action="store_true")
     update.add_argument("--no-mkdocs-prompt", action="store_true")
+    update.add_argument("--with-pre-commit", action="store_true", help="Install the git pre-commit memory check")
     update.set_defaults(handler=_cmd_update)
 
     uninstall = sub.add_parser("uninstall", help="Remove Spine artefacts for the detected mode")
