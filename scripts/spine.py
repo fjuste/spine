@@ -11,6 +11,7 @@ Usage (from a consumer project, or pass ``--project-root``)::
     python3 .spine/scripts/spine.py memory stats
     python3 .spine/scripts/spine.py memory index
     python3 .spine/scripts/spine.py memory migrate [--apply]
+    python3 .spine/scripts/spine.py brief
 
 ``update`` pulls the Spine clone and then reconciles wiring.
 ``install --update`` only reconciles wiring; it does not run ``git pull``.
@@ -29,6 +30,7 @@ import sys
 from pathlib import Path
 from typing import NoReturn
 
+from spine_cli.brief import run_brief
 from spine_cli.constants import DEFAULT_TARGETS
 from spine_cli.install import run_install, run_vendor
 from spine_cli.memory import DEFAULT_SETUP_BUDGET_CHARS, run_memory
@@ -82,6 +84,8 @@ def _options_from(args: argparse.Namespace) -> Options:
         mkdocs_uninstall=bool(getattr(args, "mkdocs_uninstall", False)),
         purge_mkdocs=bool(getattr(args, "purge_mkdocs", False)),
         no_mkdocs_prompt=bool(getattr(args, "no_mkdocs_prompt", False)),
+        with_pre_commit=bool(getattr(args, "with_pre_commit", False)),
+        pre_commit_uninstall=bool(getattr(args, "pre_commit_uninstall", False)),
         no_pull=bool(getattr(args, "no_pull", False)),
         replace_opencode=bool(getattr(args, "replace_opencode", False)),
         global_mode=bool(getattr(args, "global_mode", False)),
@@ -117,6 +121,10 @@ def _cmd_memory(args: argparse.Namespace) -> int:
     return run_memory(args.action, args.project_root, args.budget)
 
 
+def _cmd_brief(args: argparse.Namespace) -> int:
+    return run_brief(args.project_root)
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the spine.py argument parser.
 
@@ -148,6 +156,8 @@ def build_parser() -> argparse.ArgumentParser:
     install.add_argument("--mkdocs-uninstall", action="store_true")
     install.add_argument("--purge-mkdocs", action="store_true")
     install.add_argument("--no-mkdocs-prompt", action="store_true")
+    install.add_argument("--with-pre-commit", action="store_true", help="Install the git pre-commit memory check")
+    install.add_argument("--pre-commit-uninstall", action="store_true", help="Remove the git pre-commit memory check")
     install.add_argument("--global", dest="global_mode", action="store_true", help=argparse.SUPPRESS)
     install.add_argument("--project", dest="project_mode", action="store_true", help=argparse.SUPPRESS)
     install.set_defaults(handler=_cmd_install)
@@ -170,6 +180,7 @@ def build_parser() -> argparse.ArgumentParser:
     update.add_argument("--with-mkdocs", action="store_true")
     update.add_argument("--no-graphify-prompt", action="store_true")
     update.add_argument("--no-mkdocs-prompt", action="store_true")
+    update.add_argument("--with-pre-commit", action="store_true", help="Install the git pre-commit memory check")
     update.set_defaults(handler=_cmd_update)
 
     uninstall = sub.add_parser("uninstall", help="Remove Spine artefacts for the detected mode")
@@ -198,6 +209,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="With migrate: write entries and remove legacy files; default is a dry run",
     )
     memory.set_defaults(handler=_cmd_memory)
+
+    brief = sub.add_parser("brief", help="Pilot brief: where the project is and what to do next")
+    brief.add_argument("--project-root", default=None, help="Consumer project root")
+    brief.set_defaults(handler=_cmd_brief)
     return parser
 
 

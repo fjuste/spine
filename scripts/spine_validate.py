@@ -7,6 +7,7 @@ Usage (from consumer project root; on Windows use ``py -3`` or ``python``):
     python3 .spine/scripts/spine_validate.py graphify --targets=cursor,opencode,claude
     python3 .spine/scripts/spine_validate.py mkdocs
     python3 .spine/scripts/spine_validate.py memory [--project-root=PATH]
+    python3 .spine/scripts/spine_validate.py staged   # git pre-commit hook
 
 Every subcommand accepts ``--dry-run``. Exit code 0 means OK (warnings allowed),
 1 means at least one error. ``ERROR:``/``WARNING:``/``NOTE:`` go to stderr and
@@ -20,15 +21,30 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
+from datetime import date
 from pathlib import Path
-from typing import NoReturn
+from typing import NamedTuple, NoReturn
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from spine_cli.constants import DOCS_SEED_PATHS
-from spine_cli.memory import INDEX_NAME, MEMORY_DIR, check_budgets, check_ledger
+from spine_cli.memory import (
+    ENTRY_SUMMARY_MAX_CHARS,
+    INDEX_NAME,
+    LEDGER_DIR,
+    LEDGER_FOLDERS,
+    MEMORY_DIR,
+    TASK_FILE_RE,
+    check_budgets,
+    check_ledger,
+    check_open_tasks,
+    collect_entries,
+    index_path,
+    render_index,
+)
 
 VALIDATE_CMD = "python3 .spine/scripts/spine_validate.py"
 
@@ -570,10 +586,12 @@ def run_mkdocs(args: argparse.Namespace) -> int:
 
 
 def validate_memory(root: Path, report: Report | None = None) -> Report:
-    """Measure ``docs/memory/`` against its budgets and check the ledger folders.
+    """Measure ``docs/memory/`` against its budgets and check ledger folders and open tasks.
 
-    Over-budget scopes, entries without a valid ``summary:`` and stale
-    ``INDEX.md`` files are warnings; only a missing memory bank is an error.
+    Over-budget scopes, entries without a valid ``summary:``, stale
+    ``INDEX.md`` files and open tasks that need a human to close them (no valid
+    status, stale REVIEW, DONE left in ``active_tasks/``) are warnings; only a
+    missing memory bank is an error.
 
     Args:
         root: Consumer project root.
@@ -598,6 +616,12 @@ def validate_memory(root: Path, report: Report | None = None) -> Report:
         if not ledger.problems:
             noun = "entry" if ledger.entries == 1 else "entries"
             report.ok(ledger.scope, f"{ledger.entries} {noun}, {INDEX_NAME} up to date")
+    tasks = check_open_tasks(root, date.today())
+    if tasks is not None:
+        for problem in tasks.problems:
+            report.warn(f"{tasks.scope}: {problem}")
+        if not tasks.problems:
+            report.ok(tasks.scope, f"{tasks.tasks} open task(s), no stale tasks")
     return report
 
 
@@ -615,6 +639,233 @@ def run_memory(args: argparse.Namespace) -> int:
         print(f"OK: memory budgets checked with {report.warnings} warning(s).")
     else:
         print("OK: memory bank within budget.")
+    return 0
+
+
+# =============================================================================
+# staged (git pre-commit)
+# =============================================================================
+
+
+MEMORY_PATHSPEC = f"{MEMORY_DIR.as_posix()}/"
+TASK_DIRS = ("active_tasks", "completed_tasks")
+CONTENT_STATUSES = frozenset({"A", "M", "C", "T"})
+RENAME_STATUS = "R"
+PURE_RENAME_SCORE = 100
+STAGED_FIX_HINT = "run python3 .spine/scripts/spine.py memory index, then git add it"
+
+
+class GitError(Exception):
+    """A git command failed or git is unavailable."""
+
+
+class StagedChange(NamedTuple):
+    """One staged change under ``docs/memory/`` (``git diff --cached --name-status``).
+
+    Args:
+        status: Status letter (``A``, ``M``, ``D``, ``R``, ``C``, ``T``, ...).
+        score: Similarity score for renames and copies (0 otherwise).
+        path: Path after the change, relative to the project root.
+        old_path: Source path of a rename or copy (equal to ``path`` otherwise).
+    """
+
+    status: str
+    score: int
+    path: str
+    old_path: str
+
+    @property
+    def content_changed(self) -> bool:
+        """True unless the change is a deletion or a pure (100%) rename."""
+        if self.status == RENAME_STATUS:
+            return self.score < PURE_RENAME_SCORE
+        return self.status in CONTENT_STATUSES
+
+
+class _ScopedReport(Report):
+    """Report that prefixes every message with a file path and forwards it to a parent report."""
+
+    def __init__(self, parent: Report, scope: str) -> None:
+        super().__init__(quiet=parent.quiet)
+        self.parent = parent
+        self.scope = scope
+
+    def fail(self, message: str) -> None:
+        """Record an error on the parent report."""
+        self.parent.fail(f"{self.scope}: {message}")
+
+    def warn(self, message: str) -> None:
+        """Record a warning on the parent report."""
+        self.parent.warn(f"{self.scope}: {message}")
+
+
+def _git(root: Path, args: list[str], stdin: bytes | None = None) -> bytes:
+    """Run git in ``root`` and return its stdout.
+
+    Raises:
+        GitError: When git is missing or exits non-zero.
+    """
+    try:
+        result = subprocess.run(["git", *args], cwd=root, input=stdin, capture_output=True, check=False)
+    except OSError as exc:
+        raise GitError(f"git not available: {exc}") from exc
+    if result.returncode != 0:
+        detail = result.stderr.decode("utf-8", errors="replace").strip()
+        raise GitError(f"git {args[0]} failed: {detail}")
+    return result.stdout
+
+
+def parse_name_status(output: bytes) -> list[StagedChange]:
+    """Parse ``git diff --name-status -z`` output.
+
+    Args:
+        output: Raw NUL-separated output (renames and copies carry two paths).
+
+    Returns:
+        One change per staged file.
+    """
+    fields = output.decode("utf-8", errors="surrogateescape").split("\0")
+    changes: list[StagedChange] = []
+    index = 0
+    while index < len(fields) and fields[index]:
+        code = fields[index]
+        status, score = code[0], int(code[1:] or 0)
+        if status in (RENAME_STATUS, "C"):
+            old_path, path = fields[index + 1], fields[index + 2]
+            index += 3
+        else:
+            old_path = path = fields[index + 1]
+            index += 2
+        changes.append(StagedChange(status, score, path, old_path))
+    return changes
+
+
+def staged_changes(root: Path) -> list[StagedChange]:
+    """List staged changes under ``docs/memory/``, paths relative to ``root``."""
+    args = ["diff", "--cached", "--name-status", "-z", "-M", "--relative", "--", MEMORY_PATHSPEC]
+    return parse_name_status(_git(root, args))
+
+
+def snapshot_memory(root: Path, target: Path) -> Path:
+    """Write the index (staged) copy of ``docs/memory/`` under ``target``.
+
+    Args:
+        root: Project root (current directory of the commit).
+        target: Empty temporary directory.
+
+    Returns:
+        The snapshot project root: ``<target>/<prefix>`` holds ``docs/memory/``.
+    """
+    prefix = _git(root, ["rev-parse", "--show-prefix"]).decode("utf-8").strip()
+    files = _git(root, ["ls-files", "-z", "--", MEMORY_PATHSPEC])
+    _git(root, ["checkout-index", "-z", "--stdin", f"--prefix={target.as_posix()}/"], stdin=files)
+    return target / prefix
+
+
+def _is_task_path(path: str) -> bool:
+    parts = Path(path).parts
+    memory_parts = MEMORY_DIR.parts
+    return (
+        len(parts) == len(memory_parts) + 2
+        and parts[: len(memory_parts)] == memory_parts
+        and parts[len(memory_parts)] in TASK_DIRS
+        and bool(TASK_FILE_RE.match(parts[-1]))
+    )
+
+
+def _ledger_folder(path: str) -> str | None:
+    """Return the ledger folder name when ``path`` sits directly in one, else None."""
+    parts = Path(path).parts
+    prefix = (*MEMORY_DIR.parts, LEDGER_DIR)
+    if len(parts) == len(prefix) + 2 and parts[: len(prefix)] == prefix and parts[len(prefix)] in LEDGER_FOLDERS:
+        return parts[len(prefix)]
+    return None
+
+
+def _check_staged_tasks(snapshot: Path, changes: list[StagedChange], report: Report) -> None:
+    for change in changes:
+        if change.content_changed and _is_task_path(change.path):
+            validate_task(snapshot / change.path, _ScopedReport(report, change.path))
+
+
+def _check_staged_ledger(snapshot: Path, changes: list[StagedChange], report: Report) -> None:
+    memory_dir = snapshot / MEMORY_DIR
+    for folder in LEDGER_FOLDERS:
+        touched = [c for c in changes if folder in (_ledger_folder(c.path), _ledger_folder(c.old_path))]
+        if not touched or not (memory_dir / LEDGER_DIR / folder).is_dir():
+            continue
+        entries = collect_entries(memory_dir, folder)
+        by_name = {entry.filename: entry for entry in entries}
+        for change in touched:
+            entry = by_name.get(Path(change.path).name)
+            if not change.content_changed or _ledger_folder(change.path) != folder or entry is None:
+                continue
+            if not entry.summary:
+                report.fail(f"{change.path}: missing `summary:` (one line, at most {ENTRY_SUMMARY_MAX_CHARS} chars)")
+            elif len(entry.summary) > ENTRY_SUMMARY_MAX_CHARS:
+                report.fail(f"{change.path}: `summary:` is {len(entry.summary)} chars (max {ENTRY_SUMMARY_MAX_CHARS})")
+        index = index_path(memory_dir, folder)
+        shown = index.relative_to(snapshot).as_posix()
+        if not index.is_file():
+            report.fail(f"{shown} missing — {STAGED_FIX_HINT}")
+        elif read_text(index) != render_index(folder, entries):
+            report.fail(f"{shown} is stale — {STAGED_FIX_HINT}")
+
+
+def _warn_staged(snapshot: Path, report: Report) -> None:
+    for check in check_budgets(snapshot):
+        if check.over:
+            report.warn(f"{check.scope}: {check.chars:,} chars > {check.limit:,} — {check.detail}")
+    tasks = check_open_tasks(snapshot, date.today())
+    if tasks is not None:
+        for problem in tasks.problems:
+            report.warn(f"{tasks.scope}: {problem}")
+
+
+def validate_staged(root: Path, report: Report | None = None) -> Report:
+    """Check the staged snapshot of ``docs/memory/`` before a commit.
+
+    Errors (block the commit): staged task files that break the task contract,
+    changed ledger entries with a missing or over-long ``summary:``, and a
+    missing or stale ``INDEX.md`` in a ledger folder the commit touches. Pure
+    renames and untouched files are not checked. Budget and open-task problems
+    are warnings. No staged ``docs/memory/`` change → nothing is printed.
+
+    Args:
+        root: Project root (the git work tree directory holding ``docs/memory/``).
+        report: Optional report to append to.
+
+    Returns:
+        The report with recorded errors and warnings.
+    """
+    report = report or Report()
+    try:
+        changes = staged_changes(root)
+        if not changes:
+            return report
+        with tempfile.TemporaryDirectory(prefix="spine-staged-") as tmp:
+            snapshot = snapshot_memory(root, Path(tmp))
+            _check_staged_tasks(snapshot, changes, report)
+            _check_staged_ledger(snapshot, changes, report)
+            _warn_staged(snapshot, report)
+    except GitError as exc:
+        report.fail(f"{exc} (run from the project root inside a git work tree)")
+    return report
+
+
+def run_staged(args: argparse.Namespace) -> int:
+    """CLI handler for ``staged`` (called by the git pre-commit hook)."""
+    root = Path.cwd()
+    if args.dry_run:
+        print(f"[DRY-RUN] Would check staged memory files in: {root}")
+        return 0
+    report = validate_staged(root)
+    if not report.passed:
+        print(
+            f"Commit blocked: {report.errors} memory error(s). Fix them, git add the files, and commit again.",
+            file=sys.stderr,
+        )
+        return 1
     return 0
 
 
@@ -664,6 +915,10 @@ def build_parser() -> argparse.ArgumentParser:
     memory.add_argument("--project-root", help="Project root (default: current directory)")
     memory.add_argument("--dry-run", action="store_true")
     memory.set_defaults(handler=run_memory)
+
+    staged = subparsers.add_parser("staged", help="Check staged docs/memory/ files (git pre-commit hook).")
+    staged.add_argument("--dry-run", action="store_true")
+    staged.set_defaults(handler=run_staged)
 
     return parser
 

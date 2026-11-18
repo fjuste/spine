@@ -3,6 +3,7 @@ id: YYYY-MM-DD-NNN-slug
 date: YYYY-MM-DD
 title: Delivery title
 summary: One line, at most 160 chars, shown in INDEX.md
+why: Optional, one line, at most 120 chars — why this delivery mattered (spine.py brief shows it)
 tags:
   - area/example
   - type/feature

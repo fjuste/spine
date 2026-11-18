@@ -53,6 +53,7 @@ Goal: commit the latest local changes with a clear message that explains why and
 
 5. **Commit Execution:**
    - Create the commit.
+   - If the git `pre-commit` hook rejects it (`spine_validate.py staged` prints `ERROR:` lines and `Commit blocked: …`): fix each file it names in `docs/memory/` (stale `INDEX.md` → `python3 .spine/scripts/spine.py memory index`), `git add` the fixed files, and commit again. Never retry with `--no-verify`. `WARNING:` lines do not block; mention them in the final report.
    - Show:
      - `git show --name-only --oneline HEAD`
      - `git status --short --branch`

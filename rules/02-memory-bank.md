@@ -103,7 +103,7 @@ If a file does not exist, create it only if it is part of the current task flow.
 python3 .spine/scripts/spine.py memory digest
 ```
 
-It prints `progress.md` **Current state**, one line per open task (`NNN | STATUS | title — goal`), the `summary:` of each narrative file (or a capped outline marked `summary missing`), entry counts and newest titles of the ledger folders (plus any legacy log file), and Extended-tier pointers. The digest **is** the Core SYNC:
+It prints `progress.md` **Current state**, one line per open task (`NNN | STATUS | title — goal` for IN_PROGRESS/REVIEW, `NNN title` under a Planning label for PLANNING), the `summary:` of each narrative file (or a capped outline marked `summary missing`), entry counts and newest titles of the ledger folders (plus any legacy log file), and Extended-tier pointers. The digest **is** the Core SYNC:
 
 1. Read the digest. Do not open full memory files by default.
 2. Open a full file only when the task needs it: the task file you execute or plan against, a narrative file whose area you change, a ledger entry whose title the digest or a `ledger/<folder>/INDEX.md` row lists.
@@ -187,6 +187,7 @@ superseded_by:
 ```
 
 - `summary:` is required: one line, at most 160 chars. It is the entry's row in `INDEX.md`.
+- `why:` (deliveries only, optional): one line, at most 120 chars, why the delivery mattered to the pilot; `spine.py brief` shows it under the delivery.
 - `superseded_by:` (decisions only): when a new decision replaces an older one, set it on the old entry to the new entry's `id`. `INDEX.md` marks the old row superseded so agents skip it.
 - Learning recurrences: append `- YYYY-MM-DD — task NNN-slug (brief)` under `**Recurrences:**` in the existing `LEARN-NNN` file instead of creating a new entry.
 - **INDEX.md** in each folder is generated from entry frontmatter: run `python3 .spine/scripts/spine.py memory index` after adding or editing entries; never edit it by hand. It is committed; the installer adds `docs/memory/ledger/*/INDEX.md merge=union` to `.gitattributes`, so parallel branches merge their new rows without conflict. Re-run `memory index` after a merge to restore order.
@@ -208,6 +209,8 @@ superseded_by:
 | Legacy `decision-log.md` | 5,000 | Frozen; split with `spine.py memory migrate` |
 | `progress.md` whole file (legacy delivery log included) | 6,000 | Legacy delivery log: split with `spine.py memory migrate`; other pre-v2.1 legacy sections: trim with human approval |
 | Legacy `learnings.md` | 6,000 | Frozen; split with `spine.py memory migrate` |
+
+**Open tasks:** the same command checks the frontmatter of `active_tasks/NNN-*.md` (template ignored) and prints one `WARNING:` per problem kind, naming up to 5 files: tasks without a valid `status:` (missing or not `PLANNING`, `IN_PROGRESS`, `REVIEW`, `DONE`) → add it, or harvest / move the file; `REVIEW` tasks whose `updated_at` is more than 14 days old (or missing) → run `/spine-harvest`, or set `status: IN_PROGRESS` if work resumed; `DONE` tasks still in `active_tasks/` → `git mv` them to `completed_tasks/`. `PLANNING` and `IN_PROGRESS` tasks are never flagged. The check never edits files: a human closes the tasks.
 
 Task files, `roadmap.md`, `completed_tasks/` and whole `INDEX.md` files have no budget (an index grows by one line per entry; agents search it). The digest never shows budgets. `/spine-harvest` runs the validator, rewrites an over-budget Current state (which it owns) and reports every other warning as a follow-up. Never edit `global/` to meet a budget without showing the diff to the human first.
 
@@ -310,11 +313,21 @@ Execution sections (after `## Implementation Plan`; written by `/spine-execute`,
 ## Template: ledger/progress.md
 
 ```markdown
+---
+next_step: Harvest task 025 so its delivery is recorded
+next_command: /spine-harvest @docs/memory/active_tasks/025-pilot-brief.md
+next_alternatives:
+  - /spine-plan I8
+---
 ## Current state
 - In flight: ...
 - Blocked: ...
 - Next: ...
 ```
+
+**Next step** (frontmatter, one recommendation per cycle): `next_step` (one line), `next_command` (what the pilot types) and `next_alternatives` (YAML list, at most 3). `/spine-harvest` step 4a and `/spine-plan` (once the approval gate is answered) replace them; `spine.py brief` prints them under NEXT STEP and the digest prints `Next step: … — …` first in Current state. Empty fields fall back to the `Next:` bullet.
+
+**Pilot brief:** `python3 .spine/scripts/spine.py brief` is the human's view (stdout only): branch and tree state, active roadmap goal, IN_PROGRESS tasks, the newest 5 deliveries with their `why:`, REVIEW tasks and open-task warnings, and the next step. Agents show its output verbatim when the pilot asks where the project stands (rule 01); they do not rebuild that answer from memory files.
 
 Deliveries, learnings and decisions are entry files: see § Ledger entries and each folder's `_template.md`.
 

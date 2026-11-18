@@ -61,8 +61,10 @@ Act as a Tech Lead and Knowledge Manager.
      - `id:` the file stem; `date:` today; `title:` from task frontmatter `title`; `task:` `NNN-slug`
      - `tags:` copied from task frontmatter (per `docs/governance/memory-tags-policy.md`)
      - `summary:` one line: what was delivered
+     - `why:` optional, one line of at most 120 chars: why this delivery mattered to the pilot (`spine.py brief` shows it under the delivery)
      - Body: `**Branch:**` from frontmatter; `**Description:**` — concise delivery summary that cites the execution evidence: tests executed and results, plus manual/external runs (who, when, where the raw output lives) from `## Execution evidence`
    - Refresh **Current state** in `docs/memory/ledger/progress.md` (short bullet list).
+   - Record the recommended next step in the `progress.md` frontmatter, replacing the previous values: `next_step` (one line, the single action you recommend), `next_command` (exactly what the pilot types, e.g. `/spine-plan I8`) and `next_alternatives` (YAML list, at most 3, may be `[]`). `spine.py brief` and the digest show them.
 
    **4b. Learning entries** (when `## Execution notes` holds `incident` / `rework` entries routed in step 3.7, or the task recorded root cause, incident, or rework elsewhere)
    - Before a new `LEARN-NNN`, search `docs/memory/ledger/learnings/INDEX.md` by **tags** + symptoms per `memory-tags-policy.md`; in a project that still has a legacy `ledger/learnings.md`, search it too.
@@ -82,7 +84,7 @@ Act as a Tech Lead and Knowledge Manager.
     - Run `python3 .spine/scripts/spine_validate.py memory`. Warnings never block harvest (exit 0); an `ERROR:` means `docs/memory/` is missing.
     - **Entry warnings** (missing or over-160-char `summary:`, stale `INDEX.md`) on entries written in this harvest: fix them now and re-run both commands.
     - **Current state over budget:** rewrite the **Current state** block of `progress.md` to fit (keep In flight / Blocked / Next; drop delivered detail that the delivery entries already hold), then re-run the validator.
-    - **Every other warning** (digest total, legacy log files, narrative files, older entries): do not fix it here. List it in the step 7 summary as a follow-up — legacy log files → `spine.py memory migrate` (dry run, then `--apply`), open-task list → close or harvest stale tasks, narrative files → the human.
+    - **Every other warning** (digest total, legacy log files, narrative files, older entries, open tasks): do not fix it here. List it in the step 7 summary as a follow-up — legacy log files → `spine.py memory migrate` (dry run, then `--apply`), open-task list → close or harvest stale tasks, narrative files → the human. Open-task warnings name tasks without a valid `status:`, REVIEW tasks not updated in over 14 days and DONE tasks never moved to `completed_tasks/`; the human closes them. A stale-REVIEW warning naming the task being harvested is expected and clears at step 5 — do not report it.
     - Never edit `global/` to meet a budget without showing the diff to the human and getting approval first.
 
      **4d. Roadmap lifecycle update (when `roadmap_idea` is set):**
