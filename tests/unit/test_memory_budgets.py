@@ -46,7 +46,7 @@ def _many_open_tasks(root: Path, count: int) -> None:
         _write(
             root,
             f"active_tasks/{index:03d}-task.md",
-            f"---\ntask_id: {index:03d}\ntitle: Task {index}\nstatus: PLANNING\n"
+            f"---\ntask_id: {index:03d}\ntitle: Task {index}\nstatus: IN_PROGRESS\n"
             f"goal: {'g' * TASK_GOAL_CHARS}\n---\n",
         )
 

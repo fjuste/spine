@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from spine_cli import docs as docs_seed
-from spine_cli import graphify_setup, mkdocs_setup
+from spine_cli import graphify_setup, mkdocs_setup, precommit
 from spine_cli.constants import LEDGER_GITATTRIBUTES_LINE
 from spine_cli.gitignore import adjust_install_gitignore, ensure_gitattributes_line
 from spine_cli.log import Log, SpineExit, die
@@ -51,6 +51,7 @@ def _install_side_command(options: Options) -> bool:
         or options.remove_skill
         or options.graphify_uninstall
         or options.mkdocs_uninstall
+        or options.pre_commit_uninstall
     )
 
 
@@ -89,8 +90,8 @@ def _run_windows_vendor_install(options: Options) -> int:
     if options.spine_dir is None:
         options.spine_dir = package_spine_root()
     print("Windows detected: install uses vendor mode.")
-    if options.with_graphify or options.with_mkdocs or options.graphify_hooks:
-        print("Graphify and MkDocs are not co-installed by vendor mode.")
+    if options.with_graphify or options.with_mkdocs or options.graphify_hooks or options.with_pre_commit:
+        print("Graphify, MkDocs and the pre-commit memory check are not co-installed by vendor mode.")
     return run_vendor(options)
 
 
@@ -152,6 +153,20 @@ def _maybe_prompt_mkdocs(options: Options) -> None:
         print("\nMkDocs: enabled (template seed + initial build)")
     else:
         print("\nMkDocs: skipped. Re-run with --with-mkdocs")
+
+
+def _maybe_prompt_pre_commit(project: Path, options: Options) -> None:
+    if options.with_pre_commit or options.dry_run or not sys.stdin.isatty():
+        return
+    if precommit.hook_installed(project) or precommit.hook_path(project) is None:
+        return
+    print("\n===========================================\n  Optional: pre-commit memory check\n===========================================\n")
+    print("A git pre-commit hook runs spine_validate.py staged: commits whose staged docs/memory/ files")
+    print("break the task contract, a ledger entry summary or a ledger INDEX.md are blocked.\n")
+    if _prompt_yes("Enable the git pre-commit memory check for this project? [Y/n]: "):
+        options.with_pre_commit = True
+    else:
+        print("\npre-commit memory check: skipped. Re-run with --with-pre-commit")
 
 
 def _link_spine(project: Path, spine: Path, log: Log, *, force: bool) -> None:
@@ -315,6 +330,9 @@ def run_install(options: Options) -> int:
             ensure_layout(project, spine, options, log)
             mkdocs_setup.uninstall_mkdocs(project, log, purge=options.purge_mkdocs)
             return 0
+        if options.pre_commit_uninstall:
+            precommit.uninstall_hook(project, log)
+            return 0
 
         content = ensure_layout(project, spine, options, log)
 
@@ -388,6 +406,9 @@ def run_install(options: Options) -> int:
         _maybe_prompt_mkdocs(options)
         if options.with_mkdocs:
             mkdocs_setup.setup_mkdocs(project, spine, log)
+        _maybe_prompt_pre_commit(project, options)
+        if options.with_pre_commit:
+            precommit.install_hook(project, log)
 
         if options.update_mode:
             cleanup_dangling(project, log)

@@ -458,6 +458,52 @@ Remove templates and config only: `python3 .spine/scripts/spine.py install --mkd
 | `site/` appears in git status | Add `docs/mkdocs/site/` to `.gitignore` and re-run install |
 | Documentation not updating at harvest | Ensure `docs/mkdocs/mkdocs.yml` exists; run harvest step 4e manually |
 
+## Optional: pre-commit memory check
+
+An opt-in git `pre-commit` hook runs `python3 .spine/scripts/spine_validate.py staged` before every commit. It is agent-neutral: it stops memory-format errors whether Claude Code, Cursor, OpenCode, another agent or a human made them, at `git commit` instead of at harvest.
+
+### What it checks
+
+It reads the **staged snapshot** of `docs/memory/` (the index, not the working tree), so a fix that was never `git add`ed still blocks. A commit that stages nothing under `docs/memory/` is not checked and prints nothing.
+
+| Blocks the commit (`ERROR:`, exit 1) | Prints only (`WARNING:`) |
+|---|---|
+| A staged task file in `active_tasks/` or `completed_tasks/` that breaks the task contract (same rules as `spine_validate.py task`) | Memory budgets (digest, Current state, narrative files) |
+| A changed ledger entry with a missing or over-160-char `summary:` | Open tasks a human should close (no valid `status:`, stale REVIEW, DONE left in `active_tasks/`) |
+| A missing or stale `INDEX.md` in a ledger folder the commit touches | |
+
+Only files whose content changed are checked. A pure rename (`git mv` with no edit) is skipped, so a legacy task without frontmatter can be moved to `completed_tasks/` to close it; untouched older entries never block.
+
+When it blocks: fix the files it names (`python3 .spine/scripts/spine.py memory index` for a stale `INDEX.md`), `git add` them, and commit again. Do not bypass it with `git commit --no-verify`.
+
+### Enable
+
+During `python3 .spine/scripts/spine.py install` (or `update`) in a terminal, answer **yes** at the pre-commit prompt; it is asked only while the hook is not installed. Non-interactive:
+
+```bash
+python3 .spine/scripts/spine.py install --with-pre-commit
+python3 .spine/scripts/spine.py update --with-pre-commit
+```
+
+The installer writes a marked block (`# >>> spine pre-commit >>>` … `# <<< spine pre-commit <<<`) into the hook file git uses (`git rev-parse --git-path hooks`, so `core.hooksPath` and worktrees are honoured):
+
+- no hook yet → a new `#!/bin/sh` hook, executable;
+- an existing `sh`/`bash`/`zsh` hook → the block goes right after its shebang, the rest is kept;
+- block already present → replaced in place (re-running install changes nothing);
+- any other hook (no shebang, another interpreter, hook managers such as husky, lefthook or the `pre-commit` framework) → left untouched; the installer prints the line to add yourself: `python3 .spine/scripts/spine_validate.py staged || exit 1`.
+
+The hook is machine-local (`.git/hooks` is not versioned): each clone enables it. When `.spine` or Python is missing, the hook prints a skip note and lets the commit through.
+
+`vendor` and the Windows `install` (vendor mode) do not install the hook; add the manual line to your hook if you want it there.
+
+### Remove
+
+```bash
+python3 .spine/scripts/spine.py install --pre-commit-uninstall
+```
+
+Removes only the block; the hook file is deleted when nothing else remains. `python3 .spine/scripts/spine.py uninstall` removes it too.
+
 ## Migration from v1.2 and earlier
 
 | Old setup | Action |
@@ -534,9 +580,11 @@ Validate a task file manually: `python3 .spine/scripts/spine_validate.py task do
 
 **Ledger entries:** decisions, learnings and deliveries are one Markdown file per entry under `docs/memory/ledger/{decisions,learnings,deliveries}/`, each with frontmatter (`id`, `date`, `title`, a one-line `summary:` of at most 160 chars, `tags`, `task`; `superseded_by` for decisions). `python3 .spine/scripts/spine.py memory index` regenerates each folder's committed `INDEX.md`; the installer adds `docs/memory/ledger/*/INDEX.md merge=union` to `.gitattributes` so parallel harvests merge cleanly. Agents read the index and open only the entries they need. Projects created earlier keep their legacy single files (`global/decision-log.md`, `ledger/learnings.md`, the legacy delivery log in `progress.md`) frozen until `python3 .spine/scripts/spine.py memory migrate` splits them into entries (bodies verbatim, `summary:` = title). It is a dry run by default and writes nothing; review the report, fix any unparsed lines or ID conflicts by hand, then add `--apply` to write the entries, remove the legacy files and the Delivery log section, and regenerate `INDEX.md`. `spine.py update` prints a hint while legacy files remain. Spec: `rules/02-memory-bank.md` § Ledger entries.
 
-**Memory digest** (Core SYNC): `python3 .spine/scripts/spine.py memory digest` prints a compact view of `docs/memory/` — Current state, one line per open task, each narrative file's `summary:` frontmatter (outline when missing), ledger entry counts with the newest 5 titles, Extended-tier pointers. Output goes to stdout only; nothing is written. When summaries are missing, a closing `SETUP:` block asks the agent to write them for a few files per session (largest first, `--budget` source chars, default 60,000), so existing projects set up over their next sessions without a migration step. `python3 .spine/scripts/spine.py memory stats` prints chars per memory file, the legacy Core SYNC total and the digest size. Both accept `--project-root=PATH`.
+**Memory digest** (Core SYNC): `python3 .spine/scripts/spine.py memory digest` prints a compact view of `docs/memory/` — Current state, one line per open task (`NNN | STATUS | title — goal` for IN_PROGRESS/REVIEW, `NNN title` under a Planning label for PLANNING), each narrative file's `summary:` frontmatter (outline when missing), ledger entry counts with the newest 5 titles, Extended-tier pointers. Output goes to stdout only; nothing is written. When summaries are missing, a closing `SETUP:` block asks the agent to write them for a few files per session (largest first, `--budget` source chars, default 60,000), so existing projects set up over their next sessions without a migration step. `python3 .spine/scripts/spine.py memory stats` prints chars per memory file, the legacy Core SYNC total and the digest size. Both accept `--project-root=PATH`.
 
-**Memory budgets:** `python3 .spine/scripts/spine_validate.py memory` warns (exit 0) when the digest exceeds 8,000 chars, Current state 1,500, a narrative file body 3,000 or a ledger entry `summary:` 160, when an `INDEX.md` is stale, and when a legacy `decision-log.md` (5,000) or `progress.md`/`learnings.md` (6,000) grows past its budget. `/spine-harvest` compacts Current state and reports the other warnings as follow-ups. Limits: `rules/02-memory-bank.md` § Memory budgets.
+**Pilot brief:** `python3 .spine/scripts/spine.py brief` shows the human pilot where the project is and what to do next, at zero tokens: a header (project, branch, clean tree or uncommitted change count, date), WHERE WE ARE (active roadmap goal from the newest task's `roadmap_idea`, IN_PROGRESS tasks), RECENT STORY (newest 5 deliveries, each with its optional one-line `why:` from the delivery entry), WAITING ON YOU (REVIEW tasks to harvest, open-task warnings) and NEXT STEP (the `next_step`, `next_command` and `next_alternatives` fields that `/spine-harvest` and `/spine-plan` write in `progress.md` frontmatter; the digest shows the step first in Current state). Items link to their files: OSC 8 hyperlinks in a terminal, plain relative paths otherwise. Nothing is written; `--project-root=PATH` is accepted. Rule 01 tells agents to run it and show the output verbatim when the pilot asks where the project stands or what is next.
+
+**Memory budgets:** `python3 .spine/scripts/spine_validate.py memory` warns (exit 0) when the digest exceeds 8,000 chars, Current state 1,500, a narrative file body 3,000 or a ledger entry `summary:` 160, when an `INDEX.md` is stale, and when a legacy `decision-log.md` (5,000) or `progress.md`/`learnings.md` (6,000) grows past its budget. It also names open tasks a human should close: tasks without a valid `status:`, REVIEW tasks not updated in over 14 days, and DONE tasks never moved to `completed_tasks/`. `/spine-harvest` compacts Current state and reports the other warnings as follow-ups. Limits: `rules/02-memory-bank.md` § Memory budgets.
 
 **Harvest** (`/spine-harvest`): route `## Execution notes` to learning or decision entries, glossary, patterns, Known Risks, or Known Opportunities; write the delivery entry in `ledger/deliveries/` (with tags, citing `## Execution evidence`), refresh Current state, run `spine.py memory index`, set frontmatter `status: DONE`, `git mv` task to `completed_tasks/`. When the task has `roadmap_idea`, update that Idea Bank row to `Done` (or keep `In Progress` if other open linked tasks remain); suggest `/spine-roadmap --review` for ICE re-score.
 
@@ -599,6 +647,7 @@ flowchart TD
 ## Solo Developer Daily Routine
 
 - Before starting:
+  - run `python3 .spine/scripts/spine.py brief` to see where the project is and the next command;
   - read `docs/workflow/ciclo-de-entrega.md`;
   - confirm acceptance criteria;
   - define a compact test plan.
