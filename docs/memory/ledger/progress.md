@@ -1,9 +1,18 @@
+---
+# Recommended next step, written by /spine-harvest and /spine-plan; shown by spine.py brief and the digest.
+next_step: Plan the next G2 candidate, I10 (preflight script + prompt hook, 294)
+next_command: /spine-plan I10
+next_alternatives:
+  - Fix the validator counting related_learnings items as tags (the pre-commit hook now blocks on it)
+  - /spine-plan I9 (validate-on-edit agent hook, 294; re-score after I8)
+  - Close legacy tasks 008–014 with a pure git mv to completed_tasks/
+---
 # Progress
 
 ## Current state
-- In flight: none. 022-memory-migrate delivered (2026-11-14): `spine.py memory migrate` (dry run; `--apply` writes entries, removes legacy log files) completes roadmap I25. Spine's own bank is migrated: all decisions, learnings and deliveries live in `ledger/{decisions,learnings,deliveries}/`.
+- In flight: none. 026-pre-commit-memory-validation delivered (2026-11-17): opt-in git pre-commit hook runs `spine_validate.py staged` and blocks memory-format errors at commit; installed in this repo (roadmap I8 Done).
 - Blocked: nothing.
-- Next: roadmap reviewed 2026-11-14 (top Candidates: I8 pre-commit memory validation 320, I10 preflight 294, I9 validate-on-edit 294, I15 human summary 336). `/spine-roadmap --add-ideas` for G1 gaps: stale open tasks in the digest, narrative budget 3,000 too low for real banks. Candidate tasks: `vendor` refuses the Spine repo as project; fence-aware `memory._section`; validator counts `related_learnings` as tags.
+- Next: see the recorded next step (`spine.py brief`). Open: close Spine's 7 legacy tasks (008–014; pure `git mv` passes the hook); G1 idea I36. Candidate tasks: validator counts `related_learnings` as tags (now blocks commits); `--no-pre-commit-prompt`; `vendor` refuses the Spine repo; fence-aware `memory._section`; brief hint for legacy delivery logs.
 - Legacy sections below (`O que funciona` … `Issues Conhecidos`) predate Memory Bank v2.1 and are kept for history.
 
 ## O que funciona

@@ -35,6 +35,8 @@ class Options:
         mkdocs_uninstall: Remove MkDocs templates only.
         purge_mkdocs: Also remove ``docs/mkdocs/site/``.
         no_mkdocs_prompt: Do not ask on a TTY.
+        with_pre_commit: Install the git pre-commit memory check.
+        pre_commit_uninstall: Remove the git pre-commit memory check only.
         no_pull: Skip ``git pull`` during update.
         replace_opencode: Replace ``opencode.json`` instead of merging.
         global_mode: Rejected v1.3 flag.
@@ -63,6 +65,8 @@ class Options:
     mkdocs_uninstall: bool = False
     purge_mkdocs: bool = False
     no_mkdocs_prompt: bool = False
+    with_pre_commit: bool = False
+    pre_commit_uninstall: bool = False
     no_pull: bool = False
     replace_opencode: bool = False
     global_mode: bool = False

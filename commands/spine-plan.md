@@ -124,3 +124,4 @@ Act as a Senior Software Architect. Follow the instructions provided in $ARGUMEN
 
 9. **Approval Gate:** Stop and ask for confirmation:
    - "Plan created at docs/memory/active_tasks/<sequential-number>-<descriptive-name>.md. Can I execute?"
+   - Once the user answers, record the next step in the `docs/memory/ledger/progress.md` frontmatter, replacing the previous values: on approval `next_step` = `Execute task NNN — <title>` and `next_command` = `/spine-execute @docs/memory/active_tasks/NNN-<name>.md`; when the plan waits on changes, `next_step` names what the pilot must decide and `next_command` what to type then. Set `next_alternatives` (YAML list, at most 3, may be `[]`).

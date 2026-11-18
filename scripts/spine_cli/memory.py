@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 import sys
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 from spine_cli.log import SpineExit
@@ -49,6 +50,10 @@ SUMMARY_MAX_LINES = 5
 ELLIPSIS = "…"
 OPEN_STATUS_RANK = {"IN_PROGRESS": 0, "REVIEW": 1}
 OTHER_STATUS_RANK = 2
+PLANNING_STATUS_RANK = 3
+FULL_LINE_STATUSES = frozenset({"IN_PROGRESS", "REVIEW"})
+PLANNING_STATUS = "PLANNING"
+PLANNING_LABEL = "Planning (goal in the task file):"
 CLOSED_STATUS = "DONE"
 UNKNOWN_STATUS = "UNKNOWN"
 
@@ -224,6 +229,38 @@ def _section(text: str, heading_re: str) -> str | None:
     return rest[: end.start()] if end else rest
 
 
+@dataclass(frozen=True)
+class NextStep:
+    """Recommended next step recorded in ``progress.md`` frontmatter.
+
+    Args:
+        step: ``next_step:`` one-line action (empty when not recorded).
+        command: ``next_command:`` what the pilot types.
+        alternatives: ``next_alternatives:`` items.
+    """
+
+    step: str
+    command: str
+    alternatives: tuple[str, ...]
+
+
+def read_next_step(text: str) -> NextStep:
+    """Read the next-step fields of a ``progress.md`` file.
+
+    Args:
+        text: ``progress.md`` content (LF newlines).
+
+    Returns:
+        The fields; ``step`` is empty when the next step was never recorded.
+    """
+    fields = read_frontmatter(text)
+    return NextStep(
+        step=fields.get("next_step", "").strip(),
+        command=fields.get("next_command", "").strip(),
+        alternatives=tuple(read_frontmatter_list(text, "next_alternatives")),
+    )
+
+
 # =============================================================================
 # Open tasks
 # =============================================================================
@@ -239,14 +276,25 @@ class TaskLine:
     goal: str
 
     def render(self) -> str:
-        """Return ``NNN | STATUS | title — goal`` capped to one line."""
-        head = f"{self.task_id} | {self.status} | {self.title}"
-        line = f"{head} — {self.goal}" if self.goal else head
+        """Return the task's digest line, capped to one line.
+
+        IN_PROGRESS and REVIEW tasks print ``NNN | STATUS | title — goal``,
+        PLANNING tasks ``NNN title``, any other status ``NNN | STATUS | title``.
+        """
+        if self.status == PLANNING_STATUS:
+            line = f"{self.task_id} {self.title}"
+        else:
+            line = f"{self.task_id} | {self.status} | {self.title}"
+            if self.goal and self.status in FULL_LINE_STATUSES:
+                line = f"{line} — {self.goal}"
         return _cap(" ".join(line.split()), TASK_LINE_MAX_CHARS)
 
     def sort_key(self) -> tuple[int, int, str]:
-        """IN_PROGRESS, then REVIEW, then the rest; each group by task id."""
-        rank = OPEN_STATUS_RANK.get(self.status, OTHER_STATUS_RANK)
+        """IN_PROGRESS, REVIEW, other statuses, then PLANNING; each by task id."""
+        if self.status == PLANNING_STATUS:
+            rank = PLANNING_STATUS_RANK
+        else:
+            rank = OPEN_STATUS_RANK.get(self.status, OTHER_STATUS_RANK)
         number = int(self.task_id) if self.task_id.isdigit() else 0
         return (rank, number, self.task_id)
 
@@ -258,7 +306,7 @@ def open_tasks(files: list[MemoryFile]) -> list[TaskLine]:
         files: Scanned memory files.
 
     Returns:
-        Task lines without ``DONE`` tasks, IN_PROGRESS/REVIEW first, then by id.
+        Task lines without ``DONE`` tasks, ordered by :meth:`TaskLine.sort_key`.
     """
     tasks: list[TaskLine] = []
     for item in files:
@@ -522,6 +570,7 @@ class LedgerEntry:
         task: ``task:`` (``NNN-slug``; empty when none).
         superseded_by: ``superseded_by:`` id of the replacing decision.
         recurrences: Items under ``**Recurrences:**`` (learnings).
+        why: ``why:`` one-liner (deliveries; empty when missing).
     """
 
     filename: str
@@ -533,6 +582,7 @@ class LedgerEntry:
     task: str
     superseded_by: str
     recurrences: int
+    why: str = ""
 
 
 def _is_entry_file(path: Path) -> bool:
@@ -561,6 +611,7 @@ def read_entry(path: Path) -> LedgerEntry:
         task=fields.get("task", "").strip(),
         superseded_by=fields.get("superseded_by", "").strip(),
         recurrences=_count_recurrences(strip_frontmatter(text)),
+        why=fields.get("why", "").strip(),
     )
 
 
@@ -766,12 +817,19 @@ def build_digest(root: Path, budget: int = DEFAULT_SETUP_BUDGET_CHARS) -> str:
         "## Current state",
     ]
     progress = by_relative.get("ledger/progress.md")
+    next_step = read_next_step(progress.text) if progress else None
+    if next_step and next_step.step:
+        lines.append(" — ".join(part for part in (f"Next step: {next_step.step}", next_step.command) if part))
     state = _section(progress.text, r"Current state") if progress else None
     lines.append(state.strip() if state and state.strip() else "(progress.md has no `## Current state` section)")
 
     lines += ["", "## Open tasks"]
-    tasks = open_tasks(files)
-    lines += [task.render() for task in tasks] or ["(none)"]
+    task_lines: list[str] = []
+    for task in open_tasks(files):
+        if task.status == PLANNING_STATUS and PLANNING_LABEL not in task_lines:
+            task_lines.append(PLANNING_LABEL)
+        task_lines.append(task.render())
+    lines += task_lines or ["(none)"]
 
     lines += ["", "## Narrative files"]
     narratives = sorted((item for item in files if item.kind == NARRATIVE), key=_narrative_order)
@@ -1054,10 +1112,14 @@ class LedgerCheck:
     problems: tuple[str, ...]
 
 
+def _name_list(names: list[str]) -> str:
+    shown = names[:PROBLEM_FILES_SHOWN]
+    more = len(names) - len(shown)
+    return ", ".join(shown) + (f" (+{more} more)" if more else "")
+
+
 def _file_list(entries: list[LedgerEntry]) -> str:
-    names = [entry.filename for entry in entries[:PROBLEM_FILES_SHOWN]]
-    more = len(entries) - len(names)
-    return ", ".join(names) + (f" (+{more} more)" if more else "")
+    return _name_list([entry.filename for entry in entries])
 
 
 def check_ledger(root: Path) -> list[LedgerCheck]:
@@ -1090,3 +1152,90 @@ def check_ledger(root: Path) -> list[LedgerCheck]:
         scope = f"{MEMORY_DIR.as_posix()}/{LEDGER_DIR}/{folder}/"
         checks.append(LedgerCheck(scope, len(entries), tuple(problems)))
     return checks
+
+
+# =============================================================================
+# Open-task health (spine_validate.py memory)
+# =============================================================================
+
+STALE_REVIEW_DAYS = 14
+REVIEW_STATUS = "REVIEW"
+TASK_STATUSES = frozenset({PLANNING_STATUS, "IN_PROGRESS", REVIEW_STATUS, CLOSED_STATUS})
+OPEN_TASKS_SCOPE = f"{MEMORY_DIR.as_posix()}/active_tasks/"
+
+
+@dataclass(frozen=True)
+class OpenTasksCheck:
+    """Health of the open tasks in ``active_tasks/``.
+
+    Args:
+        scope: Folder path ``docs/memory/active_tasks/``.
+        tasks: Number of task files whose status is not ``DONE``.
+        problems: One message per problem kind (empty when healthy).
+    """
+
+    scope: str
+    tasks: int
+    problems: tuple[str, ...]
+
+
+def _task_noun(count: int) -> str:
+    return "task" if count == 1 else "tasks"
+
+
+def _is_stale_review(updated_at: str, today: date) -> bool:
+    try:
+        updated = date.fromisoformat(updated_at.strip())
+    except ValueError:
+        return True
+    return (today - updated).days > STALE_REVIEW_DAYS
+
+
+def check_open_tasks(root: Path, today: date) -> OpenTasksCheck | None:
+    """Flag task files that need a human to close them; never edits files.
+
+    Reports tasks without a valid ``status:``, REVIEW tasks whose ``updated_at``
+    is more than ``STALE_REVIEW_DAYS`` days before ``today`` (or unparseable)
+    and DONE tasks never moved to ``completed_tasks/``.
+
+    Args:
+        root: Project root that contains ``docs/memory/``.
+        today: Reference date for the REVIEW age.
+
+    Returns:
+        The check, or ``None`` when ``active_tasks/`` does not exist.
+    """
+    memory_dir = root / MEMORY_DIR
+    if not (memory_dir / "active_tasks").is_dir():
+        return None
+    no_status: list[str] = []
+    stale_review: list[str] = []
+    done: list[str] = []
+    tasks = [item for item in collect_files(memory_dir) if item.kind == TASK]
+    for item in tasks:
+        name = item.relative.rsplit("/", 1)[1]
+        fields = read_frontmatter(item.text)
+        status = fields.get("status", "").strip().upper()
+        if status not in TASK_STATUSES:
+            no_status.append(name)
+        elif status == CLOSED_STATUS:
+            done.append(name)
+        elif status == REVIEW_STATUS and _is_stale_review(fields.get("updated_at", ""), today):
+            stale_review.append(name)
+    problems: list[str] = []
+    if no_status:
+        problems.append(
+            f"{len(no_status)} {_task_noun(len(no_status))} without a valid `status:` — {_name_list(no_status)}"
+            f" — add frontmatter `status:`, or harvest / move to completed_tasks/"
+        )
+    if stale_review:
+        problems.append(
+            f"{len(stale_review)} REVIEW {_task_noun(len(stale_review))} not updated in over {STALE_REVIEW_DAYS} days"
+            f" — {_name_list(stale_review)} — run /spine-harvest, or set `status: IN_PROGRESS` if work resumed"
+        )
+    if done:
+        problems.append(
+            f"{len(done)} DONE {_task_noun(len(done))} still in active_tasks/ — {_name_list(done)}"
+            f" — git mv to completed_tasks/"
+        )
+    return OpenTasksCheck(OPEN_TASKS_SCOPE, len(tasks) - len(done), tuple(problems))
