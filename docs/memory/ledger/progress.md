@@ -3,16 +3,15 @@
 next_step: Plan the next G2 candidate, I10 (preflight script + prompt hook, 294)
 next_command: /spine-plan I10
 next_alternatives:
-  - Fix the validator counting related_learnings items as tags (the pre-commit hook now blocks on it)
-  - /spine-plan I9 (validate-on-edit agent hook, 294; re-score after I8)
   - Close legacy tasks 008–014 with a pure git mv to completed_tasks/
+  - /spine-plan I9 (validate-on-edit agent hook, 294; re-score after I8)
 ---
 # Progress
 
 ## Current state
-- In flight: none. 026-pre-commit-memory-validation delivered (2026-11-17): opt-in git pre-commit hook runs `spine_validate.py staged` and blocks memory-format errors at commit; installed in this repo (roadmap I8 Done).
+- In flight: none. 027-validator-task-tag-count delivered (2026-11-19): `spine_validate.py task` counts only the `tags` field, so `related_learnings` no longer blocks commits.
 - Blocked: nothing.
-- Next: see the recorded next step (`spine.py brief`). Open: close Spine's 7 legacy tasks (008–014; pure `git mv` passes the hook); G1 idea I36. Candidate tasks: validator counts `related_learnings` as tags (now blocks commits); `--no-pre-commit-prompt`; `vendor` refuses the Spine repo; fence-aware `memory._section`; brief hint for legacy delivery logs.
+- Next: see the recorded next step (`spine.py brief`). Open: close Spine's 7 legacy tasks (008–014; pure `git mv` passes the hook); G1 idea I36. Candidate tasks: `--no-pre-commit-prompt`; `vendor` refuses the Spine repo; fence-aware `memory._section`; brief hint for legacy delivery logs.
 - Legacy sections below (`O que funciona` … `Issues Conhecidos`) predate Memory Bank v2.1 and are kept for history.
 
 ## O que funciona
