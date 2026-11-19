@@ -103,6 +103,19 @@ def test_task_tag_count_bounds(
     assert message in capsys.readouterr().err
 
 
+def test_task_other_list_fields_are_not_tags(tmp_path: Path) -> None:
+    five_tags = "tags:\n" + "".join(f"  - t{index}\n" for index in range(5))
+    text = VALID_TASK.replace("tags:\n  - type/feature\n  - area/tooling\n", five_tags).replace(
+        "created_at:", "related_learnings:\n  - LEARN-001\n  - LEARN-002\ncreated_at:"
+    )
+    assert _quiet_task_report(tmp_path, text).errors == 0
+
+
+def test_task_inline_tags_count(tmp_path: Path) -> None:
+    text = VALID_TASK.replace("tags:\n  - type/feature\n  - area/tooling\n", "tags: [type/bug, area/tooling]\n")
+    assert _quiet_task_report(tmp_path, text).errors == 0
+
+
 def test_task_legacy_status_pattern_fails(tmp_path: Path) -> None:
     report = _quiet_task_report(tmp_path, VALID_TASK + "\n**Status:** DONE\n")
     assert report.errors == 1
