@@ -43,6 +43,7 @@ from spine_cli.memory import (
     check_open_tasks,
     collect_entries,
     index_path,
+    read_frontmatter_list,
     render_index,
 )
 
@@ -171,7 +172,7 @@ def validate_task(task_file: Path, report: Report | None = None) -> Report:
         if base_line and "develop" not in base_line:
             report.warn(f"base is not develop: {base_line}")
 
-        tag_count = len(re.findall(r"^[ \t]+- ", frontmatter, flags=re.MULTILINE))
+        tag_count = len(read_frontmatter_list(content, "tags"))
         if tag_count < TASK_MIN_TAGS:
             report.fail(f"tags list empty (need {TASK_MIN_TAGS}-{TASK_MAX_TAGS} tags)")
         elif tag_count > TASK_MAX_TAGS:
