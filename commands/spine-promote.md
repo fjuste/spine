@@ -1,5 +1,5 @@
 ---
-description: "[SPINE-INTERNAL] Commit, push develop, and cascade merge to staging, production, and main"
+description: "[SPINE-INTERNAL] Commit, push develop, and cascade merge to staging, production, and master"
 agent: build
 ---
 
@@ -8,7 +8,7 @@ Act as a Spine Maintainer with full merge privileges.
 
 **WARNING:** This command is **internal to the Spine repository only**. It must never be exposed to consumer projects via `spine.py install` or any template. It assumes direct push/merge rights to protected branches.
 
-**Goal:** Create a high-quality commit on `develop`, push it, and cascade-promote the changes through `staging`, `production`, and `main`, finally returning to `develop`.
+**Goal:** Create a high-quality commit on `develop`, push it, and cascade-promote the changes through `staging`, `production`, and `master`, finally returning to `develop`.
 
 **Optional context (`$ARGUMENTS`):**
 - If non-empty, treat it as the commit subject line (Conventional Commit prefix is still required).
@@ -89,11 +89,11 @@ Execute in strict order. After each merge, verify with `git log --oneline -n 3` 
 - `git merge staging --no-edit`
 - `git push origin production`
 
-### 7.3 main
-- `git checkout main`
-- `git pull origin main`
+### 7.3 master
+- `git checkout master`
+- `git pull origin master`
 - `git merge production --no-edit`
-- `git push origin main`
+- `git push origin master`
 
 ## 8. Return to develop
 - `git checkout develop`
@@ -108,7 +108,7 @@ Provide a concise summary including:
   - `develop` -> pushed
   - `staging` -> merged & pushed
   - `production` -> merged & pushed
-  - `main` -> merged & pushed
+  - `master` -> merged & pushed
 - Any errors or warnings encountered.
 
 ## 10. Safety Guardrails
